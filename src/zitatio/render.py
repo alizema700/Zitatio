@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import datetime as dt
 import hashlib
 import html
@@ -95,6 +96,18 @@ def logo_svg() -> str:
     )
 
 
+def _font_faces() -> str:
+    """Hausschrift als Data-URI, damit der Prüfbericht als einzelne Datei offline gleich aussieht."""
+    faces = []
+    for weight in (400, 700):
+        data = resources.files("zitatio").joinpath(f"assets/fonts/familjen-grotesk-latin-{weight}-normal.woff2").read_bytes()
+        faces.append(
+            '@font-face {{ font-family:"Familjen Grotesk"; font-weight:%d; font-display:swap; '
+            'src:url(data:font/woff2;base64,%s) format("woff2"); }}' % (weight, base64.b64encode(data).decode())
+        )
+    return "\n".join(faces).replace("{{", "{").replace("}}", "}")
+
+
 def _highlight(finding: Finding) -> str:
     """Aussage mit markierten Werten (ohne Fundstellenklammern)."""
     clean = finding.claim.clean_text
@@ -175,6 +188,7 @@ def to_html(run: Run) -> str:
     model = html.escape(run.model) if run.model else "aus (nur Regeln)"
     stamp = run.created.strftime("%d.%m.%Y, %H:%M")
     return TEMPLATE.format(
+        fonts=_font_faces(),
         title=html.escape(run.report_name),
         logo=logo_svg(),
         report=html.escape(run.report_name),
@@ -200,13 +214,14 @@ TEMPLATE = """<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Prüfbericht · {title}</title>
 <style>
+{fonts}
 :root {{
   --ink:#15202B; --ink-2:#4A5560; --line:#DCE1DD; --paper:#F7F8F6; --card:#FFFFFF;
   --green:#1E7A50; --green-bg:#E6F2EC; --red:#B42318; --red-bg:#FBEAE8;
   --amber:#9A5B00; --amber-bg:#FBF1DF; --gray:#5B6670; --gray-bg:#EEF0EF;
   --term:#121A22; --term-ink:#DCE3E8; --term-dim:#7D8A95; --mark:#FFF0B3;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-  --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --sans: "Familjen Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }}
 @media (prefers-color-scheme: dark) {{
   :root {{

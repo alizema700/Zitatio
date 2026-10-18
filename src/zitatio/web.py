@@ -12,6 +12,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from . import __version__
 from .dataroom import DataRoom, read_pages
@@ -20,6 +21,7 @@ from .pipeline import run_check
 from .render import logo_svg, to_html
 
 app = FastAPI(title="Zitatio")
+app.mount("/assets", StaticFiles(directory=str(resources.files("zitatio").joinpath("assets"))), name="assets")
 EXAMPLE = Path(__file__).resolve().parents[2] / "beispiele" / "alpenblick"
 
 
@@ -34,9 +36,8 @@ def index() -> str:
     status = (
         f"Prüfmodell: {html.escape(model)}" if model else "Läuft lokal · Prüfmodell aus, nur Regeln"
     )
-    example = '<a class="btn ghost" href="/beispiel">Beispiel ansehen</a>' if EXAMPLE.exists() else ""
     page = resources.files("zitatio").joinpath("assets/index.html").read_text(encoding="utf-8")
-    for key, value in {"logo": logo_svg(), "status": status, "example": example, "version": __version__}.items():
+    for key, value in {"logo": logo_svg(), "status": status, "version": __version__}.items():
         page = page.replace("{" + key + "}", value)
     return page
 
