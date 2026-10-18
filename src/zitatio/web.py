@@ -15,10 +15,11 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
-from .dataroom import DataRoom, read_pages
+from .dataroom import DataRoom
 from .llm import OpenAICompatibleVerifier
 from .pipeline import run_check
 from .render import logo_svg, to_html
+from .report import report_text
 
 app = FastAPI(title="Zitatio")
 app.mount("/assets", StaticFiles(directory=str(resources.files("zitatio").joinpath("assets"))), name="assets")
@@ -51,9 +52,7 @@ async def check(bericht: UploadFile = File(...), datenraum: list[UploadFile] = F
         raise HTTPException(400, "Der Datenraum enthält keine lesbaren Dokumente.")
     data = await bericht.read()
     name = Path(bericht.filename or "bericht").name
-    text = "\n\n".join(read_pages(data, ".pdf")) if name.lower().endswith(".pdf") else data.decode(
-        "utf-8", errors="replace"
-    )
+    text = report_text(data, Path(name).suffix.lower())
     model, model_name = _model()
     return to_html(run_check(name, text, data, room, model, model_name))
 

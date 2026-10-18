@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import base64
+import csv
 import datetime as dt
 import hashlib
 import html
+import io
 import json
 from dataclasses import dataclass
 from importlib import resources
@@ -45,6 +47,28 @@ class Run:
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+CSV_COLUMNS = ["Nr", "Abschnitt", "Aussage", "Fundstellen", "Status", "Methode", "Begründung", "Belege"]
+
+
+def to_csv(run: Run) -> str:
+    """Eine Zeile pro Aussage; Semikolon und BOM, damit Excel in der Schweiz es direkt öffnet."""
+    out = io.StringIO()
+    writer = csv.writer(out, delimiter=";", lineterminator="\r\n")
+    writer.writerow(CSV_COLUMNS)
+    for f in run.findings:
+        writer.writerow([
+            f.claim.number,
+            f.claim.section,
+            f.claim.clean_text,
+            ", ".join(c.label for c in f.claim.citations),
+            f.status.label,
+            f.method,
+            " ".join(f.reasons),
+            " | ".join(f"{e.doc_label}, S. {e.page}: {e.before}{e.match}{e.after}" for e in f.evidence),
+        ])
+    return "\ufeff" + out.getvalue()
 
 
 def to_json(run: Run) -> str:
@@ -189,6 +213,8 @@ def to_html(run: Run) -> str:
     stamp = run.created.strftime("%d.%m.%Y, %H:%M")
     return TEMPLATE.format(
         fonts=_font_faces(),
+        csv=base64.b64encode(to_csv(run).encode("utf-8")).decode(),
+        csv_name=html.escape(run.report_name.rsplit(".", 1)[0] + "-pruefbericht.csv"),
         title=html.escape(run.report_name),
         logo=logo_svg(),
         report=html.escape(run.report_name),
@@ -236,7 +262,8 @@ body {{ margin:0; background:var(--paper); color:var(--ink); font:15px/1.55 var(
 main {{ max-width:960px; margin:0 auto; padding:32px 16px 64px; }}
 .top {{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }}
 .logo {{ height:28px; width:auto; }}
-.meta {{ font:12px/1.4 var(--mono); color:var(--ink-2); text-align:right; }}
+.meta {{ font:12px/1.5 var(--mono); color:var(--ink-2); text-align:right; }}
+.meta a {{ color:var(--green); }}
 h1 {{ font-size:30px; line-height:1.15; letter-spacing:-0.02em; margin:40px 0 8px; }}
 .sub {{ color:var(--ink-2); margin:0 0 20px; }}
 .chips {{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 24px; }}
@@ -288,7 +315,8 @@ td, th {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line);
 <body>
 <main>
   <div class="top">{logo}
-    <div class="meta">Prüfbericht · {stamp}<br>Prüfmodell: {model}</div>
+    <div class="meta">Prüfbericht · {stamp}<br>Prüfmodell: {model}<br>
+      <a href="data:text/csv;charset=utf-8;base64,{csv}" download="{csv_name}">Als CSV für Excel</a></div>
   </div>
   <h1>{headline}</h1>
   <p class="sub">{report} · {total} Aussagen gegen {docs_count} Dokumente im Datenraum geprüft.</p>

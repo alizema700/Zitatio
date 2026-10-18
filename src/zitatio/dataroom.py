@@ -13,7 +13,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-SUPPORTED_SUFFIXES = {".pdf", ".txt", ".md"}
+SUPPORTED_SUFFIXES = {".pdf", ".docx", ".txt", ".md"}
 _INDEX_RE = re.compile(r"^(\d+(?:\.\d+)*)[\s_\-]+(.+)$")
 
 
@@ -82,6 +82,10 @@ def read_pages(data: bytes, suffix: str) -> list[str]:
 
         reader = PdfReader(io.BytesIO(data))
         return [clean_text(page.extract_text() or "") for page in reader.pages]
+    if suffix == ".docx":
+        from .docx import docx_to_text
+
+        return [clean_text(p) for p in docx_to_text(data).split("\f")]
     text = data.decode("utf-8", errors="replace")
     return [clean_text(p) for p in text.split("\f")]
 

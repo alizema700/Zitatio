@@ -13,8 +13,11 @@ für den Sinn einer Aussage kann optional über eine OpenAI-kompatible Schnittst
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[web,dev]"
 
-# Kommandozeile
-zitatio pruefen beispiele/alpenblick/dd-bericht.md -d beispiele/alpenblick/datenraum -o pruefbericht.html
+# Kommandozeile (HTML, dazu optional JSON und CSV für Excel)
+zitatio pruefen beispiele/alpenblick/dd-bericht.md -d beispiele/alpenblick/datenraum -o pruefbericht.html --csv pruefbericht.csv
+
+# Benchmark mit künstlich eingebauten Fehlern
+zitatio benchmark -d beispiele/alpenblick/datenraum
 
 # Weboberfläche auf http://127.0.0.1:8000
 uvicorn zitatio.web:app --reload
@@ -26,7 +29,8 @@ pytest
 ## Konventionen
 
 - **Datenraum:** Jeder Dateiname beginnt mit der Indexnummer, z. B. `3.2.1 Mietvertrag Werk Winterthur.pdf`.
-  Unterstützt werden PDF (mit Textebene), `.txt` und `.md`.
+  Unterstützt werden PDF (mit Textebene), Word (`.docx`, Seiten über manuelle Seitenumbrüche), `.txt` und `.md`.
+- **Bericht:** Word, PDF, Markdown oder Text. In Word werden Überschriften zu Abschnitten und Tabellenzeilen zu Aussagen.
 - **Fundstellen im Bericht:** `[DR 3.2.1, S. 2]`, `(VDR 2.1 p. 3-4)` und `[Datenraum 5.3; DR 1.1, Seite 2]`.
   Ohne Seitenangabe wird das ganze Dokument durchsucht.
 
@@ -47,6 +51,15 @@ Quelle steht; sonst wird sie verworfen. Ist das Modell nicht erreichbar, bleibt 
 Der Prüfbericht enthält SHA-256-Hashes des Berichts und aller Datenraum-Dokumente, damit später nachvollziehbar
 ist, was genau geprüft wurde.
 
+## Benchmark
+
+`zitatio benchmark` baut aus jeder Zeile des Datenraums mit einem prüfbaren Wert eine korrekt belegte Aussage und
+dazu Varianten mit genau einem Fehler: Zahlendreher oder falscher Wert, falsche Seite, fehlendes Dokument, fehlende
+Fundstelle, sowie korrekte Werte in anderer Schreibweise. Ausgegeben wird die Trefferquote pro Fehlerart.
+
+Das prüft die Regeln gegen bekannte Fehlerarten. Für eine Aussage über echte Berichte braucht es zusätzlich einen
+Benchmark mit anonymisierten, von Menschen geschriebenen DD-Berichten.
+
 ## Prüfmodell (optional)
 
 ```bash
@@ -64,10 +77,12 @@ Ohne Prüfmodell verlässt kein Dokument den Rechner.
 src/zitatio/
   facts.py     Werte erkennen und normalisieren (CHF 3.5 Mio. = CHF 3'500'000), UID-Prüfziffer
   dataroom.py  Datenraum einlesen (Indexnummer, Seitentexte, Hashes)
+  docx.py      Word-Dateien ohne Zusatzpaket lesen
+  benchmark.py Trefferquote mit künstlich eingebauten Fehlern
   report.py    Bericht in Aussagen und Fundstellen zerlegen
   verify.py    Prüfkern: Status, Begründung, Belegstellen; optionales Prüfmodell
   llm.py       OpenAI-kompatibler Client für das Prüfmodell
-  render.py    Prüfbericht als HTML und JSON
+  render.py    Prüfbericht als HTML, JSON und CSV
   cli.py       Kommandozeile
   web.py       Lokale Weboberfläche (FastAPI)
 beispiele/alpenblick/  Fiktiver Datenraum mit DD-Bericht und absichtlich eingebauten Fehlern
@@ -77,4 +92,4 @@ beispiele/alpenblick/  Fiktiver Datenraum mit DD-Bericht und absichtlich eingeba
 
 - „Geprüft“ ohne Prüfmodell heisst, dass die Werte auf der Seite stehen, nicht dass sie dort dasselbe bedeuten.
 - Gescannte PDFs ohne Textebene werden erkannt und gemeldet, aber noch nicht per OCR gelesen.
-- Zefix- und SHAB-Abgleich, Word-Berichte und Tabellen in Berichten folgen später.
+- Zefix- und SHAB-Abgleich folgen; dafür braucht es Zugangsdaten zur Zefix-REST-Schnittstelle.

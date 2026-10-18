@@ -122,10 +122,14 @@ def parse_report(text: str) -> list[Claim]:
     return claims
 
 
+def report_text(data: bytes, suffix: str) -> str:
+    """Berichtstext aus PDF, Word oder Text."""
+    if suffix in (".pdf", ".docx"):
+        return "\n\n".join(read_pages(data, suffix))
+    return data.decode("utf-8", errors="replace")
+
+
 def load_report(path: str | Path) -> tuple[str, bytes]:
     path = Path(path)
     data = path.read_bytes()
-    suffix = path.suffix.lower()
-    if suffix == ".pdf":
-        return "\n\n".join(read_pages(data, ".pdf")), data
-    return data.decode("utf-8", errors="replace"), data
+    return report_text(data, path.suffix.lower()), data

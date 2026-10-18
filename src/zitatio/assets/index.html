@@ -288,8 +288,8 @@ footer .legal { margin-top:56px; font-size:12px; color:var(--ink-3); display:fle
           <p class="body">Exportieren Sie den Datenraum mit Indexnummern im Dateinamen. Fundstellen wie <code>[DR 3.2.1, S. 2]</code>
             werden direkt aufgelöst, fehlende Dokumente und Seiten fallen auf.</p>
           <div class="icons">
-            <div><i>PDF</i>PDF mit Textebene</div><div><i>MD</i>Markdown</div>
-            <div><i>TXT</i>Text</div><div><i>#</i>SHA-256 pro Datei</div>
+            <div><i>PDF</i>PDF mit Textebene</div><div><i>DOC</i>Word (.docx)</div>
+            <div><i>MD</i>Markdown, Text</div><div><i>#</i>SHA-256 pro Datei</div>
           </div>
         </div>
         <div class="split rev">
@@ -320,7 +320,7 @@ footer .legal { margin-top:56px; font-size:12px; color:var(--ink-3); display:fle
     <div class="steps">
       <ol role="tablist">
         <li><button role="tab" aria-selected="true" data-step="0"><small>01</small>Datenraum exportieren<span class="p">PDFs mit Indexnummer im Namen, so wie im VDR.</span></button></li>
-        <li><button role="tab" aria-selected="false" data-step="1"><small>02</small>Bericht hochladen<span class="p">Markdown, Text oder PDF mit Fundstellen.</span></button></li>
+        <li><button role="tab" aria-selected="false" data-step="1"><small>02</small>Bericht hochladen<span class="p">Word, PDF, Markdown oder Text mit Fundstellen.</span></button></li>
         <li><button role="tab" aria-selected="false" data-step="2"><small>03</small>Prüfen<span class="p">Jede Aussage wird gegen die zitierte Seite gelesen.</span></button></li>
         <li><button role="tab" aria-selected="false" data-step="3"><small>04</small>Korrigieren<span class="p">Status, Begründung und Belegstelle pro Aussage.</span></button></li>
       </ol>
@@ -377,8 +377,8 @@ footer .legal { margin-top:56px; font-size:12px; color:var(--ink-3); display:fle
   <div class="wrap">
     <h2>Probieren Sie es mit Ihrem Bericht</h2>
     <form class="upload" action="/pruefen" method="post" enctype="multipart/form-data">
-      <label class="drop"><b>DD-Bericht</b><span>Markdown, Text oder PDF</span>
-        <input type="file" name="bericht" accept=".md,.txt,.pdf" required></label>
+      <label class="drop"><b>DD-Bericht</b><span>Word, PDF, Markdown oder Text</span>
+        <input type="file" name="bericht" accept=".md,.txt,.pdf,.docx" required></label>
       <label class="drop"><b>Datenraum</b><span>Ordner mit den Dokumenten</span>
         <input type="file" name="datenraum" webkitdirectory directory multiple required></label>
       <div class="go"><button class="btn" type="submit">Prüfen <span aria-hidden="true">→</span></button>
@@ -410,7 +410,7 @@ footer .legal { margin-top:56px; font-size:12px; color:var(--ink-3); display:fle
         <p>Ohne Prüfmodell bleiben sie „Ungeprüft“ und zeigen die ähnlichste Textstelle als Lesehilfe. Mit Prüfmodell werden sie
           als gestützt oder widersprochen markiert.</p></details>
       <details><summary>Welche Dateien funktionieren?</summary>
-        <p>PDFs mit Textebene, Text und Markdown. Gescannte Seiten ohne Text werden erkannt und gemeldet. Word und OCR folgen.</p></details>
+        <p>Word, PDFs mit Textebene, Text und Markdown. Gescannte Seiten ohne Text werden erkannt und gemeldet; OCR folgt.</p></details>
       <details><summary>Wie müssen Fundstellen aussehen?</summary>
         <p>Wie im Datenraum-Index üblich: [DR 3.2.1, S. 2], (VDR 2.1 p. 3-4) oder [Datenraum 5.3]. Ohne Seitenangabe wird das
           ganze Dokument durchsucht.</p></details>
