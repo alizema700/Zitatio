@@ -21,7 +21,7 @@ zitatio = "zitatio.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-zitatio = ["assets/*.svg"]
+zitatio = ["assets/*.svg", "assets/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

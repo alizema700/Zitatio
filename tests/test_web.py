@@ -9,7 +9,7 @@ client = TestClient(app)
 
 
 def test_index_and_example():
-    assert "Jede Aussage" in client.get("/").text
+    assert "Kein Satz ohne Beleg" in client.get("/").text
     assert "Prüfprotokoll" in client.get("/beispiel").text
 
 

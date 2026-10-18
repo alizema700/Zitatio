@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zitatio · Prüfschicht für Due Diligence</title>
+<meta name="description" content="Zitatio prüft jede Aussage in DD-Berichten und IC-Memos gegen den Datenraum.">
+<style>
+:root {
+  --ink:#15202B; --ink-2:#4A5560; --ink-3:#7A858F; --line:#E2E6E3; --paper:#F7F8F6; --card:#FFFFFF;
+  --green:#1E7A50; --green-2:#4CC38A; --red:#F07A6E; --amber:#E8B04B;
+  --term:#121A22; --term-2:#18222C; --term-line:#24303A; --term-ink:#DCE3E8; --term-dim:#7D8A95;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --ink:#EEF2F0; --ink-2:#A9B4BD; --ink-3:#7D8A95; --line:#24303A; --paper:#0E151C; --card:#141D26;
+    --green:#4CC38A; --term:#0A1016; --term-2:#111A22; --term-line:#1F2A34; }
+}
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.6 var(--sans); -webkit-font-smoothing:antialiased; }
+a { color:inherit; }
+.wrap { max-width:1080px; margin:0 auto; padding:0 16px; }
+
+/* Navigation */
+nav { position:sticky; top:0; z-index:10; background:color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line); }
+nav .wrap { display:flex; align-items:center; gap:28px; height:60px; }
+.logo { height:24px; width:auto; display:block; }
+nav .links { display:flex; gap:22px; font-size:14px; color:var(--ink-2); }
+nav .links a { text-decoration:none; }
+nav .links a:hover { color:var(--ink); }
+nav .right { margin-left:auto; display:flex; align-items:center; gap:14px; font-size:14px; }
+nav .right a.plain { text-decoration:none; color:var(--ink-2); }
+
+/* Buttons und Befehl */
+.btn { display:inline-flex; align-items:center; gap:8px; font:600 14px var(--sans); text-decoration:none; cursor:pointer;
+  background:var(--ink); color:var(--paper); border:1px solid var(--ink); border-radius:8px; padding:9px 16px; }
+.btn.ghost { background:transparent; color:var(--ink); border-color:var(--line); }
+.btn:hover { opacity:.9; }
+.cmd { display:flex; align-items:center; gap:12px; background:var(--term); color:var(--term-ink); border-radius:10px;
+  padding:12px 12px 12px 16px; font:13.5px var(--mono); max-width:100%; }
+.cmd code { overflow-x:auto; white-space:nowrap; flex:1; }
+.cmd .p { color:var(--green-2); user-select:none; }
+.copy { font:12px var(--mono); color:var(--term-dim); background:var(--term-2); border:1px solid var(--term-line);
+  border-radius:6px; padding:5px 9px; cursor:pointer; flex:none; }
+.copy:hover { color:var(--term-ink); }
+
+/* Hero */
+.hero { padding:88px 0 40px; }
+.eyebrow { font:12px var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--green); margin:0 0 18px; }
+h1 { font-size:clamp(40px, 7vw, 76px); line-height:.98; letter-spacing:-0.045em; margin:0 0 22px; font-weight:700; max-width:11em; }
+.hero .lead { font-size:clamp(17px, 2vw, 20px); color:var(--ink-2); max-width:34em; margin:0 0 30px; }
+.hero .actions { display:flex; gap:10px; flex-wrap:wrap; margin:0 0 22px; }
+.hero .cmd { max-width:620px; }
+.hint { font-size:13px; color:var(--ink-3); margin:10px 0 0; }
+
+/* Terminal-Fenster */
+.win { background:var(--term); color:var(--term-ink); border-radius:12px; border:1px solid var(--term-line);
+  font:13px/1.75 var(--mono); overflow:hidden; box-shadow:0 30px 60px -30px rgba(10,16,22,.45); }
+.win .bar { display:flex; align-items:center; gap:7px; padding:11px 14px; border-bottom:1px solid var(--term-line); color:var(--term-dim); font-size:12px; }
+.win .dot { width:10px; height:10px; border-radius:50%; background:var(--term-line); }
+.win .bar span.t { margin-left:8px; }
+.win .body { padding:14px 18px 16px; overflow-x:auto; }
+.win .ln { display:grid; grid-template-columns:16px minmax(0,1fr) auto; gap:12px; white-space:nowrap; }
+.win .ln .m { overflow:hidden; text-overflow:ellipsis; }
+.d { color:var(--term-dim); } .ok { color:var(--green-2); } .bad { color:var(--red); } .warn { color:var(--amber); }
+.hero-term { margin:56px 0 0; }
+.hero-term .ln { opacity:0; animation:in .35s ease forwards; }
+.hero-term .ln:nth-child(2){animation-delay:.25s} .hero-term .ln:nth-child(3){animation-delay:.5s}
+.hero-term .ln:nth-child(4){animation-delay:.75s} .hero-term .ln:nth-child(5){animation-delay:1s}
+.hero-term .ln:nth-child(6){animation-delay:1.25s} .hero-term .ln:nth-child(7){animation-delay:1.5s}
+.hero-term .ln:nth-child(8){animation-delay:1.75s} .hero-term .ln:nth-child(9){animation-delay:2.1s}
+@keyframes in { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion: reduce) { .hero-term .ln { animation:none; opacity:1; } }
+
+/* Abschnitte */
+section.block { padding:96px 0 0; }
+.kicker { font:12px var(--mono); color:var(--ink-3); margin:0 0 10px; }
+h2 { font-size:clamp(28px, 4vw, 40px); line-height:1.08; letter-spacing:-0.03em; margin:0 0 14px; max-width:16em; }
+.sub { color:var(--ink-2); font-size:17px; max-width:36em; margin:0; }
+.feature { display:grid; grid-template-columns:minmax(0, 5fr) minmax(0, 7fr); gap:48px; align-items:center; padding:72px 0 0; }
+.feature:nth-of-type(even) { grid-template-columns:minmax(0, 7fr) minmax(0, 5fr); }
+.feature:nth-of-type(even) .text { order:2; }
+.feature h3 { font-size:24px; letter-spacing:-0.02em; line-height:1.2; margin:0 0 10px; }
+.feature p { color:var(--ink-2); margin:0 0 12px; }
+.feature ul { margin:0; padding:0; list-style:none; color:var(--ink-2); font-size:15px; }
+.feature li { padding:4px 0 4px 22px; position:relative; }
+.feature li::before { content:"✓"; position:absolute; left:0; color:var(--green); font-weight:700; }
+
+/* Vergleichspanel Aussage/Quelle */
+.pair { display:grid; gap:10px; }
+.paper { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; font-size:14.5px; }
+.paper .lbl { font:11px var(--mono); color:var(--ink-3); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; display:flex; justify-content:space-between; }
+.paper mark { border-radius:3px; padding:0 3px; color:inherit; }
+.paper mark.no { background:rgba(240,122,110,.22); text-decoration:line-through; text-decoration-color:var(--red); }
+.paper mark.yes { background:rgba(76,195,138,.25); }
+.verdict { font:13px var(--mono); padding:10px 14px; border-radius:8px; background:var(--term); color:var(--term-ink); }
+
+/* Schritte */
+.steps { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px; margin:40px 0 0; padding:0; list-style:none; counter-reset:s; }
+.steps li { border:1px solid var(--line); background:var(--card); border-radius:12px; padding:18px; }
+.steps .n { font:12px var(--mono); color:var(--green); }
+.steps b { display:block; font-size:16px; margin:6px 0 6px; }
+.steps p { margin:0; color:var(--ink-2); font-size:14px; }
+.steps code { font:12px var(--mono); background:var(--paper); border:1px solid var(--line); border-radius:5px; padding:1px 5px; }
+
+/* Anwendungsfälle */
+.cases { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; margin:40px 0 0; }
+.case { border:1px solid var(--line); border-radius:12px; padding:22px; background:var(--card); }
+.case h3 { margin:0 0 6px; font-size:18px; letter-spacing:-0.01em; }
+.case p { margin:0; color:var(--ink-2); font-size:15px; }
+.case .tag { font:11px var(--mono); color:var(--ink-3); display:block; margin-bottom:10px; }
+
+/* Prüfen */
+.upload { margin:40px 0 0; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; }
+.drop { border:1.5px dashed var(--line); border-radius:12px; padding:22px; background:var(--card); display:grid; gap:6px; cursor:pointer; }
+.drop:hover { border-color:var(--green); }
+.drop b { font-size:16px; }
+.drop span { color:var(--ink-2); font-size:14px; }
+.drop input { font:13px var(--sans); color:var(--ink-2); margin-top:8px; max-width:100%; }
+.upload .go { grid-column:1 / -1; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.upload .go small { color:var(--ink-3); font-size:13px; }
+
+/* Sicherheit */
+.trust { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:1px; background:var(--line); border:1px solid var(--line);
+  border-radius:12px; overflow:hidden; margin:40px 0 0; }
+.trust div { background:var(--card); padding:20px; }
+.trust b { display:block; font-size:15px; margin-bottom:6px; }
+.trust p { margin:0; font-size:14px; color:var(--ink-2); }
+
+/* FAQ */
+.faq { margin:32px 0 0; border-top:1px solid var(--line); max-width:780px; }
+details { border-bottom:1px solid var(--line); }
+summary { cursor:pointer; list-style:none; padding:18px 0; font-weight:600; display:flex; justify-content:space-between; gap:16px; }
+summary::-webkit-details-marker { display:none; }
+summary::after { content:"+"; font:400 20px/1 var(--mono); color:var(--ink-3); }
+details[open] summary::after { content:"–"; }
+details p { margin:0 0 18px; color:var(--ink-2); max-width:42em; }
+
+/* Abschluss und Footer */
+.cta { text-align:center; padding:120px 0 96px; }
+.cta h2 { margin:0 auto 14px; }
+.cta .sub { margin:0 auto 28px; }
+.cta .cmd { max-width:560px; margin:0 auto 18px; text-align:left; }
+.cta .actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+footer { border-top:1px solid var(--line); padding:48px 0 40px; font-size:14px; color:var(--ink-2); }
+footer .cols { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:24px; }
+footer h4 { font:12px var(--mono); color:var(--ink-3); text-transform:uppercase; letter-spacing:.06em; margin:0 0 12px; font-weight:400; }
+footer ul { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+footer a { text-decoration:none; } footer a:hover { color:var(--ink); }
+footer .legal { margin-top:40px; font-size:12px; color:var(--ink-3); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+
+@media (max-width: 860px) {
+  nav .links { display:none; }
+  .feature, .feature:nth-of-type(even) { grid-template-columns:minmax(0,1fr); gap:24px; }
+  .feature:nth-of-type(even) .text { order:0; }
+  .steps, .trust { grid-template-columns:repeat(2, minmax(0,1fr)); }
+  footer .cols { grid-template-columns:1fr 1fr; }
+}
+@media (max-width: 560px) {
+  .hero { padding-top:56px; }
+  nav .right a.plain { display:none; }
+  .steps, .trust, .cases, .upload { grid-template-columns:minmax(0,1fr); }
+  .win { font-size:12px; }
+  .win .ln { gap:8px; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a href="/" aria-label="Zitatio Startseite">{logo}</a>
+    <div class="links">
+      <a href="#funktionsweise">Funktionsweise</a>
+      <a href="#anwendungen">Anwendungen</a>
+      <a href="#sicherheit">Sicherheit</a>
+      <a href="#fragen">Fragen</a>
+    </div>
+    <div class="right">
+      <a class="plain" href="/beispiel">Beispiel</a>
+      <a class="btn" href="#pruefen">Bericht prüfen</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Prüfschicht für Due Diligence</p>
+    <h1>Kein Satz ohne Beleg.</h1>
+    <p class="lead">Zitatio prüft jede Aussage in DD-Berichten und IC-Memos gegen den Datenraum. Was stimmt, wird belegt.
+      Was nicht stimmt, wird gezeigt, mit der richtigen Zahl und der richtigen Seite.</p>
+    <div class="actions">
+      <a class="btn" href="#pruefen">Bericht prüfen</a>
+      {example}
+    </div>
+    <div class="cmd"><code><span class="p">$ </span><span id="c1">zitatio pruefen dd-bericht.md --datenraum ./datenraum</span></code>
+      <button class="copy" data-copy="c1" type="button">Kopieren</button></div>
+    <p class="hint">{status}</p>
+
+    <div class="win hero-term" role="img" aria-label="Beispiel eines Prüfprotokolls">
+      <div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="t">pruefprotokoll · alpenblick-praezision-ag</span></div>
+      <div class="body">
+        <div class="ln"><span class="d">$</span><span class="m">zitatio pruefen dd-bericht.md --datenraum ./datenraum</span><span class="r"></span></div>
+        <div class="ln"><span class="d">·</span><span class="m d">14 Aussagen · 5 Dokumente · 9 Seiten gelesen</span><span class="r"></span></div>
+        <div class="ln"><span class="ok">✓</span><span class="m">Aktienkapital CHF 500'000 <span class="d">DR 1.1, S. 1</span></span><span class="r ok">GEPRÜFT</span></div>
+        <div class="ln"><span class="bad">✗</span><span class="m">Nettoerlös CHF 18'540'000 <span class="d">→ Quelle: CHF 18'450'000</span></span><span class="r bad">ABWEICHUNG</span></div>
+        <div class="ln"><span class="warn">↷</span><span class="m">Mietzins CHF 312'000 <span class="d">DR 3.2.1 steht auf S. 2, nicht S. 3</span></span><span class="r warn">FUNDSTELLE</span></div>
+        <div class="ln"><span class="bad">✗</span><span class="m">UID CHE-411.827.905 <span class="d">Prüfziffer ungültig</span></span><span class="r bad">ABWEICHUNG</span></div>
+        <div class="ln"><span class="bad">✗</span><span class="m">Lizenzvertrag Ostwind <span class="d">DR 4.2 fehlt im Datenraum</span></span><span class="r bad">QUELLE FEHLT</span></div>
+        <div class="ln"><span class="ok">✓</span><span class="m">Darlehen CHF 3.5 Mio. · 2,4 % · fällig 31.03.2030</span><span class="r ok">GEPRÜFT</span></div>
+        <div class="ln"><span class="d">·</span><span class="m"><span class="ok">5 geprüft</span> · <span class="bad">5 Abweichungen</span> · <span class="warn">4 offen</span> · Prüfbericht gespeichert</span><span class="r"></span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="block" id="funktionsweise">
+  <div class="wrap">
+    <p class="kicker">01 · Funktionsweise</p>
+    <h2>Gebaut für den Moment vor dem Investment Committee.</h2>
+    <p class="sub">Ein DD-Bericht hat hunderte Zahlen und Verweise. Zitatio liest jede einzelne nach, bevor jemand anderes es tut.</p>
+
+    <div class="feature">
+      <div class="text">
+        <h3>Jede Zahl gegen ihre Seite.</h3>
+        <p>Beträge, Daten, Prozente, Fristen und UIDs werden auf der zitierten Seite gesucht. Schreibweisen spielen keine Rolle:
+          CHF 3.5 Mio. und CHF 3'500'000 sind derselbe Wert.</p>
+        <ul><li>Nennt bei Abweichungen den Wert, der tatsächlich dort steht</li><li>Deterministisch, ohne Modell, ohne Raten</li></ul>
+      </div>
+      <div class="pair">
+        <div class="paper"><div class="lbl"><span>DD-Bericht · Abschnitt 2</span><span>Aussage 4</span></div>
+          Der Nettoerlös 2025 beträgt <mark class="no">CHF 18'540'000</mark> bei einem EBITDA von CHF 2.31 Mio.</div>
+        <div class="paper"><div class="lbl"><span>DR 2.1 Jahresrechnung 2025</span><span>S. 1</span></div>
+          Nettoerlös aus Lieferungen und Leistungen: <mark class="yes">CHF 18'450'000</mark></div>
+        <div class="verdict"><span class="bad">✗ ABWEICHUNG</span> <span class="d">· Fundstelle nennt CHF 18'450'000</span></div>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="text">
+        <h3>Falsche Fundstellen, fehlende Quellen.</h3>
+        <p>Steht der Wert auf einer anderen Seite, zeigt Zitatio die richtige. Verweist der Bericht auf ein Dokument, das es im
+          Datenraum nicht gibt, fällt das sofort auf.</p>
+        <ul><li>Schlägt Belege für Aussagen ohne Fundstelle vor</li><li>Erkennt Seiten ohne Textebene</li></ul>
+      </div>
+      <div class="win">
+        <div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="t">fundstellen</span></div>
+        <div class="body">
+          <div class="ln"><span class="warn">↷</span><span class="m">Mietzins CHF 312'000</span><span class="r d">DR 3.2.1, S. 3</span></div>
+          <div class="ln"><span class="d"> </span><span class="m d">└ gefunden auf DR 3.2.1, S. 2 · Art. 3 Mietzins</span><span class="r"></span></div>
+          <div class="ln"><span class="bad">✗</span><span class="m">Covenants im Anhang</span><span class="r d">DR 5.3, S. 4</span></div>
+          <div class="ln"><span class="d"> </span><span class="m d">└ DR 5.3 hat nur 1 Seite</span><span class="r"></span></div>
+          <div class="ln"><span class="warn">!</span><span class="m">Nettoverschuldung CHF 4.2 Mio.</span><span class="r d">ohne Fundstelle</span></div>
+          <div class="ln"><span class="d"> </span><span class="m d">└ Beleg vorgeschlagen: DR 2.1, S. 1</span><span class="r"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="text">
+        <h3>Schweizer Formate und Register.</h3>
+        <p>Apostroph-Tausender, „Fr.“ und „TCHF“, deutsche Monatsnamen und die UID mit Prüfziffer gehören zum Grundwortschatz.
+          Zefix und SHAB folgen als nächste Quellen.</p>
+        <ul><li>UID-Prüfziffer nach Modulo 11</li><li>Fristen auch ausgeschrieben: „zwölf Monaten“ = 12 Monate</li></ul>
+      </div>
+      <div class="win">
+        <div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="t">normalisierung</span></div>
+        <div class="body">
+          <div class="ln"><span class="d">›</span><span class="m">TCHF 3'500 <span class="d">→</span> <span class="ok">CHF 3'500'000</span></span><span class="r"></span></div>
+          <div class="ln"><span class="d">›</span><span class="m">3,5 Mio. CHF <span class="d">→</span> <span class="ok">CHF 3'500'000</span></span><span class="r"></span></div>
+          <div class="ln"><span class="d">›</span><span class="m">31. Dezember 2029 <span class="d">→</span> <span class="ok">31.12.2029</span></span><span class="r"></span></div>
+          <div class="ln"><span class="d">›</span><span class="m">zwölf Monaten <span class="d">→</span> <span class="ok">12 Monate</span></span><span class="r"></span></div>
+          <div class="ln"><span class="d">›</span><span class="m">CHE-411.872.905 <span class="d">→</span> <span class="ok">Prüfziffer gültig</span></span><span class="r"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="text">
+        <h3>Ihr Modell, Ihr Server.</h3>
+        <p>Für Aussagen ohne Zahlen kann ein Prüfmodell zugeschaltet werden, zum Beispiel Apertus auf einem Server in der Schweiz.
+          Seine Antwort zählt nur, wenn das Zitat wörtlich in der Quelle steht.</p>
+        <ul><li>Jede OpenAI-kompatible Schnittstelle</li><li>Erfundene Zitate werden verworfen</li></ul>
+      </div>
+      <div class="win">
+        <div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="t">pruefmodell</span></div>
+        <div class="body">
+          <div class="ln"><span class="d">$</span><span class="m">export ZITATIO_LLM_BASE_URL=https://ki.ihr-server.ch/v1</span><span class="r"></span></div>
+          <div class="ln"><span class="d">$</span><span class="m">zitatio pruefen dd-bericht.md -d ./datenraum --modell</span><span class="r"></span></div>
+          <div class="ln"><span class="bad">✗</span><span class="m">„keine Kontrollwechselklausel“</span><span class="r bad">WIDERSPRUCH</span></div>
+          <div class="ln"><span class="d"> </span><span class="m d">└ DR 4.1, S. 2: „ist die Kundin berechtigt, diesen Vertrag … zu kündigen“</span><span class="r"></span></div>
+          <div class="ln"><span class="d"> </span><span class="m d">└ Zitat wörtlich in der Quelle gefunden</span><span class="r ok">✓</span></div>
+        </div>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><span class="n">01</span><b>Datenraum exportieren</b><p>PDFs mit Indexnummer im Namen, z. B. <code>3.2.1 Mietvertrag.pdf</code>.</p></li>
+      <li><span class="n">02</span><b>Bericht hochladen</b><p>Markdown, Text oder PDF mit Fundstellen wie <code>[DR 3.2.1, S. 2]</code>.</p></li>
+      <li><span class="n">03</span><b>Prüfen</b><p>Jede Aussage wird gegen die zitierte Seite gelesen.</p></li>
+      <li><span class="n">04</span><b>Korrigieren</b><p>Der Prüfbericht zeigt Status, Begründung und Belegstelle pro Aussage.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="block" id="anwendungen">
+  <div class="wrap">
+    <p class="kicker">02 · Anwendungen</p>
+    <h2>Für alle, die mit dem Bericht unterschreiben.</h2>
+    <div class="cases">
+      <div class="case"><span class="tag">Private Equity</span><h3>IC-Memos vor der Sitzung</h3>
+        <p>Jede Kennzahl im Memo ist mit der Jahresrechnung oder dem Vertrag abgeglichen, bevor das Committee sie sieht.</p></div>
+      <div class="case"><span class="tag">M&amp;A-Beratung</span><h3>Buy-side Due Diligence</h3>
+        <p>Legal- und Financial-DD-Reports werden gegen den Datenraum geprüft, Abweichungen landen als Liste beim Team.</p></div>
+      <div class="case"><span class="tag">Verkäuferseite</span><h3>Vendor DD und Factbook</h3>
+        <p>Was im Factbook steht, muss im Datenraum belegt sein. Zitatio findet die Lücken vor dem Käufer.</p></div>
+      <div class="case"><span class="tag">KMU-Nachfolge</span><h3>Kleine Deals, gleiche Sorgfalt</h3>
+        <p>Für Treuhänder und Berater bei Transaktionen von CHF 1 bis 20 Mio., wo kein grosses DD-Team bereitsteht.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="pruefen">
+  <div class="wrap">
+    <p class="kicker">03 · Prüfen</p>
+    <h2>Probieren Sie es mit Ihrem eigenen Bericht.</h2>
+    <p class="sub">Die Dateien bleiben auf diesem Rechner. Ohne Prüfmodell verlässt kein Dokument die Maschine.</p>
+    <form class="upload" action="/pruefen" method="post" enctype="multipart/form-data">
+      <label class="drop"><b>DD-Bericht</b><span>Markdown, Text oder PDF</span>
+        <input type="file" name="bericht" accept=".md,.txt,.pdf" required></label>
+      <label class="drop"><b>Datenraum</b><span>Ordner mit den Dokumenten</span>
+        <input type="file" name="datenraum" webkitdirectory directory multiple required></label>
+      <div class="go"><button class="btn" type="submit">Prüfen</button>{example}<small>Ergebnis als Prüfbericht im Browser.</small></div>
+    </form>
+  </div>
+</section>
+
+<section class="block" id="sicherheit">
+  <div class="wrap">
+    <p class="kicker">04 · Sicherheit</p>
+    <h2>Gebaut für vertrauliche Datenräume.</h2>
+    <div class="trust">
+      <div><b>Läuft lokal</b><p>Die Regelprüfung braucht kein Netz und keinen Cloud-Dienst.</p></div>
+      <div><b>Schweizer Hosting</b><p>Ein Prüfmodell läuft auf einem Server Ihrer Wahl, etwa in der Schweiz ohne CLOUD Act.</p></div>
+      <div><b>Kein Training</b><p>Dokumente werden geprüft, nicht gesammelt. Nichts fliesst in ein Modell zurück.</p></div>
+      <div><b>Nachvollziehbar</b><p>Jeder Prüfbericht enthält SHA-256-Hashes aller geprüften Dokumente.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="fragen">
+  <div class="wrap">
+    <p class="kicker">05 · Fragen</p>
+    <h2>Häufige Fragen</h2>
+    <div class="faq">
+      <details><summary>Was bedeutet „Geprüft“ genau?</summary>
+        <p>Jeder Betrag, jedes Datum, jeder Prozentsatz, jede Frist und jede UID der Aussage steht auf der zitierten Seite. Den Sinn
+          einer Aussage bestätigt nur das Prüfmodell, und nur mit einem Zitat, das wörtlich in der Quelle steht.</p></details>
+      <details><summary>Was passiert mit Aussagen ohne Zahlen?</summary>
+        <p>Ohne Prüfmodell bleiben sie „Ungeprüft“ und zeigen die ähnlichste Textstelle als Lesehilfe. Mit Prüfmodell werden sie
+          als gestützt oder widersprochen markiert.</p></details>
+      <details><summary>Welche Dateien funktionieren?</summary>
+        <p>PDFs mit Textebene, Text und Markdown. Gescannte Seiten ohne Text werden erkannt und gemeldet. Word und OCR folgen.</p></details>
+      <details><summary>Wie müssen Fundstellen aussehen?</summary>
+        <p>Wie im Datenraum-Index üblich: [DR 3.2.1, S. 2], (VDR 2.1 p. 3-4) oder [Datenraum 5.3]. Ohne Seitenangabe wird das
+          ganze Dokument durchsucht.</p></details>
+      <details><summary>Ersetzt Zitatio die Prüfung durch Menschen?</summary>
+        <p>Nein. Zitatio sagt, wo Menschen hinschauen müssen, und belegt, was bereits stimmt. Die Entscheidung bleibt beim Team.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <h2>Bevor das Committee nachfragt.</h2>
+    <p class="sub">Ein Befehl, ein Ordner, ein Prüfbericht.</p>
+    <div class="cmd"><code><span class="p">$ </span><span id="c2">zitatio pruefen dd-bericht.md --datenraum ./datenraum</span></code>
+      <button class="copy" data-copy="c2" type="button">Kopieren</button></div>
+    <div class="actions"><a class="btn" href="#pruefen">Bericht prüfen</a><a class="btn ghost" href="/beispiel">Beispiel ansehen</a></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div>{logo}<p>Prüfschicht für Due Diligence.<br>Aus Zürich.</p></div>
+      <div><h4>Produkt</h4><ul><li><a href="#funktionsweise">Funktionsweise</a></li><li><a href="#anwendungen">Anwendungen</a></li><li><a href="#pruefen">Bericht prüfen</a></li></ul></div>
+      <div><h4>Vertrauen</h4><ul><li><a href="#sicherheit">Sicherheit</a></li><li><a href="#fragen">Fragen</a></li></ul></div>
+      <div><h4>Code</h4><ul><li><a href="https://github.com/alizema700/zitatio">GitHub</a></li></ul></div>
+    </div>
+    <div class="legal"><span>© 2026 Zitatio</span><span>Prototyp {version}</span></div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var text = document.getElementById(b.dataset.copy).textContent;
+    var done = function () { b.textContent = 'Kopiert'; setTimeout(function () { b.textContent = 'Kopieren'; }, 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+  });
+});
+</script>
+</body>
+</html>
