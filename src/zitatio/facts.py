@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import datetime as dt
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
+from functools import lru_cache
 
 AMOUNT, DATE, PERCENT, DURATION, UID = "betrag", "datum", "prozent", "frist", "uid"
 
@@ -29,9 +30,31 @@ class Fact:
     text: str  # Originalschreibweise
     start: int
     end: int
+    # Rundungsschritt der Schreibweise: "CHF 18.45 Mio." ist auf 10'000 genau.
+    precision: Decimal | None = field(default=None, compare=False)
+    # Einheit aus dem Seitenkopf, wenn die Zahl ohne Währung in einer Tabelle steht.
+    unit: str | None = field(default=None, compare=False)
 
     def matches(self, other: "Fact") -> bool:
         return self.kind == other.kind and self.value == other.value
+
+    def match(self, found: "Fact") -> str | None:
+        """'exakt', 'gerundet' (diese Schreibweise rundet den gefundenen Wert) oder None."""
+        if self.kind != found.kind:
+            return None
+        if self.value == found.value:
+            return "exakt"
+        if not self.precision:
+            return None
+        if self.kind == AMOUNT:
+            (cur, mine), (other_cur, theirs) = self.value, found.value
+            if cur != other_cur or not theirs:
+                return None
+            close = abs(mine - theirs) <= self.precision / 2 and abs(mine - theirs) / abs(theirs) <= Decimal("0.01")
+            return "gerundet" if close else None
+        if self.kind == PERCENT:
+            return "gerundet" if abs(self.value - found.value) <= self.precision / 2 else None
+        return None
 
     def display(self) -> str:
         return format_value(self.kind, self.value)
@@ -105,8 +128,16 @@ def _amounts(text: str):
         if value is None:
             continue
         code, cur_factor = _currency(cur)
-        value = _norm_decimal(value * _scale_factor(scale) * cur_factor)
-        yield Fact(AMOUNT, (code, value), m.group(0).strip(), m.start(), m.end())
+        factor = _scale_factor(scale) * cur_factor
+        precision = _step(num) * factor if factor > 1 else None
+        value = _norm_decimal(value * factor)
+        yield Fact(AMOUNT, (code, value), m.group(0).strip(), m.start(), m.end(), precision)
+
+
+def _step(num: str) -> Decimal:
+    """Kleinster Schritt einer geschriebenen Zahl: "18.45" -> 0.01, "3" -> 1."""
+    m = re.search(r"[.,](\d{1,2})$", num.strip())
+    return Decimal(1).scaleb(-len(m.group(1))) if m else Decimal(1)
 
 
 # --- Daten ------------------------------------------------------------------
@@ -145,8 +176,11 @@ _PERCENT_RE = re.compile(r"(?<![\d.,])(\d+(?:[.,]\d+)?)\s?(?:%|Prozent\b|pct\.?)
 
 def _percents(text: str):
     for m in _PERCENT_RE.finditer(text):
-        value = Decimal(m.group(1).replace(",", "."))
-        yield Fact(PERCENT, _norm_decimal(value), m.group(0), m.start(), m.end())
+        raw = m.group(1).replace(",", ".")
+        decimals = len(raw.partition(".")[2])
+        # "12.4 %" darf 12.38 % runden; "2 %" für 2.4 % wäre eine Abweichung, kein Runden
+        yield Fact(PERCENT, _norm_decimal(Decimal(raw)), m.group(0), m.start(), m.end(),
+                   Decimal(1).scaleb(-decimals) if decimals else None)
 
 
 # --- Fristen ----------------------------------------------------------------
@@ -205,6 +239,58 @@ def extract_facts(text: str) -> list[Fact]:
             if not any(fact.start < t.end and t.start < fact.end for t in taken):
                 taken.append(fact)
     return sorted(taken, key=lambda f: f.start)
+
+
+# --- Tabellen ohne Währung ---------------------------------------------------
+# Jahresrechnungen und Excel-Tabellen nennen die Einheit einmal im Kopf ("in CHF",
+# "in TCHF", "in Mio. CHF") und die Zahlen dann ohne Währung.
+
+_CODE = r"(CHF|EUR|USD)"
+_UNIT_RES = [
+    (re.compile(r"\b(T|k)(CHF|EUR|USD)\b"), 1000),
+    (re.compile(rf"\bin\s+Tausend\s+{_CODE}\b|\b{_CODE}\s*['’]?000\b|\bin\s+{_CODE}\s+1['’]000\b", re.I), 1000),
+    (re.compile(rf"\bin\s+(?:Mio\.?|Millionen)\s*{_CODE}\b|\b{_CODE}\s+(?:Mio\.|Millionen)(?!\s*\d)", re.I), 10**6),
+    (re.compile(rf"\b(?:in|Beträge in|Währung:?)\s+{_CODE}\b(?!\s*[\d'’])", re.I), 1),
+]
+_BARE_RE = re.compile(rf"(?<![\w.,'’/-])\(?-?(?P<n>{_NUM})\)?(?![\w%'’]|[.,]\d)")
+
+
+def page_unit(text: str) -> tuple[str, int] | None:
+    """Die eine Einheit, die der Seitenkopf für Zahlen ohne Währung angibt; sonst None."""
+    found = set()
+    for rx, factor in _UNIT_RES:
+        for m in rx.finditer(text):
+            code = next(g for g in reversed(m.groups()) if g and g.upper() in ("CHF", "EUR", "USD"))
+            found.add((code.upper(), factor))
+    if len(found) == 1:
+        return found.pop()
+    # "in CHF" und "TCHF" auf derselben Seite: nicht eindeutig
+    return None
+
+
+@lru_cache(maxsize=4096)
+def page_facts(text: str) -> tuple[Fact, ...]:
+    """Fakten einer Datenraum-Seite inklusive Tabellenzahlen in der Einheit des Seitenkopfs."""
+    facts = extract_facts(text)
+    unit = page_unit(text)
+    if unit is None:
+        return tuple(facts)
+    code, factor = unit
+    label = {1: code, 1000: f"T{code}", 10**6: f"Mio. {code}"}[factor]
+    extra = []
+    for m in _BARE_RE.finditer(text):
+        start, end = m.span("n")
+        if any(start < f.end and f.start < end for f in facts):
+            continue
+        num = m["n"]
+        value = parse_number(num)
+        if value is None or value == 0:
+            continue
+        plain = re.fullmatch(r"\d+", num) is not None
+        if plain and (value < 100 or 1900 <= value <= 2100):
+            continue  # Jahreszahlen, Anmerkungsnummern, Zeilennummern
+        extra.append(Fact(AMOUNT, (code, _norm_decimal(value * factor)), num, start, end, unit=label))
+    return tuple(sorted(facts + extra, key=lambda f: f.start))
 
 
 def format_value(kind: str, value) -> str:

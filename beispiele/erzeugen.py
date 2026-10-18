@@ -1,7 +1,7 @@
-"""Erzeugt den fiktiven Beispiel-Datenraum "Alpenblick Präzision AG" als PDFs.
+"""Erzeugt den fiktiven Beispiel-Datenraum "Alpenblick Präzision AG" als PDFs und Excel.
 
 Alle Firmen, Personen und Zahlen sind erfunden.
-Aufruf: python beispiele/erzeugen.py   (braucht fpdf2)
+Aufruf: python beispiele/erzeugen.py   (braucht fpdf2 und openpyxl)
 """
 
 from pathlib import Path
@@ -115,8 +115,34 @@ def build(name: str, pages: list[str]) -> None:
     pdf.output(str(OUT / name))
 
 
+def build_plan(name: str) -> None:
+    """Businessplan wie aus dem Controlling: Einheit im Kopf, Zahlen ohne Währung."""
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Plan-ER"
+    ws.append(["Alpenblick Präzision AG - Businessplan (fiktiv), in TCHF"])
+    ws.append(["Position", 2026, 2027, 2028])
+    for row in [("Nettoerlös", 19812, 21240, 22950), ("EBITDA", 2604, 2870, 3215),
+                ("Investitionen", 1150, 980, 1020)]:
+        ws.append(row)
+        for cell in ws[ws.max_row][1:]:
+            cell.number_format = "#,##0"
+    ws.append(["EBITDA-Marge", 0.1314, 0.1351, 0.1401])
+    for cell in ws[ws.max_row][1:]:
+        cell.number_format = "0.0%"
+    staff = wb.create_sheet("Personal")
+    staff.append(["Mitarbeitende (FTE)", 2026, 2027, 2028])
+    staff.append(["Produktion", 84, 88, 91])
+    staff.append(["Verwaltung", 21, 21, 22])
+    wb.save(OUT / name)
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     for name, pages in DOCS.items():
         build(name, pages)
         print(OUT / name)
+    build_plan("2.2 Businessplan 2026-2028.xlsx")
+    print(OUT / "2.2 Businessplan 2026-2028.xlsx")

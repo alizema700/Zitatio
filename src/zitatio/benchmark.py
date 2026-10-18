@@ -17,16 +17,19 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 
 from .dataroom import DataRoom, Document
-from .facts import AMOUNT, DATE, DURATION, PERCENT, UID, Fact, extract_facts, format_value
+from .facts import AMOUNT, DATE, DURATION, PERCENT, UID, Fact, extract_facts, format_value, page_facts
 from .report import parse_report, split_sentences
 from .verify import ModelVerifier, Status, verify_claim
 
-KORREKT, SCHREIBWEISE, WERT, SEITE, DOKUMENT, OHNE = (
-    "korrekt", "andere Schreibweise", "falscher Wert", "falsche Seite", "fehlendes Dokument", "ohne Fundstelle"
+KORREKT, SCHREIBWEISE, GERUNDET, FALSCH_GERUNDET, WERT, SEITE, DOKUMENT, OHNE = (
+    "korrekt", "andere Schreibweise", "gerundet", "falsch gerundet", "falscher Wert", "falsche Seite",
+    "fehlendes Dokument", "ohne Fundstelle"
 )
 EXPECTED = {
     KORREKT: Status.GEPRUEFT,
     SCHREIBWEISE: Status.GEPRUEFT,
+    GERUNDET: Status.GEPRUEFT,
+    FALSCH_GERUNDET: Status.ABWEICHUNG,
     WERT: Status.ABWEICHUNG,
     SEITE: Status.FALSCHE_FUNDSTELLE,
     DOKUMENT: Status.QUELLE_FEHLT,
@@ -67,7 +70,7 @@ class Result:
 
 
 def _all_values(room: DataRoom) -> set:
-    return {(f.kind, f.value) for d in room.documents for p in d.pages for f in extract_facts(p)}
+    return {(f.kind, f.value) for d in room.documents for p in d.pages for f in page_facts(p)}
 
 
 def _mutate(fact: Fact, taken: set) -> str | None:
@@ -112,6 +115,15 @@ def _respell(fact: Fact) -> str | None:
     if fact.kind == PERCENT:
         return f"{fact.value:f}".replace(".", ",") + " Prozent"
     return None
+
+
+def _rounded(fact: Fact, off: int = 0) -> str | None:
+    """Betrag in Mio. mit zwei Stellen, wie im Executive Summary; off verschiebt um ganze Rundungsschritte."""
+    if fact.kind != AMOUNT or fact.value[1] < 1_000_000:
+        return None
+    cur, amount = fact.value
+    mio = (amount / 1_000_000).quantize(Decimal("0.01")) + Decimal("0.01") * off
+    return f"{cur} {mio:f} Mio."
 
 
 def _transpose(fact: Fact, taken: set) -> str | None:
@@ -160,6 +172,12 @@ def _cases_for(sentence: str, doc: Document, page_no: int, taken: set) -> list[C
         variant = sentence[: target.start] + respelled + sentence[target.end :]
         out.append(Case(SCHREIBWEISE, f"{variant} {cite}.", EXPECTED[SCHREIBWEISE]))
 
+    for kind, off in ((GERUNDET, 0), (FALSCH_GERUNDET, 3)):
+        rounded = _rounded(target, off)
+        if rounded:
+            variant = sentence[: target.start] + rounded + sentence[target.end :]
+            out.append(Case(kind, f"{variant} {cite}.", EXPECTED[kind]))
+
     wrong = _transpose(target, taken) or _mutate(target, taken)
     if wrong:
         mutated = sentence[: target.start] + wrong + sentence[target.end :]
@@ -170,7 +188,7 @@ def _cases_for(sentence: str, doc: Document, page_no: int, taken: set) -> list[C
     for other in range(1, len(doc.pages) + 1):
         if other == page_no:
             continue
-        page_values = {(f.kind, f.value) for f in extract_facts(doc.pages[other - 1])}
+        page_values = {(f.kind, f.value) for f in page_facts(doc.pages[other - 1])}
         if not any((f.kind, f.value) in page_values for f in facts):
             out.append(Case(SEITE, f"{sentence} {_citation(doc.index, other)}.", EXPECTED[SEITE]))
             break

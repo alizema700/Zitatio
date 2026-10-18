@@ -49,16 +49,13 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-CSV_COLUMNS = ["Nr", "Abschnitt", "Aussage", "Fundstellen", "Status", "Methode", "Begründung", "Belege"]
+CSV_COLUMNS = ["Nr", "Abschnitt", "Aussage", "Fundstellen", "Status", "Methode", "Begründung", "Belege",
+               "Entscheid", "Notiz", "Prüfer"]
 
 
-def to_csv(run: Run) -> str:
-    """Eine Zeile pro Aussage; Semikolon und BOM, damit Excel in der Schweiz es direkt öffnet."""
-    out = io.StringIO()
-    writer = csv.writer(out, delimiter=";", lineterminator="\r\n")
-    writer.writerow(CSV_COLUMNS)
-    for f in run.findings:
-        writer.writerow([
+def _rows(run: Run) -> list[list]:
+    return [
+        [
             f.claim.number,
             f.claim.section,
             f.claim.clean_text,
@@ -67,7 +64,22 @@ def to_csv(run: Run) -> str:
             f.method,
             " ".join(f.reasons),
             " | ".join(f"{e.doc_label}, S. {e.page}: {e.before}{e.match}{e.after}" for e in f.evidence),
-        ])
+            "", "", "",
+        ]
+        for f in run.findings
+    ]
+
+
+def to_csv(run: Run) -> str:
+    """Eine Zeile pro Aussage; Semikolon und BOM, damit Excel in der Schweiz es direkt öffnet.
+
+    Die Spalten Entscheid, Notiz und Prüfer sind für die menschliche Durchsicht da;
+    der HTML-Prüfbericht füllt sie beim Export aus.
+    """
+    out = io.StringIO()
+    writer = csv.writer(out, delimiter=";", lineterminator="\r\n")
+    writer.writerow(CSV_COLUMNS)
+    writer.writerows(_rows(run))
     return "\ufeff" + out.getvalue()
 
 
@@ -182,6 +194,12 @@ def _card(f: Finding) -> str:
   <p class="cite">Fundstelle: {html.escape(where)}</p>
   <ul class="reasons">{reasons}</ul>
   {evidence}
+  <div class="decide" data-nr="{f.claim.number}">
+    <span class="q">Ihr Entscheid</span>
+    <button type="button" data-d="ok">Zustimmen</button>
+    <button type="button" data-d="nein">Widersprechen</button>
+    <input type="text" placeholder="Notiz, z. B. korrigiert in Version 2" aria-label="Notiz zu Aussage {f.claim.number}">
+  </div>
 </article>"""
 
 
@@ -214,6 +232,8 @@ def to_html(run: Run) -> str:
     return TEMPLATE.format(
         fonts=_font_faces(),
         csv=base64.b64encode(to_csv(run).encode("utf-8")).decode(),
+        rows=json.dumps({"columns": CSV_COLUMNS, "rows": _rows(run)}, ensure_ascii=False).replace("</", "<\\/"),
+        key=html.escape(run.report_sha256 + "-" + run.created.isoformat(timespec="seconds")),
         csv_name=html.escape(run.report_name.rsplit(".", 1)[0] + "-pruefbericht.csv"),
         title=html.escape(run.report_name),
         logo=logo_svg(),
@@ -308,19 +328,39 @@ td, th {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line);
 .hash {{ font:12px var(--mono); color:var(--ink-2); }}
 .warn {{ color:var(--amber); font-size:13px; }}
 .note {{ font-size:13px; color:var(--ink-2); }}
+.review {{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; background:var(--card); border:1px solid var(--line);
+  border-radius:8px; padding:12px 16px; margin:0 0 24px; font-size:14px; }}
+.review input {{ font:14px var(--sans); color:var(--ink); background:var(--paper); border:1px solid var(--line);
+  border-radius:6px; padding:6px 10px; min-width:0; }}
+.review .bar {{ flex:1 1 160px; height:6px; background:var(--gray-bg); border-radius:3px; overflow:hidden; }}
+.review .bar i {{ display:block; height:100%; width:0; background:var(--green); transition:width .2s; }}
+.review a {{ color:var(--green); font-weight:600; }}
+.decide {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); }}
+.decide .q {{ font-size:13px; color:var(--ink-2); margin-right:4px; }}
+.decide button {{ font:13px var(--sans); border:1px solid var(--line); background:transparent; color:var(--ink);
+  border-radius:6px; padding:4px 12px; cursor:pointer; }}
+.decide button.on[data-d=ok] {{ background:var(--green); border-color:var(--green); color:var(--card); }}
+.decide button.on[data-d=nein] {{ background:var(--ink); border-color:var(--ink); color:var(--card); }}
+.decide input {{ flex:1 1 200px; min-width:0; font:13px var(--sans); color:var(--ink); background:var(--paper);
+  border:1px solid var(--line); border-radius:6px; padding:5px 10px; }}
+.card.done {{ opacity:.72; }}
 @media (max-width:640px) {{ .hash {{ display:none; }} .pl {{ grid-template-columns:18px 1fr auto; }} .pl .nr, .pl .where {{ display:none; }} }}
-@media print {{ .chips {{ display:none; }} .card {{ break-inside:avoid; }} }}
+@media print {{ .chips, .review a, .decide button:not(.on) {{ display:none; }} .card {{ break-inside:avoid; }} }}
 </style>
 </head>
 <body>
 <main>
   <div class="top">{logo}
-    <div class="meta">Prüfbericht · {stamp}<br>Prüfmodell: {model}<br>
-      <a href="data:text/csv;charset=utf-8;base64,{csv}" download="{csv_name}">Als CSV für Excel</a></div>
+    <div class="meta">Prüfbericht · {stamp}<br>Prüfmodell: {model}</div>
   </div>
   <h1>{headline}</h1>
   <p class="sub">{report} · {total} Aussagen gegen {docs_count} Dokumente im Datenraum geprüft.</p>
   <div class="chips">{chips}</div>
+  <div class="review" id="review">
+    <label>Durchgesehen von <input type="text" id="reviewer" placeholder="Name" autocomplete="name"></label>
+    <span id="progress">0 von {total} entschieden</span><span class="bar"><i id="bar"></i></span>
+    <a id="export" href="data:text/csv;charset=utf-8;base64,{csv}" download="{csv_name}">Protokoll exportieren</a>
+  </div>
   <section class="term" aria-label="Prüfprotokoll">
     <div class="bar">$ zitatio pruefen {report}</div>
     {protocol}
@@ -335,6 +375,7 @@ td, th {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line);
   steht auf der zitierten Seite. Den Sinn einer Aussage bestätigt nur das Prüfmodell, und nur mit einem Zitat,
   das wörtlich in der Quelle steht. Bericht SHA-256 {report_hash}… · Zitatio {version}</p>
 </main>
+<script type="application/json" id="rows">{rows}</script>
 <script>
 document.querySelectorAll('.chip').forEach(function (chip) {{
   chip.addEventListener('click', function () {{
@@ -346,6 +387,50 @@ document.querySelectorAll('.chip').forEach(function (chip) {{
     }});
   }});
 }});
+
+// Menschliche Durchsicht: Entscheide bleiben in diesem Browser gespeichert und gehen ins CSV.
+(function () {{
+  var KEY = 'zitatio:{key}', data = JSON.parse(document.getElementById('rows').textContent);
+  var state = {{ reviewer: '', d: {{}} }};
+  try {{ state = JSON.parse(localStorage.getItem(KEY)) || state; }} catch (e) {{}}
+  var who = document.getElementById('reviewer'), link = document.getElementById('export');
+  function save() {{ try {{ localStorage.setItem(KEY, JSON.stringify(state)); }} catch (e) {{}} }}
+  function cell(v) {{ v = String(v == null ? '' : v); return /[;"\\r\\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }}
+  function refresh() {{
+    var done = 0;
+    document.querySelectorAll('.decide').forEach(function (box) {{
+      var d = state.d[box.dataset.nr] || {{}};
+      box.querySelectorAll('button').forEach(function (b) {{ b.classList.toggle('on', b.dataset.d === d.v); }});
+      box.closest('.card').classList.toggle('done', !!d.v);
+      if (d.v) done++;
+    }});
+    var total = data.rows.length;
+    document.getElementById('progress').textContent = done + ' von ' + total + ' entschieden';
+    document.getElementById('bar').style.width = (100 * done / total) + '%';
+    var labels = {{ ok: 'Zugestimmt', nein: 'Widersprochen' }};
+    var lines = [data.columns].concat(data.rows.map(function (r) {{
+      var d = state.d[r[0]] || {{}};
+      return r.slice(0, -3).concat([labels[d.v] || '', d.n || '', d.v || d.n ? state.reviewer : '']);
+    }}));
+    var csv = '\\ufeff' + lines.map(function (r) {{ return r.map(cell).join(';'); }}).join('\\r\\n') + '\\r\\n';
+    link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  }}
+  who.value = state.reviewer || '';
+  who.addEventListener('input', function () {{ state.reviewer = who.value; save(); refresh(); }});
+  document.querySelectorAll('.decide').forEach(function (box) {{
+    var nr = box.dataset.nr, note = box.querySelector('input');
+    note.value = (state.d[nr] || {{}}).n || '';
+    box.querySelectorAll('button').forEach(function (b) {{
+      b.addEventListener('click', function () {{
+        var d = state.d[nr] = state.d[nr] || {{}};
+        d.v = d.v === b.dataset.d ? '' : b.dataset.d;
+        save(); refresh();
+      }});
+    }});
+    note.addEventListener('input', function () {{ (state.d[nr] = state.d[nr] || {{}}).n = note.value; save(); refresh(); }});
+  }});
+  refresh();
+}})();
 </script>
 </body>
 </html>

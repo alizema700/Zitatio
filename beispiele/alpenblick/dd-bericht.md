@@ -31,3 +31,8 @@ Ein Lizenzvertrag mit der Ostwind Software GmbH sichert die ERP-Nutzung bis 2031
 
 Das Bankdarlehen über CHF 3.5 Mio. ist zu 2,4 % fest verzinst und am 31. März 2030 fällig [DR 5.3, S. 1].
 Die Covenants sind im Anhang zum Darlehensvertrag geregelt [DR 5.3, S. 4].
+
+## 6. Businessplan
+
+Der Businessplan sieht für 2026 einen Nettoerlös von CHF 19.81 Mio. vor [DR 2.2, S. 1].
+Für 2027 plant das Management ein EBITDA von CHF 3.1 Mio. [DR 2.2, S. 1].

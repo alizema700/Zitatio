@@ -47,7 +47,8 @@ def index() -> str:
 async def check(bericht: UploadFile = File(...), datenraum: list[UploadFile] = File(...)) -> str:
     room = DataRoom()
     for upload in datenraum:
-        room.add(Path(upload.filename or "").name, await upload.read())
+        if upload.filename:  # leeres Feld, wenn nur Ordner oder nur ZIP gewählt wurde
+            room.add(Path(upload.filename).name, await upload.read())
     if not room.documents:
         raise HTTPException(400, "Der Datenraum enthält keine lesbaren Dokumente.")
     data = await bericht.read()

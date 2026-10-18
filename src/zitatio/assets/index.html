@@ -158,6 +158,15 @@ h3 { font-weight:400; font-size:24px; letter-spacing:-0.02em; line-height:1.2; m
 .drop b { font-weight:400; font-size:20px; }
 .drop span { color:var(--ink-2); font-size:14px; font-weight:400; }
 .drop input { font:13px var(--sans); color:var(--ink-2); margin-top:12px; max-width:100%; }
+.drop input::file-selector-button { font:14px var(--sans); background:transparent; color:var(--ink);
+  border:1px solid var(--line); padding:8px 14px; margin-right:12px; cursor:pointer; }
+.drop.dr { cursor:default; }
+.drop.dr:hover { background:none; }
+.pick { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.pick label { border:1px solid var(--line); padding:8px 14px; font-size:14px; cursor:pointer; color:var(--ink); }
+.pick label:hover { border-color:var(--green); color:var(--green); }
+.pick input { position:absolute; width:1px; height:1px; opacity:0; }
+.chosen { font-style:normal; font-size:13px; color:var(--green); min-height:1em; }
 .upload .go { grid-column:1 / -1; border-top:1px solid var(--line); padding:20px 32px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
 .upload .go small { color:var(--ink-3); font-size:13px; }
 
@@ -379,8 +388,10 @@ footer .legal { margin-top:56px; font-size:12px; color:var(--ink-3); display:fle
     <form class="upload" action="/pruefen" method="post" enctype="multipart/form-data">
       <label class="drop"><b>DD-Bericht</b><span>Word, PDF, Markdown oder Text</span>
         <input type="file" name="bericht" accept=".md,.txt,.pdf,.docx" required></label>
-      <label class="drop"><b>Datenraum</b><span>Ordner mit den Dokumenten</span>
-        <input type="file" name="datenraum" webkitdirectory directory multiple required></label>
+      <div class="drop dr"><b>Datenraum</b><span>Ordner oder ZIP-Export mit PDF, Word und Excel</span>
+        <div class="pick"><label>Ordner wählen<input type="file" name="datenraum" webkitdirectory directory multiple></label>
+        <label>ZIP wählen<input type="file" name="datenraum" accept=".zip"></label></div>
+        <em class="chosen" aria-live="polite"></em></div>
       <div class="go"><button class="btn" type="submit">Prüfen <span aria-hidden="true">→</span></button>
         <small>Die Dateien bleiben auf diesem Rechner. Ohne Prüfmodell verlässt kein Dokument die Maschine.</small></div>
     </form>
@@ -523,6 +534,21 @@ document.querySelectorAll('.copy').forEach(function (b) {
     }, function () {});
   });
 });
+
+// Datenraum: Ordner oder ZIP, eins von beiden muss gewählt sein
+(() => {
+  const box = document.querySelector('.drop.dr');
+  if (!box) return;
+  const inputs = box.querySelectorAll('input'), out = box.querySelector('.chosen');
+  inputs.forEach(inp => inp.addEventListener('change', () => {
+    inputs.forEach(o => { if (o !== inp) o.value = ''; });
+    const n = inp.files.length;
+    out.textContent = !n ? '' : inp.accept === '.zip' ? inp.files[0].name : n + (n === 1 ? ' Datei' : ' Dateien') + ' gewählt';
+  }));
+  box.closest('form').addEventListener('submit', e => {
+    if (![...inputs].some(i => i.files.length)) { e.preventDefault(); out.textContent = 'Bitte einen Ordner oder ein ZIP wählen.'; }
+  });
+})();
 </script>
 </body>
 </html>

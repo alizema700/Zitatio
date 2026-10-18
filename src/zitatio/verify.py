@@ -13,7 +13,7 @@ from enum import Enum
 from typing import Callable
 
 from .dataroom import DataRoom, Document
-from .facts import AMOUNT, DATE, DURATION, PERCENT, UID, Fact, extract_facts, uid_is_valid
+from .facts import AMOUNT, DATE, DURATION, PERCENT, UID, Fact, page_facts, uid_is_valid
 from .report import Claim
 
 
@@ -93,11 +93,28 @@ def _evidence(doc: Document, page: int, start: int, end: int) -> Evidence:
 
 
 def _find(fact: Fact, doc: Document, pages: list[int]) -> tuple[int, Fact] | None:
+    """Fundort eines Werts; exakte Treffer vor gerundeten."""
+    rounded = None
     for page in pages:
-        for candidate in extract_facts(doc.pages[page - 1]):
-            if candidate.matches(fact):
+        for candidate in page_facts(doc.pages[page - 1]):
+            how = fact.match(candidate)
+            if how == "exakt":
                 return page, candidate
-    return None
+            if how and rounded is None:
+                rounded = page, candidate
+    return rounded
+
+
+def _how(fact: Fact, found: Fact) -> str:
+    """Kurzer Zusatz, wenn der Wert nicht wörtlich gleich an der Fundstelle steht."""
+    notes = []
+    if found.unit:
+        notes.append(f"Tabelle: {found.text} {found.unit}")
+    elif fact.value != found.value:
+        notes.append(f"Quelle: {found.display()}")
+    if fact.value != found.value:
+        notes.append("gerundet")
+    return f"{fact.display()} ({', '.join(notes)})" if notes else fact.display()
 
 
 def _nearest_values(fact: Fact, candidates: list[Fact]) -> list[str]:
@@ -217,11 +234,13 @@ def verify_claim(claim: Claim, room: DataRoom, model: ModelVerifier | None = Non
 
     cited = {(doc.name, p) for doc, pages in resolved for p in pages}
     missing: list[Fact] = []
+    found: list[str] = []
     for fact in checkable:
         hit = next(((doc, h) for doc, pages in resolved if (h := _find(fact, doc, pages))), None)
         if hit:
             doc, (page, cand) = hit
             finding.evidence.append(_evidence(doc, page, cand.start, cand.end))
+            found.append(_how(fact, cand))
         else:
             missing.append(fact)
 
@@ -230,7 +249,7 @@ def verify_claim(claim: Claim, room: DataRoom, model: ModelVerifier | None = Non
     elif checkable and not missing:
         finding.status = Status.GEPRUEFT
         finding.reasons.append(
-            "Alle Werte (" + ", ".join(f.display() for f in checkable) + ") stehen an der Fundstelle."
+            "Alle Werte (" + ", ".join(found) + ") stehen an der Fundstelle."
         )
     elif missing:
         elsewhere = [_locate_elsewhere(f, room, cited) for f in missing]
@@ -248,7 +267,7 @@ def verify_claim(claim: Claim, room: DataRoom, model: ModelVerifier | None = Non
                     c
                     for doc, pages in resolved
                     for p in pages
-                    for c in extract_facts(doc.pages[p - 1])
+                    for c in page_facts(doc.pages[p - 1])
                     if c.kind == fact.kind
                 ])
                 note = f" Die Fundstelle nennt: {', '.join(others[:3])}." if others else ""

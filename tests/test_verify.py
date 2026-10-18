@@ -25,6 +25,8 @@ EXPECTED = [
     Status.QUELLE_FEHLT,  # DR 4.2 existiert nicht
     Status.GEPRUEFT,  # Darlehen
     Status.QUELLE_FEHLT,  # S. 4 existiert nicht
+    Status.GEPRUEFT,  # Businessplan: CHF 19.81 Mio. aus 19'812 TCHF in Excel
+    Status.ABWEICHUNG,  # Businessplan: EBITDA 3.1 statt 2.87 Mio.
 ]
 
 

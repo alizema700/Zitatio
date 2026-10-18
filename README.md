@@ -28,8 +28,10 @@ pytest
 
 ## Konventionen
 
-- **Datenraum:** Jeder Dateiname beginnt mit der Indexnummer, z. B. `3.2.1 Mietvertrag Werk Winterthur.pdf`.
-  Unterstützt werden PDF (mit Textebene), Word (`.docx`, Seiten über manuelle Seitenumbrüche), `.txt` und `.md`.
+- **Datenraum:** Jeder Dateiname beginnt mit der Indexnummer, z. B. `3.2.1 Mietvertrag Werk Winterthur.pdf`
+  (`03.02.01` gilt als dasselbe wie `3.2.1`). Unterstützt werden PDF (mit Textebene), Word (`.docx`, Seiten über
+  manuelle Seitenumbrüche), Excel (`.xlsx`, jedes Tabellenblatt ist eine Seite), `.txt` und `.md`.
+  Ein ZIP-Export des virtuellen Datenraums kann direkt angegeben werden (`-d datenraum.zip`), samt Unterordnern.
 - **Bericht:** Word, PDF, Markdown oder Text. In Word werden Überschriften zu Abschnitten und Tabellenzeilen zu Aussagen.
 - **Fundstellen im Bericht:** `[DR 3.2.1, S. 2]`, `(VDR 2.1 p. 3-4)` und `[Datenraum 5.3; DR 1.1, Seite 2]`.
   Ohne Seitenangabe wird das ganze Dokument durchsucht.
@@ -45,8 +47,20 @@ pytest
 | Ohne Beleg | Die Aussage enthält Werte, aber keine Fundstelle. Ein passender Beleg wird vorgeschlagen, wenn es einen gibt. |
 | Ungeprüft | Die Fundstelle existiert, aber die Aussage hat keine prüfbaren Werte. Die ähnlichste Textstelle wird als Lesehilfe gezeigt. |
 
+Zwei Fälle aus dem DD-Alltag zählen als übereinstimmend und werden in der Begründung ausgewiesen:
+
+- **Gerundete Werte:** „CHF 18.45 Mio.“ stimmt mit CHF 18'450'312 überein, weil die Schreibweise auf 10'000 genau
+  ist, aber nur bei höchstens 1 % Abstand. „CHF 3 Mio.“ für CHF 3'400'000 bleibt eine Abweichung. Prozente runden
+  nur, wenn die Aussage Nachkommastellen hat: „12.4 %“ passt zu 12.38 %, „2 %“ nicht zu 2.4 %.
+- **Tabellen ohne Währung:** Nennt eine Seite genau eine Einheit im Kopf („in CHF“, „in TCHF“, „in Mio. CHF“),
+  gelten Zahlen ohne Währung auf dieser Seite in dieser Einheit. Jahreszahlen und kleine Nummern werden ignoriert.
+  Stehen zwei Einheiten auf einer Seite, wird nichts angenommen.
+
 Grundsatz: Im Zweifel nie „Geprüft“. Die Antwort eines Prüfmodells zählt nur, wenn sein Zitat wörtlich in der
 Quelle steht; sonst wird sie verworfen. Ist das Modell nicht erreichbar, bleibt das Regelergebnis stehen.
+
+Im HTML-Prüfbericht hält die prüfende Person zu jeder Aussage fest, ob sie Zitatio zustimmt oder widerspricht,
+mit Notiz und Namen. Die Entscheide bleiben im Browser gespeichert und gehen mit „Protokoll exportieren“ ins CSV.
 
 Der Prüfbericht enthält SHA-256-Hashes des Berichts und aller Datenraum-Dokumente, damit später nachvollziehbar
 ist, was genau geprüft wurde.
@@ -55,7 +69,7 @@ ist, was genau geprüft wurde.
 
 `zitatio benchmark` baut aus jeder Zeile des Datenraums mit einem prüfbaren Wert eine korrekt belegte Aussage und
 dazu Varianten mit genau einem Fehler: Zahlendreher oder falscher Wert, falsche Seite, fehlendes Dokument, fehlende
-Fundstelle, sowie korrekte Werte in anderer Schreibweise. Ausgegeben wird die Trefferquote pro Fehlerart.
+Fundstelle, sowie korrekte Werte in anderer Schreibweise, korrekt gerundete und falsch gerundete Beträge. Ausgegeben wird die Trefferquote pro Fehlerart.
 
 Das prüft die Regeln gegen bekannte Fehlerarten. Für eine Aussage über echte Berichte braucht es zusätzlich einen
 Benchmark mit anonymisierten, von Menschen geschriebenen DD-Berichten.
@@ -78,6 +92,7 @@ src/zitatio/
   facts.py     Werte erkennen und normalisieren (CHF 3.5 Mio. = CHF 3'500'000), UID-Prüfziffer
   dataroom.py  Datenraum einlesen (Indexnummer, Seitentexte, Hashes)
   docx.py      Word-Dateien ohne Zusatzpaket lesen
+  xlsx.py      Excel-Dateien ohne Zusatzpaket lesen (Zahlen so, wie Excel sie anzeigt)
   benchmark.py Trefferquote mit künstlich eingebauten Fehlern
   report.py    Bericht in Aussagen und Fundstellen zerlegen
   verify.py    Prüfkern: Status, Begründung, Belegstellen; optionales Prüfmodell
@@ -92,4 +107,6 @@ beispiele/alpenblick/  Fiktiver Datenraum mit DD-Bericht und absichtlich eingeba
 
 - „Geprüft“ ohne Prüfmodell heisst, dass die Werte auf der Seite stehen, nicht dass sie dort dasselbe bedeuten.
 - Gescannte PDFs ohne Textebene werden erkannt und gemeldet, aber noch nicht per OCR gelesen.
+- Excel-Tabellen werden als Text gelesen; ob eine Zahl zur richtigen Zeile oder zum richtigen Jahr gehört, prüft
+  erst das Prüfmodell.
 - Zefix- und SHAB-Abgleich folgen; dafür braucht es Zugangsdaten zur Zefix-REST-Schnittstelle.
