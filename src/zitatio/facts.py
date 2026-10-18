@@ -1,0 +1,223 @@
+"""Extraktion und Normalisierung prüfbarer Fakten (Beträge, Daten, Prozente, Fristen, UID).
+
+Alles hier ist deterministisch: Zwei Schreibweisen desselben Werts
+("CHF 3.5 Mio." und "CHF 3'500'000") ergeben denselben normalisierten Wert.
+"""
+
+from __future__ import annotations
+
+import datetime as dt
+import re
+from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
+
+AMOUNT, DATE, PERCENT, DURATION, UID = "betrag", "datum", "prozent", "frist", "uid"
+
+KIND_LABELS = {
+    AMOUNT: "Betrag",
+    DATE: "Datum",
+    PERCENT: "Prozent",
+    DURATION: "Frist",
+    UID: "UID",
+}
+
+
+@dataclass(frozen=True)
+class Fact:
+    kind: str
+    value: object  # normalisiert und hashbar
+    text: str  # Originalschreibweise
+    start: int
+    end: int
+
+    def matches(self, other: "Fact") -> bool:
+        return self.kind == other.kind and self.value == other.value
+
+    def display(self) -> str:
+        return format_value(self.kind, self.value)
+
+
+# --- Zahlen -----------------------------------------------------------------
+
+_NUM = (
+    r"\d{1,3}(?:['’ ]\d{3})+(?:[.,]\d+)?"  # 1'250'000.50 / 1 250 000
+    r"|\d{1,3}(?:\.\d{3}){2,}(?:,\d+)?"  # 1.250.000,00
+    r"|\d{1,3}(?:,\d{3})+(?:\.\d+)?"  # 1,250,000.00
+    r"|\d+(?:[.,]\d+)?"
+)
+_SCALE = r"Mio\.?|Millionen|Million|Mrd\.?|Milliarden|Mia\.?|Tsd\.?|k(?![A-Za-zÄÖÜäöü])"
+_CUR = r"CHF|SFr\.?|Fr\.|EUR|€|USD|US\$|\$|TCHF|TEUR|kCHF"
+
+_SCALE_FACTORS = {"mio": 10**6, "million": 10**6, "millionen": 10**6, "mrd": 10**9,
+                  "milliarden": 10**9, "mia": 10**9, "tsd": 10**3, "k": 10**3}
+_CURRENCIES = {"chf": ("CHF", 1), "sfr": ("CHF", 1), "fr": ("CHF", 1), "eur": ("EUR", 1),
+               "€": ("EUR", 1), "usd": ("USD", 1), "us$": ("USD", 1), "$": ("USD", 1),
+               "tchf": ("CHF", 1000), "teur": ("EUR", 1000), "kchf": ("CHF", 1000)}
+
+
+def parse_number(raw: str, scaled: bool = False) -> Decimal | None:
+    """Liest Schweizer, deutsche und englische Zahlenformate."""
+    s = re.sub(r"['’ ]", "", raw.strip())
+    if "," in s and "." in s:
+        dec = "," if s.rfind(",") > s.rfind(".") else "."
+        thou = "." if dec == "," else ","
+        s = s.replace(thou, "").replace(dec, ".")
+    elif "," in s:
+        parts = s.split(",")
+        if len(parts) > 2 or (len(parts[1]) == 3 and not scaled):
+            s = s.replace(",", "")
+        else:
+            s = s.replace(",", ".")
+    elif "." in s:
+        parts = s.split(".")
+        if len(parts) > 2 or (len(parts[1]) == 3 and not scaled):
+            s = s.replace(".", "")
+    try:
+        return Decimal(s)
+    except InvalidOperation:
+        return None
+
+
+def _norm_decimal(d: Decimal) -> Decimal:
+    return d.quantize(Decimal(1)) if d == d.to_integral() else d.normalize()
+
+
+def _scale_factor(scale: str | None) -> int:
+    if not scale:
+        return 1
+    return _SCALE_FACTORS.get(scale.lower().rstrip("."), 1)
+
+
+def _currency(cur: str) -> tuple[str, int]:
+    return _CURRENCIES.get(cur.lower().rstrip("."), (cur.upper(), 1))
+
+
+_AMOUNT_RE = re.compile(
+    rf"(?<![\w$€])(?P<c1>{_CUR})\s*(?P<n1>{_NUM})(?:\s*(?P<s1>{_SCALE}))?(?:\.[-–]{{1,2}})?"
+    rf"|(?<![\w.,'’])(?P<n2>{_NUM})(?:\s*(?P<s2>{_SCALE}))?\s*(?P<c2>{_CUR})(?![A-Za-z])"
+)
+
+
+def _amounts(text: str):
+    for m in _AMOUNT_RE.finditer(text):
+        cur, num, scale = (m["c1"], m["n1"], m["s1"]) if m["c1"] else (m["c2"], m["n2"], m["s2"])
+        value = parse_number(num, scaled=bool(scale))
+        if value is None:
+            continue
+        code, cur_factor = _currency(cur)
+        value = _norm_decimal(value * _scale_factor(scale) * cur_factor)
+        yield Fact(AMOUNT, (code, value), m.group(0).strip(), m.start(), m.end())
+
+
+# --- Daten ------------------------------------------------------------------
+
+MONTHS = {"januar": 1, "februar": 2, "märz": 3, "maerz": 3, "april": 4, "mai": 5, "juni": 6,
+          "juli": 7, "august": 8, "september": 9, "oktober": 10, "november": 11, "dezember": 12}
+_MONTH_RE = "|".join(MONTHS)
+
+_DATE_RES = [
+    (re.compile(r"\b(\d{1,2})\.\s?(\d{1,2})\.\s?(\d{4})\b"), "dmy"),
+    (re.compile(rf"\b(\d{{1,2}})\.\s*({_MONTH_RE})\s+(\d{{4}})\b", re.IGNORECASE), "dMy"),
+    (re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b"), "ymd"),
+]
+
+
+def _dates(text: str):
+    for rx, order in _DATE_RES:
+        for m in rx.finditer(text):
+            a, b, c = m.groups()
+            try:
+                if order == "dmy":
+                    d = dt.date(int(c), int(b), int(a))
+                elif order == "dMy":
+                    d = dt.date(int(c), MONTHS[b.lower()], int(a))
+                else:
+                    d = dt.date(int(a), int(b), int(c))
+            except ValueError:
+                continue
+            yield Fact(DATE, d, m.group(0), m.start(), m.end())
+
+
+# --- Prozente ---------------------------------------------------------------
+
+_PERCENT_RE = re.compile(r"(?<![\d.,])(\d+(?:[.,]\d+)?)\s?(?:%|Prozent\b|pct\.?)")
+
+
+def _percents(text: str):
+    for m in _PERCENT_RE.finditer(text):
+        value = Decimal(m.group(1).replace(",", "."))
+        yield Fact(PERCENT, _norm_decimal(value), m.group(0), m.start(), m.end())
+
+
+# --- Fristen ----------------------------------------------------------------
+
+NUMBER_WORDS = {"ein": 1, "eine": 1, "einem": 1, "einen": 1, "einer": 1, "zwei": 2, "drei": 3,
+                "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7, "acht": 8, "neun": 9, "zehn": 10,
+                "elf": 11, "zwölf": 12, "achtzehn": 18, "vierundzwanzig": 24, "dreissig": 30,
+                "dreißig": 30, "sechzig": 60, "neunzig": 90}
+_UNITS = {"tag": "Tage", "woche": "Wochen", "monat": "Monate", "jahr": "Jahre"}
+_DURATION_RE = re.compile(
+    rf"\b(\d+|{'|'.join(NUMBER_WORDS)})\s*[- ]?\s*(Tag|Woche|Monat|Jahr)(?:e|en|es|s|n)?\b",
+    re.IGNORECASE,
+)
+
+
+def _durations(text: str):
+    for m in _DURATION_RE.finditer(text):
+        raw_n, unit = m.group(1).lower(), m.group(2).lower()
+        n = int(raw_n) if raw_n.isdigit() else NUMBER_WORDS[raw_n]
+        yield Fact(DURATION, (n, _UNITS[unit]), m.group(0), m.start(), m.end())
+
+
+# --- UID (Unternehmens-Identifikationsnummer) --------------------------------
+
+_UID_RE = re.compile(r"\bCHE[-\s]?(\d{3})\.?(\d{3})\.?(\d{3})\b")
+_UID_WEIGHTS = (5, 4, 3, 2, 7, 6, 5, 4)
+
+
+def uid_is_valid(uid: str) -> bool:
+    """Prüft die Prüfziffer (Modulo 11) einer UID im Format CHE-123.456.789."""
+    digits = re.sub(r"\D", "", uid)
+    if len(digits) != 9:
+        return False
+    check = 11 - sum(int(d) * w for d, w in zip(digits[:8], _UID_WEIGHTS)) % 11
+    if check == 11:
+        check = 0
+    return check != 10 and check == int(digits[8])
+
+
+def _uids(text: str):
+    for m in _UID_RE.finditer(text):
+        a, b, c = m.groups()
+        yield Fact(UID, f"CHE-{a}.{b}.{c}", m.group(0), m.start(), m.end())
+
+
+# --- Öffentliche Funktionen -------------------------------------------------
+
+_EXTRACTORS = (_uids, _dates, _amounts, _percents, _durations)  # Reihenfolge = Priorität
+
+
+def extract_facts(text: str) -> list[Fact]:
+    """Alle prüfbaren Fakten eines Texts, ohne Überlappungen, in Textreihenfolge."""
+    taken: list[Fact] = []
+    for extractor in _EXTRACTORS:
+        for fact in extractor(text):
+            if not any(fact.start < t.end and t.start < fact.end for t in taken):
+                taken.append(fact)
+    return sorted(taken, key=lambda f: f.start)
+
+
+def format_value(kind: str, value) -> str:
+    if kind == AMOUNT:
+        cur, amount = value
+        whole, _, frac = f"{amount:f}".partition(".")
+        grouped = f"{int(whole):,}".replace(",", "'")
+        return f"{cur} {grouped}" + (f".{frac}" if frac else "")
+    if kind == DATE:
+        return value.strftime("%d.%m.%Y")
+    if kind == PERCENT:
+        return f"{value} %"
+    if kind == DURATION:
+        n, unit = value
+        return f"{n} {unit}"
+    return str(value)

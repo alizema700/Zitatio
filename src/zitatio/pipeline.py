@@ -1,0 +1,21 @@
+"""Ein Prüflauf: Bericht + Datenraum -> Ergebnis."""
+
+from __future__ import annotations
+
+from .dataroom import DataRoom
+from .render import Run, sha256
+from .report import parse_report
+from .verify import ModelVerifier, verify
+
+
+def run_check(
+    report_name: str,
+    report_text: str,
+    report_bytes: bytes,
+    room: DataRoom,
+    model: ModelVerifier | None = None,
+    model_name: str | None = None,
+) -> Run:
+    claims = parse_report(report_text)
+    findings = verify(claims, room, model)
+    return Run(report_name, sha256(report_bytes), room, findings, model_name if model else None)
