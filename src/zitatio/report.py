@@ -53,7 +53,8 @@ _ABBREVIATIONS = {
 # "CHF 4.2 Mio. Langfristige ..." beendet den Satz, "CHF 4.2 Mio. CHF" nicht.
 _SCALE_WORDS = {"mio", "mrd", "mia", "tsd"}
 _CURRENCY_WORDS = {"CHF", "EUR", "USD", "FRANKEN", "EURO"}
-_SPLIT_RE = re.compile(r"[.!?](?=\s+[\"„(]?[A-ZÄÖÜ])")
+# Satzende vor Grossbuchstaben, und nach einer Klammer immer: "[DR 2.2, S. 3]. 2023 erzielte …"
+_SPLIT_RE = re.compile(r"[.!?](?=\s+[\"„(]?[A-ZÄÖÜ])|(?<=[\])])[.!?](?=\s+\S)")
 
 
 def parse_citations(text: str) -> list[Citation]:

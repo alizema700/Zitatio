@@ -1,0 +1,25 @@
+Datenraum: 40 Dokumente, 264 Seiten · Bericht: 212 Aussagen · Laufzeit 0.9 s
+Status: 139 Geprüft, 59 Ungeprüft, 11 Abweichung, 3 Falsche Fundstelle
+
+Eingebaute Fehler gefunden: 9 von 12
+  gefunden  UID vertippt                         -> Abweichung
+  verpasst  Vorjahreswert als aktuelles Jahr     -> Geprüft
+  gefunden  Einheit TCHF/CHF verwechselt         -> Abweichung
+  verpasst  EBIT als Jahresgewinn ausgewiesen    -> Geprüft
+  gefunden  falsch gerundet                      -> Abweichung
+  gefunden  falsches Jahr                        -> Abweichung
+  gefunden  falsche Seite                        -> Falsche Fundstelle
+  gefunden  falsche Kündigungsfrist              -> Falsche Fundstelle
+  gefunden  Zahlendreher                         -> Abweichung
+  gefunden  falsches Dokument                    -> Falsche Fundstelle
+  verpasst  Kontrollwechselklausel übersehen     -> Ungeprüft
+  gefunden  falscher Zinssatz                    -> Abweichung
+
+Fehlalarme bei richtigen Aussagen: 5 von 200
+  Abweichung (abgeleitet): Das entspricht einem Wachstum von 7.9 % gegenüber dem Vorjahr.
+  Abweichung (abgeleitet): Die EBITDA-Marge liegt damit bei 16.7 %.
+  Abweichung (abgeleitet): Insgesamt betragen die jährlichen Mietkosten CHF 918'000.
+  Abweichung (abgeleitet): Die drei grössten Kunden stehen für rund 42 % des Umsatzes.
+  Abweichung (abgeleitet): Die Gesamtvergütung der Geschäftsleitung beträgt CHF 1'065'000.
+
+Richtige Aussagen: 137 geprüft, 58 ungeprüft (keine prüfbaren Werte), 5 Fehlalarme

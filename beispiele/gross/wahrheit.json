@@ -1,0 +1,1486 @@
+[
+ {
+  "aussage": "Die Rheintal Medtech AG (UID CHE-526.081.151) hat ihren Sitz in Altstätten SG [DR 1.1, S. 1].",
+  "richtig": false,
+  "fehler": "UID vertippt",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Gesellschaft ist seit dem 17. Mai 2004 im Handelsregister eingetragen [DR 1.1, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das Aktienkapital von CHF 1.2 Mio. ist voll liberiert [DR 1.1, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Verwaltungsrat besteht aus drei Mitgliedern unter dem Präsidium von Dr. Beatrice Rohner [DR 1.1, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Als Revisionsstelle amtet die Treuhand Rheineck AG [DR 1.1, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Namenaktien sind vinkuliert; jede Übertragung braucht die Zustimmung des Verwaltungsrats [DR 1.2, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Generalversammlung ist mindestens 20 Tage im Voraus einzuberufen [DR 1.2, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Amtsdauer der Verwaltungsräte beträgt drei Jahre [DR 1.2, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Statuten enthalten keine Opting-out- oder Opting-up-Klausel [DR 1.2, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Rohner Beteiligungen AG hält 7'200 Namenaktien und damit 60 % des Kapitals [DR 1.3, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Über die Mitarbeiterbeteiligung Rheintal GmbH sind 10 % der Aktien im Besitz von Mitarbeitenden [DR 1.3, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Am 16. März 2025 genehmigte der Verwaltungsrat eine zweite Spritzgusslinie für CHF 2.35 Mio. [DR 1.4, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Verkaufsprozess wurde vom Verwaltungsrat an der Sitzung vom 14.07.2025 angestossen [DR 1.4, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Protokolle des Verwaltungsrats sind lückenlos vorhanden und unterzeichnet [DR 1.4, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Nettoerlös 2025 beträgt CHF 31.86 Mio. [DR 2.3, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Im Vorjahr lag der Nettoerlös bei CHF 29.54 Mio. [DR 2.2, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "2023 erzielte die Gesellschaft einen Nettoerlös von CHF 27'940'221 [DR 2.1, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das entspricht einem Wachstum von 7.9 % gegenüber dem Vorjahr [DR 2.3, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": "abgeleitet"
+ },
+ {
+  "aussage": "Der Materialaufwand 2025 belief sich auf CHF 9.82 Mio. [DR 2.3, S. 4].",
+  "richtig": false,
+  "fehler": "Vorjahreswert als aktuelles Jahr",
+  "regeln_koennen_es_sehen": false,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Personalaufwand stieg auf CHF 11.83 Mio. [DR 2.3, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das EBITDA 2025 beträgt CHF 5'309 [DR 2.3, S. 4].",
+  "richtig": false,
+  "fehler": "Einheit TCHF/CHF verwechselt",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die EBITDA-Marge liegt damit bei 16.7 % [DR 2.3, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": "abgeleitet"
+ },
+ {
+  "aussage": "Die Abschreibungen betragen CHF 1'433'808 [DR 2.3, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Jahresgewinn 2025 beläuft sich auf CHF 3.88 Mio. [DR 2.3, S. 4].",
+  "richtig": false,
+  "fehler": "EBIT als Jahresgewinn ausgewiesen",
+  "regeln_koennen_es_sehen": false,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Finanzaufwand sank auf CHF 187'400 [DR 2.3, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das EBITDA 2024 betrug CHF 5.28 Mio. [DR 2.2, S. 3].",
+  "richtig": false,
+  "fehler": "falsch gerundet",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das EBITDA 2023 betrug CHF 4.25 Mio. [DR 2.1, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die verzinslichen Verbindlichkeiten per 31.12.2025 betragen CHF 6.4 Mio. [DR 2.3, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Gesellschaft beschäftigte 2025 durchschnittlich 174 Vollzeitstellen [DR 2.3, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die langfristigen Mietverpflichtungen belaufen sich auf CHF 3.48 Mio. [DR 2.3, S. 9].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Gegenüber Vorsorgeeinrichtungen bestehen Verbindlichkeiten von CHF 102'000 [DR 2.3, S. 10].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Wesentliche Ereignisse nach dem Bilanzstichtag gab es keine [DR 2.3, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Jahresrechnung wurde nach den Bestimmungen des Obligationenrechts erstellt [DR 2.3, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Jahresrechnungen 2023 bis 2025 liegen vollständig vor [DR 2.1, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Revisionsstelle hat die Jahresrechnung 2025 ohne Einschränkung bestätigt [DR 2.4, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Revisionsbericht datiert vom 18.03.2026 [DR 2.4, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Im Dezember 2025 erzielte die Gesellschaft einen Umsatz von CHF 3.48 Mio. [DR 2.5, S. 12].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Juni war mit TCHF 2'725 Umsatz ein durchschnittlicher Monat [DR 2.5, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Auftragsbestand per Ende 2025 beträgt CHF 14.8 Mio. [DR 2.5, S. 13].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das EBITDA im März 2025 betrug TCHF 359 [DR 2.5, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Management Accounts werden monatlich erstellt und vom CFO freigegeben [DR 2.5, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Für 2026 budgetiert das Management einen Umsatz von CHF 34.15 Mio. [DR 2.6, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das budgetierte EBITDA 2026 beträgt CHF 4.98 Mio. [DR 2.6, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das Budget unterstellt eine Preiserhöhung von 2.5 % [DR 2.6, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die geplanten Investitionen 2026 belaufen sich auf CHF 2.7 Mio. [DR 2.6, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das Budget erscheint angesichts des Auftragsbestands plausibel [DR 2.6, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Für 2023 wurde ein steuerbarer Reingewinn von CHF 2'737'339 veranlagt [DR 3.1, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Veranlagung 2023 ist rechtskräftig [DR 3.1, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Für 2024 wurde ein steuerbarer Reingewinn von CHF 3'613'948 veranlagt [DR 3.2, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Veranlagung 2024 ist rechtskräftig [DR 3.2, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die MWST-Abrechnungen 2025 wurden für alle vier Quartale eingereicht [DR 3.3, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Steuerliche Risiken aus offenen Veranlagungen bestehen für 2025, da diese noch nicht veranlagt ist [DR 3.2, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Produktion ist in Altstätten eingemietet; der Vertrag ist fest bis 31. Dezember 2032 [DR 4.1.1, S. 2].",
+  "richtig": false,
+  "fehler": "falsches Jahr",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Nettomietzins für Altstätten beträgt CHF 684'000 pro Jahr [DR 4.1.1, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Danach ist der Vertrag mit zwölf Monaten Frist kündbar [DR 4.1.1, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Mieterin kann den Vertrag einmal um fünf Jahre verlängern [DR 4.1.1, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das Lager in Heerbrugg kostet CHF 138'000 pro Jahr [DR 4.1.2, S. 2].",
+  "richtig": false,
+  "fehler": "falsche Seite",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Mietvertrag für das Lager läuft fest bis 30.06.2028 [DR 4.1.2, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Für das Lager gilt danach eine Kündigungsfrist von 6 Monaten [DR 4.1.2, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das Büro in Zürich kostet jährlich CHF 96'000 [DR 4.1.3, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Büromietvertrag Zürich endet fest am 31.03.2027 [DR 4.1.3, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Alle Mietzinse sind vollständig an den Landesindex der Konsumentenpreise gebunden [DR 4.1.1, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Insgesamt betragen die jährlichen Mietkosten CHF 918'000 [DR 4.1.1, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": "abgeleitet"
+ },
+ {
+  "aussage": "Die Gesellschaft besitzt keine eigenen Liegenschaften [DR 4.1.1, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Liefervertrag mit der Alpstein Kliniken AG läuft vom 01.10.2022 bis 30.09.2029 [DR 5.1, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das jährliche Volumen mit der Alpstein Kliniken AG wird auf CHF 6.42 Mio. geschätzt [DR 5.1, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Preise steigen jährlich um 2.5 % [DR 5.1, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Zahlungsfrist beträgt 60 Tage [DR 5.1, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Haftung ist auf CHF 2'000'000 je Schadenfall beschränkt [DR 5.1, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Vertrag mit der Alpstein Kliniken AG enthält ein Kündigungsrecht bei Kontrollwechsel [DR 5.1, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ordentliche Kündigungsfrist beträgt 3 Monate [DR 5.1, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Es gilt Schweizer Recht mit Gerichtsstand St. Gallen [DR 5.1, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Liefervertrag mit der Medizentrum Thurgau AG läuft vom 01.07.2022 bis 30.06.2028 [DR 5.2, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das jährliche Volumen mit der Medizentrum Thurgau AG wird auf CHF 3.87 Mio. geschätzt [DR 5.2, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Preise steigen jährlich um 2.25 % [DR 5.2, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Zahlungsfrist beträgt 30 Tage [DR 5.2, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Haftung ist auf CHF 2'500'000 je Schadenfall beschränkt [DR 5.2, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Vertrag mit der Medizentrum Thurgau AG enthält keine Change-of-Control-Klausel [DR 5.2, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ordentliche Kündigungsfrist beträgt 12 Monate [DR 5.2, S. 7].",
+  "richtig": false,
+  "fehler": "falsche Kündigungsfrist",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Es gilt Schweizer Recht mit Gerichtsstand St. Gallen [DR 5.2, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Liefervertrag mit der Helvetic Ortho GmbH läuft vom 01.10.2021 bis 30.09.2027 [DR 5.3, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das jährliche Volumen mit der Helvetic Ortho GmbH wird auf CHF 2.69 Mio. geschätzt [DR 5.3, S. 3].",
+  "richtig": false,
+  "fehler": "Zahlendreher",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Preise steigen jährlich um 2.5 % [DR 5.3, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Zahlungsfrist beträgt 30 Tage [DR 5.3, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Haftung ist auf CHF 5'000'000 je Schadenfall beschränkt [DR 5.3, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Vertrag mit der Helvetic Ortho GmbH enthält ein Kündigungsrecht bei Kontrollwechsel [DR 5.3, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ordentliche Kündigungsfrist beträgt 9 Monate [DR 5.3, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Es gilt Schweizer Recht mit Gerichtsstand St. Gallen [DR 5.3, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Liefervertrag mit der Lakeside Dental SA läuft vom 01.04.2023 bis 31.03.2028 [DR 5.4, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das jährliche Volumen mit der Lakeside Dental SA wird auf CHF 2.14 Mio. geschätzt [DR 5.3, S. 3].",
+  "richtig": false,
+  "fehler": "falsches Dokument",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Preise steigen jährlich um 2.0 % [DR 5.4, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Zahlungsfrist beträgt 30 Tage [DR 5.4, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Haftung ist auf CHF 2'500'000 je Schadenfall beschränkt [DR 5.4, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Vertrag mit der Lakeside Dental SA enthält keine Change-of-Control-Klausel [DR 5.4, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ordentliche Kündigungsfrist beträgt 3 Monate [DR 5.4, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Es gilt Schweizer Recht mit Gerichtsstand St. Gallen [DR 5.4, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Liefervertrag mit der Spitalverbund Ostschweiz (fiktiv) läuft vom 01.10.2023 bis 30.09.2028 [DR 5.5, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das jährliche Volumen mit der Spitalverbund Ostschweiz (fiktiv) wird auf CHF 4.78 Mio. geschätzt [DR 5.5, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Preise steigen jährlich um 2.25 % [DR 5.5, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Zahlungsfrist beträgt 60 Tage [DR 5.5, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Haftung ist auf CHF 2'000'000 je Schadenfall beschränkt [DR 5.5, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Vertrag mit der Spitalverbund Ostschweiz (fiktiv) enthält keine Klausel zum Kontrollwechsel [DR 5.5, S. 6].",
+  "richtig": false,
+  "fehler": "Kontrollwechselklausel übersehen",
+  "regeln_koennen_es_sehen": false,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ordentliche Kündigungsfrist beträgt 3 Monate [DR 5.5, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Es gilt Schweizer Recht mit Gerichtsstand St. Gallen [DR 5.5, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Liefervertrag mit der Nordlicht Medical GmbH läuft vom 01.01.2022 bis 31.12.2026 [DR 5.6, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das jährliche Volumen mit der Nordlicht Medical GmbH wird auf CHF 1.31 Mio. geschätzt [DR 5.6, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Preise steigen jährlich um 2.5 % [DR 5.6, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Zahlungsfrist beträgt 60 Tage [DR 5.6, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Haftung ist auf CHF 1'000'000 je Schadenfall beschränkt [DR 5.6, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Vertrag mit der Nordlicht Medical GmbH enthält keine Change-of-Control-Klausel [DR 5.6, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ordentliche Kündigungsfrist beträgt 9 Monate [DR 5.6, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Es gilt Schweizer Recht mit Gerichtsstand St. Gallen [DR 5.6, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Liefervertrag mit der Klinik Seeblick AG läuft vom 01.10.2021 bis 30.09.2028 [DR 5.10, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das jährliche Volumen mit der Klinik Seeblick AG wird auf CHF 1.18 Mio. geschätzt [DR 5.10, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Preise steigen jährlich um 1.5 % [DR 5.10, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Zahlungsfrist beträgt 30 Tage [DR 5.10, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Haftung ist auf CHF 2'000'000 je Schadenfall beschränkt [DR 5.10, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Vertrag mit der Klinik Seeblick AG enthält keine Change-of-Control-Klausel [DR 5.10, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ordentliche Kündigungsfrist beträgt 6 Monate [DR 5.10, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Es gilt Schweizer Recht mit Gerichtsstand St. Gallen [DR 5.10, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Liefervertrag mit der OrthoCenter Chur AG läuft vom 01.01.2021 bis 31.12.2027 [DR 5.11, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das jährliche Volumen mit der OrthoCenter Chur AG wird auf CHF 0.96 Mio. geschätzt [DR 5.11, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Preise steigen jährlich um 2.25 % [DR 5.11, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Zahlungsfrist beträgt 60 Tage [DR 5.11, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Haftung ist auf CHF 1'000'000 je Schadenfall beschränkt [DR 5.11, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Vertrag mit der OrthoCenter Chur AG enthält ein Kündigungsrecht bei Kontrollwechsel [DR 5.11, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ordentliche Kündigungsfrist beträgt 3 Monate [DR 5.11, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Es gilt Schweizer Recht mit Gerichtsstand St. Gallen [DR 5.11, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Liefervertrag mit der Praxisgruppe Linth AG läuft vom 01.07.2021 bis 30.06.2026 [DR 5.12, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das jährliche Volumen mit der Praxisgruppe Linth AG wird auf CHF 0.74 Mio. geschätzt [DR 5.12, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Preise steigen jährlich um 1.5 % [DR 5.12, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Zahlungsfrist beträgt 60 Tage [DR 5.12, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Haftung ist auf CHF 5'000'000 je Schadenfall beschränkt [DR 5.12, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Vertrag mit der Praxisgruppe Linth AG enthält keine Change-of-Control-Klausel [DR 5.12, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ordentliche Kündigungsfrist beträgt 9 Monate [DR 5.12, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Es gilt Schweizer Recht mit Gerichtsstand St. Gallen [DR 5.12, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Liefervertrag mit der Bodensee Reha GmbH läuft vom 01.07.2023 bis 30.06.2030 [DR 5.13, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das jährliche Volumen mit der Bodensee Reha GmbH wird auf CHF 1.52 Mio. geschätzt [DR 5.13, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Preise steigen jährlich um 2.25 % [DR 5.13, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Zahlungsfrist beträgt 30 Tage [DR 5.13, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Haftung ist auf CHF 1'000'000 je Schadenfall beschränkt [DR 5.13, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Vertrag mit der Bodensee Reha GmbH enthält keine Change-of-Control-Klausel [DR 5.13, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ordentliche Kündigungsfrist beträgt 6 Monate [DR 5.13, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Es gilt Schweizer Recht mit Gerichtsstand St. Gallen [DR 5.13, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Liefervertrag mit der Alpine Sports Clinic AG läuft vom 01.07.2022 bis 30.06.2029 [DR 5.14, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das jährliche Volumen mit der Alpine Sports Clinic AG wird auf CHF 0.88 Mio. geschätzt [DR 5.14, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Preise steigen jährlich um 1.5 % [DR 5.14, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Zahlungsfrist beträgt 45 Tage [DR 5.14, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Haftung ist auf CHF 5'000'000 je Schadenfall beschränkt [DR 5.14, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Vertrag mit der Alpine Sports Clinic AG enthält ein Kündigungsrecht bei Kontrollwechsel [DR 5.14, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ordentliche Kündigungsfrist beträgt 9 Monate [DR 5.14, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Es gilt Schweizer Recht mit Gerichtsstand St. Gallen [DR 5.14, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Liefervertrag mit der Medisupply Liechtenstein AG läuft vom 01.10.2021 bis 30.09.2028 [DR 5.15, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das jährliche Volumen mit der Medisupply Liechtenstein AG wird auf CHF 1.09 Mio. geschätzt [DR 5.15, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Preise steigen jährlich um 2.5 % [DR 5.15, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Zahlungsfrist beträgt 45 Tage [DR 5.15, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Haftung ist auf CHF 2'500'000 je Schadenfall beschränkt [DR 5.15, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Vertrag mit der Medisupply Liechtenstein AG enthält keine Change-of-Control-Klausel [DR 5.15, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ordentliche Kündigungsfrist beträgt 3 Monate [DR 5.15, S. 7].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Es gilt Schweizer Recht mit Gerichtsstand St. Gallen [DR 5.15, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die drei grössten Kunden stehen für rund 42 % des Umsatzes [DR 5.1, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": "abgeleitet"
+ },
+ {
+  "aussage": "Mit der Precitec Metall AG besteht ein Rahmenvertrag über Titanrohlinge bis 31.12.2027 [DR 5.7, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Mindestabnahme gegenüber der Precitec Metall AG beträgt CHF 2'480'000 jährlich [DR 5.7, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Precitec Metall AG garantiert die Rückverfolgbarkeit jeder Charge [DR 5.7, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Mit der Silikon Werke Rorschach AG besteht ein Rahmenvertrag über medizinisches Silikon bis 31.12.2028 [DR 5.8, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Mindestabnahme gegenüber der Silikon Werke Rorschach AG beträgt CHF 1'120'000 jährlich [DR 5.8, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Silikon Werke Rorschach AG garantiert die Rückverfolgbarkeit jeder Charge [DR 5.8, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Mit der Logistik Säntis AG besteht ein Rahmenvertrag über Lager- und Transportleistungen bis 31.12.2028 [DR 5.9, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Mindestabnahme gegenüber der Logistik Säntis AG beträgt CHF 640'000 jährlich [DR 5.9, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Logistik Säntis AG garantiert die Rückverfolgbarkeit jeder Charge [DR 5.9, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Kreditlimite der Bodensee Kantonalbank beträgt CHF 8 Mio. [DR 6.1, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Davon ist ein fester Vorschuss von CHF 6.0 Mio. beansprucht [DR 6.1, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der feste Vorschuss ist zu 2.15 % verzinst [DR 6.1, S. 3].",
+  "richtig": false,
+  "fehler": "falscher Zinssatz",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Rückzahlung ist am 30. September 2030 fällig [DR 6.1, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Bank kann den Kredit bei einem Kontrollwechsel sofort kündigen [DR 6.1, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Als Sicherheit sind die Kundenforderungen zediert [DR 6.1, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Covenant Nettoverschuldung zu EBITDA wird per Ende 2025 eingehalten [DR 6.1, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Für zwei Spritzgussmaschinen zahlt die Gesellschaft monatlich CHF 18'400 Leasing [DR 6.2, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Leasingvertrag läuft über 60 Monate ab dem 1. April 2024 [DR 6.2, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Restwert beträgt CHF 95'000 [DR 6.2, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Dr. Martin Keller (CEO) erhält ein Bruttojahresgehalt von CHF 340'000 [DR 7.1, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Für Dr. Martin Keller gilt eine Kündigungsfrist von 6 Monaten [DR 7.1, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Nadia Brunner (CFO) erhält ein Bruttojahresgehalt von CHF 265'000 [DR 7.1, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Für Nadia Brunner gilt eine Kündigungsfrist von 6 Monaten [DR 7.1, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Reto Signer (COO) erhält ein Bruttojahresgehalt von CHF 248'000 [DR 7.1, S. 8].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Für Reto Signer gilt eine Kündigungsfrist von 6 Monaten [DR 7.1, S. 9].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Elena Rossi (Leiterin Vertrieb) erhält ein Bruttojahresgehalt von CHF 212'000 [DR 7.1, S. 11].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Für Elena Rossi gilt eine Kündigungsfrist von 3 Monaten [DR 7.1, S. 12].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Keiner der Arbeitsverträge der Geschäftsleitung sieht Abgangsentschädigungen vor [DR 7.1, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Gesamtvergütung der Geschäftsleitung beträgt CHF 1'065'000 [DR 7.1, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": "abgeleitet"
+ },
+ {
+  "aussage": "Mitarbeitende haben Anspruch auf 25 Ferientage pro Jahr [DR 7.2, S. 6].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das Personalreglement ist auf dem aktuellen Stand [DR 7.2, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Sammelstiftung weist per Ende 2025 einen Deckungsgrad von 112.4 % aus [DR 7.3, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Arbeitgeberin trägt 55 % der Vorsorgebeiträge [DR 7.3, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Aus der beruflichen Vorsorge sind keine Sanierungsbeiträge zu erwarten [DR 7.3, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das wichtigste Patent (EP 3 412 877) schützt das Gelenkimplantat bis 22.03.2037 [DR 8.1, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das Verfahrenspatent zur Sterilverpackung läuft bis 5. November 2035 [DR 8.1, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Alle Patente stehen im Eigentum der Gesellschaft [DR 8.1, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Für die ERP-Software zahlt die Gesellschaft jährlich CHF 74'500 [DR 8.2, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der ERP-Lizenzvertrag läuft bis Ende 2028 [DR 8.2, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die ERP-Lizenz ist nicht übertragbar [DR 8.2, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Betriebshaftpflicht deckt CHF 10 Mio. pro Ereignis [DR 9.1, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Produktehaftpflicht ist mit CHF 20 Mio. pro Ereignis versichert [DR 9.1, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Selbstbehalt in der Produktehaftpflicht beträgt CHF 25'000 [DR 9.1, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Sachversicherung deckt Gebäude und Inventar mit CHF 18.5 Mio. [DR 9.1, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Betriebsunterbrechungsversicherung hat eine Haftzeit von 12 Monaten [DR 9.1, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Der Versicherungsschutz erscheint angemessen [DR 9.1, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Nordlicht Medical GmbH klagt auf Schadenersatz von CHF 1.45 Mio. [DR 10.1, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Gesellschaft bestreitet die Forderung vollständig [DR 10.1, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Rechtsvertreterin beurteilt das Prozessrisiko als gering [DR 10.1, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Hauptverhandlung findet am 24.11.2026 statt [DR 10.1, S. 5].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Weitere Rechtsstreitigkeiten sind nicht bekannt [DR 10.1, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ }
+]

@@ -86,3 +86,13 @@ def test_report_has_review_controls():
     text = "Umsatz CHF 1 Mio. [DR 1]."
     page = to_html(run_check("b.md", text, text.encode(), room))
     assert 'class="decide"' in page and 'id="reviewer"' in page and "Protokoll exportieren" in page
+
+
+def test_adjacent_table_columns_are_separate_numbers():
+    values = [f.value for f in page_facts("Erfolgsrechnung (in CHF)\nFinanzaufwand 187'400 201'300")]
+    assert values == [("CHF", Decimal(187_400)), ("CHF", Decimal(201_300))]
+
+
+def test_sentence_starting_with_year_after_citation():
+    claims = parse_report("Umsatz CHF 2 Mio. [DR 1, S. 1]. 2023 waren es CHF 1 Mio. [DR 1, S. 2].")
+    assert len(claims) == 2

@@ -74,6 +74,25 @@ Fundstelle, sowie korrekte Werte in anderer Schreibweise, korrekt gerundete und 
 Das prüft die Regeln gegen bekannte Fehlerarten. Für eine Aussage über echte Berichte braucht es zusätzlich einen
 Benchmark mit anonymisierten, von Menschen geschriebenen DD-Berichten.
 
+### Grosser Testfall
+
+`beispiele/gross` ist näher an einem echten Deal: 40 Dokumente mit 264 Seiten (PDF und Excel) und ein DD-Bericht
+mit 212 Aussagen, von denen nur 12 absichtlich falsch sind. `wahrheit.json` hält fest, welche Aussage richtig ist.
+
+```bash
+python beispiele/gross/erzeugen.py    # Datenraum und Bericht neu erzeugen (fester Zufall)
+python beispiele/gross/auswerten.py   # Zitatio laufen lassen und gegen die Wahrheit vergleichen
+```
+
+Ergebnis ohne Prüfmodell (siehe `beispiele/gross/ergebnis.txt`): 9 von 12 Fehlern gefunden, 5 Fehlalarme bei 200
+richtigen Aussagen, Laufzeit rund 1 Sekunde. Die Fehlalarme sind alle berechnete Werte (Wachstum, Marge, Summen),
+die so nicht an der Fundstelle stehen. Verpasst werden Fehler, bei denen der Wert auf der Seite steht, aber etwas
+anderes bedeutet (Vorjahresspalte, EBIT statt Jahresgewinn), und eine falsch beschriebene Vertragsklausel. Dafür
+braucht es das Prüfmodell. 58 richtige Aussagen ohne Zahlen bleiben „Ungeprüft“ und müssen gelesen werden.
+
+Die Aussagen im Bericht sind generiert und lehnen sich eng an die Formulierungen im Datenraum an. Echte Berichte
+umschreiben freier; die Zahlen hier sind deshalb eher eine obere Grenze.
+
 ## Prüfmodell (optional)
 
 ```bash
