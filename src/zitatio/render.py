@@ -135,11 +135,13 @@ def logo_svg() -> str:
 def _font_faces() -> str:
     """Hausschrift als Data-URI, damit der Prüfbericht als einzelne Datei offline gleich aussieht."""
     faces = []
-    for weight in (400, 700):
-        data = resources.files("zitatio").joinpath(f"assets/fonts/familjen-grotesk-latin-{weight}-normal.woff2").read_bytes()
+    for family, weight, name in (("Familjen Grotesk", 400, "familjen-grotesk-latin-400-normal"),
+                                 ("Familjen Grotesk", 700, "familjen-grotesk-latin-700-normal"),
+                                 ("Fahkwang", 200, "fahkwang-latin-extralight-normal")):
+        data = resources.files("zitatio").joinpath(f"assets/fonts/{name}.woff2").read_bytes()
         faces.append(
-            '@font-face {{ font-family:"Familjen Grotesk"; font-weight:%d; font-display:swap; '
-            'src:url(data:font/woff2;base64,%s) format("woff2"); }}' % (weight, base64.b64encode(data).decode())
+            '@font-face {{ font-family:"%s"; font-weight:%d; font-display:swap; '
+            'src:url(data:font/woff2;base64,%s) format("woff2"); }}' % (family, weight, base64.b64encode(data).decode())
         )
     return "\n".join(faces).replace("{{", "{").replace("}}", "}")
 
@@ -170,7 +172,7 @@ def _protocol_line(f: Finding) -> str:
         f'<span class="nr">{f.claim.number:02d}</span>'
         f'<span class="txt">{html.escape(short)}</span>'
         f'<span class="where">{html.escape(where)}</span>'
-        f'<span class="st">{f.status.label.upper()}</span></a>'
+        f'<span class="st">{f.status.label}</span></a>'
     )
 
 
@@ -219,6 +221,15 @@ def to_html(run: Run) -> str:
         if n
     )
     protocol = "\n".join(_protocol_line(f) for f in run.findings)
+    colors = {Status.GEPRUEFT: "var(--green)", Status.ABWEICHUNG: "var(--red)", Status.QUELLE_FEHLT: "var(--red)",
+              Status.FALSCHE_FUNDSTELLE: "var(--amber)", Status.OHNE_BELEG: "var(--amber)", Status.UNGEPRUEFT: "var(--gray-bg)"}
+    stops, acc = [], 0
+    for st in [Status.GEPRUEFT] + [x for x in ORDER if x is not Status.GEPRUEFT]:
+        if counts[st]:
+            start, acc = acc, acc + counts[st]
+            stops.append(f"{colors[st]} {start / total * 360:.1f}deg {acc / total * 360:.1f}deg")
+    donut = ", ".join(stops) or "var(--gray-bg) 0deg 360deg"
+    ok_share = f"{counts[Status.GEPRUEFT] / total:.0%}" if total else "–"
     cards = "\n".join(_card(f) for f in sorted(run.findings, key=lambda f: (ORDER.index(f.status), f.claim.number)))
     docs = "".join(
         f"<tr><td>{html.escape(d.label)}</td><td>{html.escape(d.title)}</td><td>{len(d.pages)}</td>"
@@ -231,6 +242,8 @@ def to_html(run: Run) -> str:
     stamp = run.created.strftime("%d.%m.%Y, %H:%M")
     return TEMPLATE.format(
         fonts=_font_faces(),
+        donut=donut,
+        ok_share=ok_share.replace("%", "&nbsp;%"),
         csv=base64.b64encode(to_csv(run).encode("utf-8")).decode(),
         rows=json.dumps({"columns": CSV_COLUMNS, "rows": _rows(run)}, ensure_ascii=False).replace("</", "<\\/"),
         key=html.escape(run.report_sha256 + "-" + run.created.isoformat(timespec="seconds")),
@@ -262,89 +275,100 @@ TEMPLATE = """<!doctype html>
 <style>
 {fonts}
 :root {{
-  --ink:#15202B; --ink-2:#4A5560; --line:#DCE1DD; --paper:#F7F8F6; --card:#FFFFFF;
-  --green:#1E7A50; --green-bg:#E6F2EC; --red:#B42318; --red-bg:#FBEAE8;
-  --amber:#9A5B00; --amber-bg:#FBF1DF; --gray:#5B6670; --gray-bg:#EEF0EF;
-  --term:#121A22; --term-ink:#DCE3E8; --term-dim:#7D8A95; --mark:#FFF0B3;
+  --ink:#15202B; --ink-2:#4A5560; --ink-3:#7D8790; --page:#F7F8F6; --card:#FFFFFF;
+  --line:rgba(21,32,43,.09); --line-2:rgba(21,32,43,.16);
+  --green:#1E7A50; --green-bg:#DCEDE3; --red:#B42318; --red-bg:#F6E1DE;
+  --amber:#9A5B00; --amber-bg:#F3E8D2; --gray:#5B6670; --gray-bg:#E7EAEC; --mark:#DCEDE3; --mark-claim:#ECE7DE;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
   --sans: "Familjen Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --display: "Fahkwang", "Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;
 }}
 @media (prefers-color-scheme: dark) {{
-  :root {{
-    --ink:#EEF2F0; --ink-2:#A9B4BD; --line:#2A3540; --paper:#121A22; --card:#18222C;
+  :root:not([data-theme="light"]) {{
+    --ink:#EEF2F0; --ink-2:#A9B4BD; --ink-3:#7D8A95; --page:#121A22; --card:#18222C;
+    --line:rgba(238,242,240,.09); --line-2:rgba(238,242,240,.16);
     --green:#4CC38A; --green-bg:#16352A; --red:#F07A6E; --red-bg:#3A1F1E;
-    --amber:#E8B04B; --amber-bg:#3A2E16; --gray:#A9B4BD; --gray-bg:#24303A;
-    --term:#0B1117; --mark:#5A4A10;
+    --amber:#E8B04B; --amber-bg:#3A2E16; --gray:#A9B4BD; --gray-bg:#24303A; --mark:#1E4A36; --mark-claim:#2A3540;
   }}
 }}
 * {{ box-sizing:border-box; }}
-body {{ margin:0; background:var(--paper); color:var(--ink); font:15px/1.55 var(--sans); }}
-main {{ max-width:960px; margin:0 auto; padding:32px 16px 64px; }}
+body {{ margin:0; background:var(--page); color:var(--ink); font:15px/1.6 var(--sans); -webkit-font-smoothing:antialiased; }}
+main {{ max-width:1040px; margin:0 auto; padding:36px 20px 80px; }}
 .top {{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }}
-.logo {{ height:28px; width:auto; }}
-.meta {{ font:12px/1.5 var(--mono); color:var(--ink-2); text-align:right; }}
-.meta a {{ color:var(--green); }}
-h1 {{ font-size:30px; line-height:1.15; letter-spacing:-0.02em; margin:40px 0 8px; }}
-.sub {{ color:var(--ink-2); margin:0 0 20px; }}
-.chips {{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 24px; }}
-.chip {{ font:13px var(--sans); border:1px solid var(--line); background:var(--card); color:var(--ink);
-  border-radius:999px; padding:5px 12px; cursor:pointer; }}
+.logo {{ height:26px; width:auto; }}
+.meta {{ font-size:13px; line-height:1.5; color:var(--ink-3); text-align:right; }}
+.kicker {{ font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-2); margin:0 0 10px; }}
+.summary {{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:32px; align-items:center; margin:64px 0 28px; }}
+h1 {{ font:200 clamp(30px, 4.4vw, 48px)/1.12 var(--display); letter-spacing:-.01em; margin:0 0 12px; }}
+.sub {{ color:var(--ink-2); margin:0; }}
+.donut {{ width:132px; height:132px; border-radius:50%; background:conic-gradient({donut}); display:grid; place-items:center; }}
+.donut span {{ width:96px; height:96px; border-radius:50%; background:var(--page); display:grid; place-items:center; text-align:center;
+  font:200 30px/1 var(--display); }}
+.donut small {{ display:block; font:12px var(--sans); color:var(--ink-3); margin-top:4px; }}
+.chips {{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 18px; }}
+.chip {{ font:500 13px var(--sans); border:0; background:var(--cbg); color:var(--c); border-radius:999px; padding:7px 14px; cursor:pointer; }}
 .chip b {{ font-variant-numeric:tabular-nums; }}
-.chip.on {{ outline:2px solid var(--ink); }}
-.term {{ background:var(--term); color:var(--term-ink); border-radius:10px; padding:14px 0 10px;
-  font:12.5px/1.5 var(--mono); overflow:hidden; }}
-.term .bar {{ color:var(--term-dim); padding:0 16px 8px; border-bottom:1px solid #22303C; margin-bottom:6px; }}
-.pl {{ display:grid; grid-template-columns:18px 26px 1fr auto auto; gap:10px; padding:3px 16px;
-  color:inherit; text-decoration:none; }}
-.pl:hover {{ background:#1C2833; }}
-.pl .nr, .pl .where {{ color:var(--term-dim); }}
+.chip.on {{ box-shadow:0 0 0 2px var(--c); }}
+.review {{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; background:var(--card); border-radius:20px;
+  box-shadow:0 0 0 1px var(--line); padding:14px 20px; margin:0 0 18px; font-size:14px; }}
+.review input {{ font:14px var(--sans); color:var(--ink); background:var(--page); border:1px solid var(--line-2); border-radius:999px; padding:7px 14px; min-width:0; }}
+.review .bar {{ flex:1 1 160px; height:4px; background:var(--gray-bg); border-radius:2px; overflow:hidden; }}
+.review .bar i {{ display:block; height:100%; width:0; background:var(--green); transition:width .2s; }}
+.review a {{ background:var(--ink); color:var(--page); text-decoration:none; border-radius:999px; padding:9px 18px; font-weight:500; }}
+.proto {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:10px 0; overflow:hidden; }}
+.proto .head {{ display:flex; justify-content:space-between; padding:10px 22px 12px; border-bottom:1px solid var(--line); }}
+.proto .head .kicker {{ margin:0; }}
+.proto .head span:last-child {{ font-size:13px; color:var(--ink-3); }}
+.pl {{ display:grid; grid-template-columns:30px 1fr auto auto; gap:14px; align-items:center; padding:9px 22px; color:inherit; text-decoration:none;
+  border-bottom:1px solid var(--line); font-size:14px; }}
+.pl:last-child {{ border-bottom:0; }}
+.pl:hover {{ background:var(--page); }}
+.pl .sym {{ display:none; }}
+.pl .nr {{ width:26px; height:26px; border-radius:50%; border:1px solid var(--c); color:var(--c); display:grid; place-items:center; font-size:11px; }}
 .pl .txt {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-.pl .st {{ font-weight:600; }}
-.pl.s-geprueft .sym, .pl.s-geprueft .st {{ color:#4CC38A; }}
-.pl.s-abweichung .sym, .pl.s-abweichung .st, .pl.s-quelle_fehlt .sym, .pl.s-quelle_fehlt .st {{ color:#F07A6E; }}
-.pl.s-falsche_fundstelle .sym, .pl.s-falsche_fundstelle .st, .pl.s-ohne_beleg .sym, .pl.s-ohne_beleg .st {{ color:#E8B04B; }}
-.pl.s-ungeprueft .sym, .pl.s-ungeprueft .st {{ color:#A9B4BD; }}
-h2 {{ font-size:18px; margin:40px 0 12px; }}
-.card {{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--c); border-radius:8px;
-  padding:16px 18px; margin:0 0 12px; }}
-.card header {{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:13px; color:var(--ink-2); }}
-.badge {{ font-weight:600; color:var(--c); background:var(--cbg); border-radius:4px; padding:2px 8px; }}
-.method {{ margin-left:auto; font:11px var(--mono); }}
-.sec {{ font-style:italic; }}
-.claim {{ font-size:16px; margin:10px 0 4px; }}
-.claim mark, blockquote mark {{ background:var(--mark); color:inherit; border-radius:2px; padding:0 2px; }}
-.cite {{ font:12px var(--mono); color:var(--ink-2); margin:0 0 8px; }}
-.reasons {{ margin:0 0 8px; padding-left:18px; }}
-.ev {{ margin:8px 0 0; }}
-.ev figcaption {{ font:12px var(--mono); color:var(--ink-2); }}
-.ev .file {{ opacity:.7; }}
-blockquote {{ margin:4px 0 0; padding:8px 12px; background:var(--paper); border-radius:6px; font-size:14px; }}
+.pl .where {{ color:var(--ink-3); font-size:13px; white-space:nowrap; }}
+.pl .st {{ font-size:12px; font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px; padding:3px 10px; white-space:nowrap; text-transform:none; }}
+h2 {{ font:200 30px/1.2 var(--display); margin:64px 0 18px; }}
+.card {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:22px 24px; margin:0 0 14px; }}
+.card header {{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:13px; color:var(--ink-3); }}
+.badge {{ font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px; padding:4px 12px; }}
+.method {{ margin-left:auto; }}
+.sec {{ }}
+.claim {{ font:200 21px/1.45 var(--display); margin:14px 0 6px; }}
+.claim mark, blockquote mark {{ background:var(--mark); color:inherit; border-radius:4px; padding:0 3px; }}
+.claim mark {{ background:var(--mark-claim); }}
+.cite {{ font-size:13px; color:var(--ink-3); margin:0 0 10px; }}
+.reasons {{ margin:0 0 10px; padding-left:18px; color:var(--ink-2); }}
+.ev {{ margin:10px 0 0; }}
+.ev figcaption {{ font-size:12px; color:var(--ink-3); }}
+.ev .file {{ opacity:.8; }}
+blockquote {{ margin:6px 0 0; padding:12px 16px; background:var(--page); border-radius:14px; font-size:14px; color:var(--ink-2); }}
 .s-geprueft {{ --c:var(--green); --cbg:var(--green-bg); }}
 .s-abweichung, .s-quelle_fehlt {{ --c:var(--red); --cbg:var(--red-bg); }}
 .s-falsche_fundstelle, .s-ohne_beleg {{ --c:var(--amber); --cbg:var(--amber-bg); }}
 .s-ungeprueft {{ --c:var(--gray); --cbg:var(--gray-bg); }}
-table {{ width:100%; border-collapse:collapse; font-size:13px; }}
-td, th {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }}
-.hash {{ font:12px var(--mono); color:var(--ink-2); }}
+.tablebox {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:6px 14px; overflow-x:auto; }}
+table {{ width:100%; border-collapse:collapse; font-size:14px; }}
+td, th {{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); }}
+tr:last-child td {{ border-bottom:0; }}
+th {{ font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); }}
+.hash {{ font:12px var(--mono); color:var(--ink-3); }}
 .warn {{ color:var(--amber); font-size:13px; }}
-.note {{ font-size:13px; color:var(--ink-2); }}
-.review {{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; background:var(--card); border:1px solid var(--line);
-  border-radius:8px; padding:12px 16px; margin:0 0 24px; font-size:14px; }}
-.review input {{ font:14px var(--sans); color:var(--ink); background:var(--paper); border:1px solid var(--line);
-  border-radius:6px; padding:6px 10px; min-width:0; }}
-.review .bar {{ flex:1 1 160px; height:6px; background:var(--gray-bg); border-radius:3px; overflow:hidden; }}
-.review .bar i {{ display:block; height:100%; width:0; background:var(--green); transition:width .2s; }}
-.review a {{ color:var(--green); font-weight:600; }}
-.decide {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px; padding-top:12px; border-top:1px dashed var(--line); }}
-.decide .q {{ font-size:13px; color:var(--ink-2); margin-right:4px; }}
-.decide button {{ font:13px var(--sans); border:1px solid var(--line); background:transparent; color:var(--ink);
-  border-radius:6px; padding:4px 12px; cursor:pointer; }}
+.note {{ font-size:13px; color:var(--ink-3); margin-top:40px; }}
+.decide {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }}
+.decide .q {{ font-size:13px; color:var(--ink-3); margin-right:4px; }}
+.decide button {{ font:500 13px var(--sans); border:1px solid var(--line-2); background:transparent; color:var(--ink);
+  border-radius:999px; padding:6px 16px; cursor:pointer; }}
 .decide button.on[data-d=ok] {{ background:var(--green); border-color:var(--green); color:var(--card); }}
 .decide button.on[data-d=nein] {{ background:var(--ink); border-color:var(--ink); color:var(--card); }}
-.decide input {{ flex:1 1 200px; min-width:0; font:13px var(--sans); color:var(--ink); background:var(--paper);
-  border:1px solid var(--line); border-radius:6px; padding:5px 10px; }}
-.card.done {{ opacity:.72; }}
-@media (max-width:640px) {{ .hash {{ display:none; }} .pl {{ grid-template-columns:18px 1fr auto; }} .pl .nr, .pl .where {{ display:none; }} }}
+.decide input {{ flex:1 1 200px; min-width:0; font:13px var(--sans); color:var(--ink); background:var(--page);
+  border:1px solid var(--line-2); border-radius:999px; padding:7px 14px; }}
+.card.done {{ opacity:.7; }}
+@media (max-width:640px) {{
+  .summary {{ grid-template-columns:minmax(0,1fr); margin-top:40px; }}
+  .donut {{ width:104px; height:104px; }} .donut span {{ width:76px; height:76px; font-size:24px; }}
+  .hash {{ display:none; }} .pl {{ grid-template-columns:30px 1fr auto; }} .pl .where {{ display:none; }}
+}}
 @media print {{ .chips, .review a, .decide button:not(.on) {{ display:none; }} .card {{ break-inside:avoid; }} }}
 </style>
 </head>
@@ -353,23 +377,26 @@ td, th {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line);
   <div class="top">{logo}
     <div class="meta">Prüfbericht · {stamp}<br>Prüfmodell: {model}</div>
   </div>
-  <h1>{headline}</h1>
-  <p class="sub">{report} · {total} Aussagen gegen {docs_count} Dokumente im Datenraum geprüft.</p>
+  <div class="summary">
+    <div><p class="kicker">Prüfbericht</p><h1>{headline}</h1>
+    <p class="sub">{report} · {total} Aussagen gegen {docs_count} Dokumente im Datenraum geprüft.</p></div>
+    <div class="donut" aria-hidden="true"><span>{ok_share}<small>geprüft</small></span></div>
+  </div>
   <div class="chips">{chips}</div>
   <div class="review" id="review">
     <label>Durchgesehen von <input type="text" id="reviewer" placeholder="Name" autocomplete="name"></label>
     <span id="progress">0 von {total} entschieden</span><span class="bar"><i id="bar"></i></span>
     <a id="export" href="data:text/csv;charset=utf-8;base64,{csv}" download="{csv_name}">Protokoll exportieren</a>
   </div>
-  <section class="term" aria-label="Prüfprotokoll">
-    <div class="bar">$ zitatio pruefen {report}</div>
+  <section class="proto" aria-label="Prüfprotokoll">
+    <div class="head"><p class="kicker">Prüfprotokoll</p><span>{report}</span></div>
     {protocol}
   </section>
   <h2>Aussagen im Detail</h2>
   {cards}
   <h2>Datenraum</h2>
-  <table><thead><tr><th>Index</th><th>Dokument</th><th>Seiten</th><th class="hash">SHA-256</th></tr></thead>
-  <tbody>{docs}</tbody></table>
+  <div class="tablebox"><table><thead><tr><th>Index</th><th>Dokument</th><th>Seiten</th><th class="hash">SHA-256</th></tr></thead>
+  <tbody>{docs}</tbody></table></div>
   {warnings}
   <p class="note">„Geprüft“ heisst: Jeder Betrag, jedes Datum, jeder Prozentsatz, jede Frist und jede UID der Aussage
   steht auf der zitierten Seite. Den Sinn einer Aussage bestätigt nur das Prüfmodell, und nur mit einem Zitat,
