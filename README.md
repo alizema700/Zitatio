@@ -258,6 +258,7 @@ oder Google Kalender, mit Erinnerung 14 Tage vorher. Jeder Termin nennt die Fund
 | Sanktionen | Mit `--sanktionen liste.xml` (Gesamtliste des SECO, CSV oder ein Name pro Zeile) gleicht Zitatio Aktionäre, Zeichnungsberechtigte und Firmen im Datenraum ab, unabhängig von der Reihenfolge von Vor- und Nachname. Nichts wird aus dem Internet geladen. |
 | Erfolgsrechnung nachgerechnet | Jede Spalte: EBITDA = Umsatz − Material − Personal − übriger Aufwand, EBIT, Jahresgewinn. Findet falsch übertragene Zeilen. |
 | Monatsabschlüsse nachgerechnet | Summe der Monatsblätter gegen „kumuliert“ oder „Total“ in der Übersicht der Management Accounts. |
+| Management Reporting gegen Jahresrechnung | Umsatz und EBITDA aus der Summe der Monatsblätter (TCHF erkannt) gegen die Jahresrechnung; über 5 % Abweichung: Überleitung verlangen. |
 | Covenant | „Nettoverschuldung höchstens x-mal EBITDA“ aus dem Kreditvertrag, nachgerechnet aus der Bilanz. |
 | Nachträge | Erwähnt ein Vertrag einen Nachtrag, eine Zusatzvereinbarung oder einen Side Letter, der nicht im Datenraum liegt, ist das ein Warnsignal: Werte aus dem Grundvertrag können überholt sein. |
 | Protokolle | Steuerprüfung, Klage, Rückruf, Sanierung, Abgänge und weitere Themen aus VR- und GV-Protokollen; Warnung, wenn der Bericht das Thema nirgends anspricht. |

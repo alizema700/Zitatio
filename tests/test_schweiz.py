@@ -243,3 +243,15 @@ def test_monthly_sheets_add_up_to_the_overview():
         flags = check_monthly_totals(room)
         assert len(flags) == expected
     assert "Summe der Monate 12'000" in flags[0].title
+
+
+def test_management_accounts_against_annual_accounts():
+    from zitatio.monatswerte import check_management_vs_statutory
+
+    months = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+    pages = [f"Blatt: {m} 2025\nManagement Accounts, in TCHF\nUmsatz; 1'000\nEBITDA; 80" for m in months]
+    statement = ("Muster AG - Jahresrechnung 2025\nErfolgsrechnung 2025 (in CHF)\nNettoerlöse aus Lieferungen und "
+                 "Leistungen 12'010'000\nEBITDA 1'200'000\n")
+    room = _room(**{"2.1 Jahresrechnung 2025.txt": statement, "2.5 Management Accounts 2025.txt": "\f".join(pages)})
+    flags = {f.title.split(" ")[0]: f for f in check_management_vs_statutory(room)}
+    assert flags["Umsatz"].level == "ok" and flags["EBITDA"].level == "hinweis" and "-20.0 %" in flags["EBITDA"].text

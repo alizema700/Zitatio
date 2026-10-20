@@ -47,6 +47,7 @@ Schweizer Warnsignale gefunden: 12 von 12 eingebauten, 0 weitere gemeldet
   hinweis  Zeichnungsberechtigung: Geprüfte Unterschriften
   hinweis  Steuern: Indirekte Teilliquidation: 30 % in Händen natürlicher Personen
   hinweis  Protokolle: Rechtsstreit (DR 1.4, S. 9)
+  hinweis  Management Accounts: EBITDA 2025 im Management Reporting -19 % gegenüber der Jahresrechnung
   ok       Kapitalschutz: Kein Kapitalverlust per 2025
   ok       Revision: Revisionspflicht 2025: eingeschränkte Revision genügt
   ok       Vorsorge: Deckungsgrad 112.4 %
@@ -55,6 +56,7 @@ Schweizer Warnsignale gefunden: 12 von 12 eingebauten, 0 weitere gemeldet
   ok       Covenant: Covenant eingehalten (0.73x von höchstens 2.5x)
   ok       Steuern: Steuerbarer Gewinn 2023 passt zum Jahresgewinn
   ok       Steuern: Steuerbarer Gewinn 2024 passt zum Jahresgewinn
+  ok       Management Accounts: Umsatz 2025: Management Reporting passt zur Jahresrechnung
 
 Richtige Aussagen: 163 geprüft, 45 ungeprüft (keine prüfbaren Werte), 2 mit Widerspruch im Datenraum, 3 Folgehinweis, 0 Fehlalarme
 
