@@ -39,7 +39,8 @@ def main(details: bool) -> None:
     errors = [(f, t) for f, t in rows if not t["richtig"]]
     correct = [(f, t) for f, t in rows if t["richtig"]]
     found = [(f, t) for f, t in errors if f.status in FLAGGED]
-    false_alarms = [(f, t) for f, t in correct if f.status in FLAGGED]
+    follow_ups = [(f, t) for f, t in correct if f.status in FLAGGED and t["hinweis"].startswith("folgt aus")]
+    false_alarms = [(f, t) for f, t in correct if f.status in FLAGGED and (f, t) not in follow_ups]
     status = Counter(f.status.label for f, _ in rows)
 
     pages = sum(len(d.pages) for d in room.documents)
@@ -54,9 +55,26 @@ def main(details: bool) -> None:
     for f, t in false_alarms:
         why = f" ({t['hinweis']})" if t["hinweis"] else ""
         print(f"  {f.status.label}{why}: {f.claim.clean_text}")
+    for f, t in follow_ups:
+        print(f"  Folgehinweis, kein Fehlalarm ({t['hinweis']}): {f.status.label}: {f.claim.clean_text}")
+
+    planted = json.loads((HERE / "widersprueche.json").read_text(encoding="utf-8"))
+    titles = [c.title for c in run.conflicts]
+    hits = [p for p in planted if p["groesse"] in titles]
+    print(f"\nWidersprüche im Datenraum gefunden: {len(hits)} von {len(planted)} eingebauten, "
+          f"{len(titles) - len(hits)} weitere gemeldet")
+    for c in run.conflicts:
+        mark = "eingebaut" if c.title in [p["groesse"] for p in planted] else "zusätzlich"
+        print(f"  {mark:<10} {c.describe()}")
+    for f, _ in rows:
+        if f.status is Status.WIDERSPRUCH:
+            print(f"  betrifft Aussage {f.claim.number}: {f.claim.clean_text}")
+
     ok = sum(f.status is Status.GEPRUEFT for f, _ in correct)
     open_ = sum(f.status is Status.UNGEPRUEFT for f, _ in correct)
-    print(f"\nRichtige Aussagen: {ok} geprüft, {open_} ungeprüft (keine prüfbaren Werte), {len(false_alarms)} Fehlalarme")
+    other = len(correct) - ok - open_ - len(false_alarms) - len(follow_ups)
+    print(f"\nRichtige Aussagen: {ok} geprüft, {open_} ungeprüft (keine prüfbaren Werte), "
+          f"{other} mit Widerspruch im Datenraum, {len(follow_ups)} Folgehinweis, {len(false_alarms)} Fehlalarme")
     if details:
         for f, t in rows:
             print(f"{f.claim.number:03d} {f.status.label:<18} {'OK ' if t['richtig'] else 'ERR'} {f.claim.clean_text}")

@@ -54,6 +54,7 @@ Das budgetierte EBITDA 2026 beträgt CHF 4.98 Mio. [DR 2.6, S. 1].
 Das Budget unterstellt eine Preiserhöhung von 2.5 % [DR 2.6, S. 2].
 Die geplanten Investitionen 2026 belaufen sich auf CHF 2.7 Mio. [DR 2.6, S. 1].
 Das Budget erscheint angesichts des Auftragsbestands plausibel [DR 2.6, S. 1].
+Die Revisionsstelle hält fest: „Wir sind auf keine Sachverhalte gestossen, aus denen wir schliessen müssten, dass die Jahresrechnung nicht Gesetz und Statuten entspricht“ [DR 2.4, S. 2].
 
 ## 3. Steuern
 
@@ -244,3 +245,13 @@ Die Gesellschaft bestreitet die Forderung vollständig [DR 10.1, S. 3].
 Die Rechtsvertreterin beurteilt das Prozessrisiko als gering [DR 10.1, S. 4].
 Die Hauptverhandlung findet am 24.11.2026 statt [DR 10.1, S. 5].
 Weitere Rechtsstreitigkeiten sind nicht bekannt [DR 10.1, S. 1].
+Die Rechtsvertreterin schreibt: „Das Prozessrisiko ist vernachlässigbar, eine Zahlung ist ausgeschlossen“ [DR 10.1, S. 4].
+
+## 11. Bereinigtes EBITDA (Quality of Earnings)
+
+Ausgangspunkt ist das ausgewiesene EBITDA 2025 von CHF 5'309'295 [DR 2.3, S. 4].
+Bereinigung 1: Beratungskosten für den Verkaufsprozess (M&A-Berater und Rechtsberatung), CHF 286'500 [DR 2.7, S. 2].
+Bereinigung 2: Abgangsentschädigung des ehemaligen Leiters Produktion, CHF 145'000 [DR 2.7, S. 3].
+Bereinigung 3: Rechtskosten im Verfahren mit der Nordlicht Medical GmbH, CHF 98'200 [DR 2.7, S. 4].
+Bereinigung 4: Marktübliche Miete statt der tieferen Miete an den Hauptaktionär, CHF 120'000.
+Das bereinigte EBITDA 2025 beträgt damit CHF 5.96 Mio.

@@ -7,8 +7,9 @@ import sys
 from pathlib import Path
 
 from .dataroom import DataRoom
+from .derive import _chf
 from .pipeline import run_check
-from .render import ORDER, SYMBOLS, to_csv, to_html, to_json
+from .render import ORDER, SYMBOLS, to_csv, to_disclosure_csv, to_html, to_json
 from .report import load_report
 
 
@@ -21,6 +22,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", "-o", type=Path, default=Path("pruefbericht.html"), help="HTML-Prüfbericht")
     p.add_argument("--json", type=Path, help="zusätzlich als JSON speichern")
     p.add_argument("--csv", type=Path, help="zusätzlich als CSV für Excel speichern")
+    p.add_argument("--offenlegung", type=Path,
+                   help="Offenlegungskarte als CSV: jede Aussage mit Dokument, Seite und Prüfsumme (für W&I)")
     p.add_argument("--modell", action="store_true",
                    help="Prüfmodell aus ZITATIO_LLM_BASE_URL / ZITATIO_LLM_MODEL verwenden")
     b = sub.add_parser("benchmark", help="Trefferquote mit künstlich eingebauten Fehlern messen")
@@ -48,6 +51,8 @@ def main(argv: list[str] | None = None) -> int:
         args.json.write_text(to_json(run), encoding="utf-8")
     if args.csv:
         args.csv.write_text(to_csv(run), encoding="utf-8")
+    if args.offenlegung:
+        args.offenlegung.write_text(to_disclosure_csv(run), encoding="utf-8")
 
     for f in run.findings:
         where = ", ".join(c.label for c in f.claim.citations) or "ohne Fundstelle"
@@ -55,6 +60,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{SYMBOLS[f.status]} {f.claim.number:02d}  {f.status.label:<18} {where:<16} {short}")
     counts = run.counts()
     print("\n" + " · ".join(f"{counts[s]} {s.label}" for s in ORDER if counts[s]))
+    for c in run.conflicts:
+        print(f"≠ Widerspruch im Datenraum: {c.describe()}")
+    for c in run.addbacks:
+        print(f"{'✓' if c.ok else '✗'} Bereinigtes EBITDA nachgerechnet: {c.summary}, Bericht {_chf(c.stated)}")
+    missing = [g.name for g in run.gaps if not g.present]
+    if missing:
+        print(f"Fehlende Unterlagen: {', '.join(missing)}")
     for w in room.warnings:
         print(f"Hinweis: {w}", file=sys.stderr)
     print(f"Prüfbericht: {args.out}")

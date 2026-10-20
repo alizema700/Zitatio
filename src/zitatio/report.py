@@ -57,6 +57,19 @@ _CURRENCY_WORDS = {"CHF", "EUR", "USD", "FRANKEN", "EURO"}
 _SPLIT_RE = re.compile(r"[.!?](?=\s+[\"„(]?[A-ZÄÖÜ])|(?<=[\])])[.!?](?=\s+\S)")
 
 
+# „…“, “…”, «…», "…": wörtliche Zitate ab vier Wörtern; kürzere sind meist Namen oder Begriffe.
+_QUOTE_RE = re.compile(r"„([^“”\"]+)[“”\"]|“([^”]+)”|«([^»]+)»|(?<![\w])\"([^\"]+)\"")
+
+
+def quotes(text: str) -> list[str]:
+    out = []
+    for m in _QUOTE_RE.finditer(text):
+        q = next(g for g in m.groups() if g is not None).strip()
+        if len(q.split()) >= 4:
+            out.append(q)
+    return out
+
+
 def parse_citations(text: str) -> list[Citation]:
     citations = []
     for bracket in _BRACKET_RE.finditer(text):

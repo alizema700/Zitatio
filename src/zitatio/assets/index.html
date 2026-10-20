@@ -98,7 +98,7 @@ nav .links a:hover { text-decoration:underline; text-underline-offset:6px; }
 .tag { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 12px; font:500 13px var(--sans); }
 .s-geprueft { --c:var(--ok); --cb:var(--ok-bg); }
 .s-abweichung, .s-quelle_fehlt { --c:var(--bad); --cb:var(--bad-bg); }
-.s-falsche_fundstelle, .s-ohne_beleg { --c:var(--warn); --cb:var(--warn-bg); }
+.s-widerspruch, .s-falsche_fundstelle, .s-ohne_beleg { --c:var(--warn); --cb:var(--warn-bg); }
 .s-ungeprueft { --c:var(--gray); --cb:var(--gray-bg); }
 .tag { background:var(--cb); color:var(--c); }
 .topics { list-style:none; margin:18px 0 0; padding:0; font-size:14px; }
@@ -139,7 +139,7 @@ nav .links a:hover { text-decoration:underline; text-underline-offset:6px; }
 .steps p { margin:0; color:var(--ink-2); font-size:15px; }
 
 /* Status-Legende */
-.legend { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; margin-top:28px; }
+.legend { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; margin-top:28px; }
 .legend div { background:var(--card); border-radius:18px; padding:20px 22px; box-shadow:0 0 0 1px var(--line); }
 .legend p { margin:10px 0 0; color:var(--ink-2); font-size:14px; }
 
@@ -293,7 +293,7 @@ footer a { color:var(--ink-2); }
     <div class="steps">
       <div><b>01</b><h3>Datenraum exportieren</h3><p>Als Ordner oder ZIP aus dem VDR, mit Indexnummer im Dateinamen. PDF, Word und Excel.</p></div>
       <div><b>02</b><h3>Bericht hochladen</h3><p>DD-Report oder IC-Memo mit Fundstellen wie [DR 3.2.1, S. 2].</p></div>
-      <div><b>03</b><h3>Prüfen</h3><p>Jede Zahl, jedes Datum und jede Frist wird auf der zitierten Seite gesucht, auch gerundet und in TCHF.</p></div>
+      <div><b>03</b><h3>Prüfen</h3><p>Jede Zahl, jedes Datum, jede Frist und jedes Zitat wird auf der zitierten Seite gesucht, in der richtigen Zeile und Jahresspalte. Margen, Summen und EBITDA-Bereinigungen werden nachgerechnet.</p></div>
       <div><b>04</b><h3>Entscheiden</h3><p>Ihr Team stimmt zu oder widerspricht, mit Notiz. Das Protokoll geht als CSV ins Dossier.</p></div>
     </div>
     <div class="legend" id="legend"></div>
@@ -338,8 +338,19 @@ footer a { color:var(--ink-2); }
         („CHF 18.45 Mio.“) oder in einer Tabelle „in TCHF“. Den Sinn einer Aussage bestätigt nur das Prüfmodell, und nur mit einem Zitat,
         das wörtlich in der Quelle steht.</p></details>
       <details><summary>Wie gut ist die Erkennung?</summary>
-        <p>In einem fiktiven Datenraum mit 264 Seiten und 212 Aussagen fand Zitatio ohne Prüfmodell 9 von 12 eingebauten Fehlern, bei
-        5 Fehlalarmen. Verpasst werden Werte, die auf der Seite stehen, aber etwas anderes bedeuten, etwa die Vorjahresspalte.</p></details>
+        <p>In einem fiktiven Datenraum mit 268 Seiten und 220 Aussagen fand Zitatio ohne Prüfmodell 13 von 14 eingebauten Fehlern,
+        ohne Fehlalarm, und alle 3 Widersprüche im Datenraum. Verpasst wurde eine übersehene Kontrollwechselklausel: Aussagen ohne
+        Zahlen prüft erst das Prüfmodell.</p></details>
+      <details><summary>Findet Zitatio auch Fehler in den Unterlagen des Verkäufers?</summary>
+        <p>Ja, wenn sich die Unterlagen widersprechen. Zitatio vergleicht dieselbe Grösse über alle Dokumente, etwa das EBITDA in
+        Jahresrechnung und Management Reporting, die Vorjahresspalte mit dem Vorjahresabschluss oder das Aktienkapital in
+        Handelsregister und Statuten. Falsche Finanzangaben sind der grösste Treiber von W&amp;I-Schäden.</p></details>
+      <details><summary>Was prüft Zitatio bei EBITDA-Bereinigungen?</summary>
+        <p>Jede Bereinigung braucht eine Fundstelle, und ausgewiesenes EBITDA plus Bereinigungen muss das bereinigte EBITDA ergeben.
+        Der Prüfbericht zeigt die Rechnung und den Anteil der Bereinigungen.</p></details>
+      <details><summary>Was ist die Offenlegungskarte?</summary>
+        <p>Eine Tabelle, die für jede Aussage Dokument, Seite, Textstelle und Prüfsumme des Dokuments festhält, mit Zeitpunkt der
+        Prüfung. Sie zeigt später, was im Datenraum offengelegt war, etwa für W&amp;I-Underwriting oder im Schadenfall.</p></details>
       <details><summary>Was passiert mit Aussagen ohne Zahlen?</summary>
         <p>Ohne Prüfmodell bleiben sie „Ungeprüft“ und zeigen die ähnlichste Textstelle als Lesehilfe. Mit Prüfmodell werden sie als
         gestützt oder widersprochen markiert.</p></details>
@@ -484,11 +495,13 @@ footer a { color:var(--ink-2); }
   /* --- Prüfgraph mit echtem Prüfergebnis des Beispiels ----------------------- */
   var data = JSON.parse(document.getElementById('graph-data').textContent || 'null');
   var STATUS = { geprueft: ['Geprüft', '#1E7A50'], abweichung: ['Abweichung', '#B42318'], quelle_fehlt: ['Quelle fehlt', '#B42318'],
+    widerspruch: ['Widerspruch', '#9A5B00'],
     falsche_fundstelle: ['Falsche Fundstelle', '#9A5B00'], ohne_beleg: ['Ohne Beleg', '#9A5B00'], ungeprueft: ['Ungeprüft', '#5B6670'] };
   var legend = document.getElementById('legend');
   [['geprueft', 'Jeder Wert steht auf der zitierten Seite, auch gerundet oder in TCHF.'],
    ['abweichung', 'Ein Wert fehlt an der Fundstelle. Zitatio nennt die nächstliegenden Werte dort.'],
-   ['falsche_fundstelle', 'Der Wert steht im Datenraum, aber auf einer anderen Seite oder in einem anderen Dokument.']
+   ['falsche_fundstelle', 'Der Wert steht im Datenraum, aber auf einer anderen Seite oder in einem anderen Dokument.'],
+   ['widerspruch', 'Der Wert stimmt mit der Fundstelle, aber ein anderes Dokument im Datenraum nennt einen anderen.']
   ].forEach(function (x) {
     var d = document.createElement('div');
     d.innerHTML = '<span class="tag s-' + x[0] + '">' + STATUS[x[0]][0] + '</span><p>' + x[1] + '</p>';

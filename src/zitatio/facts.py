@@ -286,13 +286,16 @@ def page_facts(text: str) -> tuple[Fact, ...]:
         if any(start < f.end and f.start < end for f in facts):
             continue
         num = m["n"]
+        if re.fullmatch(r"\d{1,2}\.\d{1,2}", num) and text[end : end + 1] == ".":
+            continue  # "Auftragsbestand 31.12." ist ein Stichtag
         value = parse_number(num)
         if value is None or value == 0:
             continue
         plain = re.fullmatch(r"\d+", num) is not None
         if plain and (value < 100 or 1900 <= value <= 2100):
             continue  # Jahreszahlen, Anmerkungsnummern, Zeilennummern
-        extra.append(Fact(AMOUNT, (code, _norm_decimal(value * factor)), num, start, end, unit=label))
+        precision = _step(num) * factor if factor > 1 else None  # "18'450" in TCHF ist auf 1'000 genau
+        extra.append(Fact(AMOUNT, (code, _norm_decimal(value * factor)), num, start, end, precision, label))
     return tuple(sorted(facts + extra, key=lambda f: f.start))
 
 

@@ -129,7 +129,7 @@
   "aussage": "Der Materialaufwand 2025 belief sich auf CHF 9.82 Mio. [DR 2.3, S. 4].",
   "richtig": false,
   "fehler": "Vorjahreswert als aktuelles Jahr",
-  "regeln_koennen_es_sehen": false,
+  "regeln_koennen_es_sehen": true,
   "hinweis": ""
  },
  {
@@ -164,7 +164,7 @@
   "aussage": "Der Jahresgewinn 2025 beläuft sich auf CHF 3.88 Mio. [DR 2.3, S. 4].",
   "richtig": false,
   "fehler": "EBIT als Jahresgewinn ausgewiesen",
-  "regeln_koennen_es_sehen": false,
+  "regeln_koennen_es_sehen": true,
   "hinweis": ""
  },
  {
@@ -316,6 +316,13 @@
  },
  {
   "aussage": "Das Budget erscheint angesichts des Auftragsbestands plausibel [DR 2.6, S. 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Revisionsstelle hält fest: „Wir sind auf keine Sachverhalte gestossen, aus denen wir schliessen müssten, dass die Jahresrechnung nicht Gesetz und Statuten entspricht“ [DR 2.4, S. 2].",
   "richtig": true,
   "fehler": null,
   "regeln_koennen_es_sehen": true,
@@ -1482,5 +1489,54 @@
   "fehler": null,
   "regeln_koennen_es_sehen": true,
   "hinweis": ""
+ },
+ {
+  "aussage": "Die Rechtsvertreterin schreibt: „Das Prozessrisiko ist vernachlässigbar, eine Zahlung ist ausgeschlossen“ [DR 10.1, S. 4].",
+  "richtig": false,
+  "fehler": "Zitat erfunden",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Ausgangspunkt ist das ausgewiesene EBITDA 2025 von CHF 5'309'295 [DR 2.3, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Bereinigung 1: Beratungskosten für den Verkaufsprozess (M&A-Berater und Rechtsberatung), CHF 286'500 [DR 2.7, S. 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Bereinigung 2: Abgangsentschädigung des ehemaligen Leiters Produktion, CHF 145'000 [DR 2.7, S. 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Bereinigung 3: Rechtskosten im Verfahren mit der Nordlicht Medical GmbH, CHF 98'200 [DR 2.7, S. 4].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Bereinigung 4: Marktübliche Miete statt der tieferen Miete an den Hauptaktionär, CHF 120'000.",
+  "richtig": false,
+  "fehler": "Bereinigung ohne Beleg",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das bereinigte EBITDA 2025 beträgt damit CHF 5.96 Mio.",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": "folgt aus Bereinigung ohne Beleg"
  }
 ]

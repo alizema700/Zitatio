@@ -62,7 +62,7 @@ def test_csv_export_is_excel_friendly():
     assert out.startswith("﻿")
     rows = list(csv.reader(io.StringIO(out.lstrip("﻿")), delimiter=";"))
     assert rows[0] == CSV_COLUMNS
-    assert len(rows) == 17
+    assert len(rows) == 21
     assert rows[4][4] == "Abweichung"
 
 

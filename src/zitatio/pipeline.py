@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from .crosscheck import apply_conflicts, find_conflicts
 from .dataroom import DataRoom
+from .derive import apply_addbacks, apply_derived, check_addbacks
+from .gaps import check_gaps
 from .render import Run, sha256
 from .report import parse_report
 from .verify import ModelVerifier, verify
@@ -18,4 +21,10 @@ def run_check(
 ) -> Run:
     claims = parse_report(report_text)
     findings = verify(claims, room, model)
-    return Run(report_name, sha256(report_bytes), room, findings, model_name if model else None)
+    addbacks = check_addbacks(findings)
+    apply_addbacks(addbacks)
+    apply_derived(findings, room, skip={c.total.claim.number for c in addbacks})
+    conflicts = find_conflicts(room)
+    apply_conflicts(findings, conflicts)
+    return Run(report_name, sha256(report_bytes), room, findings, model_name if model else None,
+               conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room))

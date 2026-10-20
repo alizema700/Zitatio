@@ -9,7 +9,7 @@ import hashlib
 import html
 import io
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib import resources
 
 from . import __version__
@@ -20,12 +20,13 @@ from .verify import Finding, Status
 SYMBOLS = {
     Status.GEPRUEFT: "✓",
     Status.ABWEICHUNG: "✗",
+    Status.WIDERSPRUCH: "≠",
     Status.FALSCHE_FUNDSTELLE: "↷",
     Status.QUELLE_FEHLT: "✗",
     Status.OHNE_BELEG: "!",
     Status.UNGEPRUEFT: "?",
 }
-ORDER = [Status.ABWEICHUNG, Status.QUELLE_FEHLT, Status.FALSCHE_FUNDSTELLE, Status.OHNE_BELEG,
+ORDER = [Status.ABWEICHUNG, Status.QUELLE_FEHLT, Status.WIDERSPRUCH, Status.FALSCHE_FUNDSTELLE, Status.OHNE_BELEG,
          Status.UNGEPRUEFT, Status.GEPRUEFT]
 
 
@@ -37,6 +38,9 @@ class Run:
     findings: list[Finding]
     model: str | None = None
     created: dt.datetime | None = None
+    conflicts: list = field(default_factory=list)  # crosscheck.Conflict
+    addbacks: list = field(default_factory=list)  # derive.AddbackCheck
+    gaps: list = field(default_factory=list)  # gaps.Gap
 
     def __post_init__(self):
         self.created = self.created or dt.datetime.now().astimezone()
@@ -117,10 +121,61 @@ def to_json(run: Run) -> str:
                 }
                 for f in run.findings
             ],
+            "widersprueche": [
+                {
+                    "groesse": c.title,
+                    "werte": [
+                        {"dokument": x.doc.label, "seite": x.page, "zeile": x.cell.label, "wert": x.cell.fact.display()}
+                        for x in c.sightings
+                    ],
+                }
+                for c in run.conflicts
+            ],
+            "bereinigungen": [
+                {
+                    "abschnitt": c.section,
+                    "ebitda_aussage": c.base.claim.number,
+                    "bereinigungen": [{"aussage": f.claim.number, "betrag": str(v), "status": f.status.value} for f, v in c.items],
+                    "nachgerechnet": str(c.expected),
+                    "bericht": str(c.stated),
+                    "stimmt": c.ok,
+                }
+                for c in run.addbacks
+            ],
+            "unterlagen": [
+                {"bereich": g.area, "unterlage": g.name, "vorhanden": g.present,
+                 "dokumente": [d.label for d in g.documents], "hinweis": g.note}
+                for g in run.gaps
+            ],
         },
         ensure_ascii=False,
         indent=2,
     )
+
+
+DISCLOSURE_COLUMNS = ["Nr", "Aussage", "Status", "Dokument", "Titel", "Datei", "SHA-256 Dokument", "Seite",
+                      "Textstelle", "Geprüft am"]
+
+
+def to_disclosure_csv(run: Run) -> str:
+    """Offenlegungskarte: welche Aussage auf welcher Seite welches Dokuments steht.
+
+    Eine Zeile pro Beleg, mit Prüfsumme des Dokuments und Zeitpunkt der Prüfung. So lässt
+    sich später zeigen, was im Datenraum offengelegt war (W&I-Underwriting, Schadenfall).
+    """
+    docs = {d.label: d for d in run.room.documents}
+    stamp = run.created.isoformat(timespec="seconds")
+    out = io.StringIO()
+    writer = csv.writer(out, delimiter=";", lineterminator="\r\n")
+    writer.writerow(DISCLOSURE_COLUMNS)
+    for f in run.findings:
+        if not f.evidence:
+            writer.writerow([f.claim.number, f.claim.clean_text, f.status.label, "", "", "", "", "", "", stamp])
+        for e in f.evidence:
+            d = docs.get(e.doc_label)
+            writer.writerow([f.claim.number, f.claim.clean_text, f.status.label, e.doc_label, d.title if d else "",
+                             e.doc_name, d.sha256 if d else "", e.page, e.before + e.match + e.after, stamp])
+    return "\ufeff" + out.getvalue()
 
 
 def logo_svg() -> str:
@@ -205,12 +260,105 @@ def _card(f: Finding) -> str:
 </article>"""
 
 
+def _pill(f: Finding) -> str:
+    return f'<a class="pill s-{f.status.value}" href="#a{f.claim.number}">Aussage {f.claim.number} · {f.status.label}</a>'
+
+
+def _conflicts_html(run: Run) -> str:
+    if not run.conflicts:
+        return ""
+    affected = {}
+    for f in run.findings:
+        for c in run.conflicts:
+            if any(x.key in set(f.hits) for x in c.sightings):
+                affected.setdefault(id(c), []).append(f)
+    cards = []
+    for c in run.conflicts:
+        rows = "".join(
+            f"<tr><td>{html.escape(x.doc.label)}, S. {x.page}</td><td class=\"opt\">{html.escape(x.doc.title)}</td>"
+            f"<td>{html.escape(x.cell.label)}</td><td class=\"num\">{html.escape(x.cell.fact.display())}</td></tr>"
+            for x in c.sightings
+        )
+        pills = "".join(_pill(f) for f in affected.get(id(c), []))
+        cards.append(
+            f'<article class="card s-widerspruch"><header><span class="badge">≠ Widerspruch</span>'
+            f'<span class="num">{html.escape(c.title)}</span></header>'
+            f'<div class="tablebox flat"><table><thead><tr><th>Fundstelle</th><th class="opt">Dokument</th><th>Zeile</th>'
+            f'<th class="num">Wert</th></tr></thead><tbody>{rows}</tbody></table></div>'
+            + (f'<p class="pills">Im Bericht: {pills}</p>' if pills else "")
+            + "</article>"
+        )
+    n = len(run.conflicts)
+    return (f'<h2>Widersprüche im Datenraum</h2><p class="lead">Bei {n} {"Grössen" if n > 1 else "Grösse"} nennen '
+            "die Dokumente unterschiedliche Werte. Das betrifft die Unterlagen des Verkäufers selbst: "
+            "Welcher Wert stimmt, muss geklärt werden, bevor der Bericht ihn übernimmt.</p>" + "".join(cards))
+
+
+def _addbacks_html(run: Run) -> str:
+    if not run.addbacks:
+        return ""
+    from .derive import _chf
+
+    out = []
+    for c in run.addbacks:
+        base = next(x for x in c.base.claim.facts if x.kind == "betrag")
+        def row(label: str, f: Finding | None, value: str, cls: str = "") -> str:
+            pill = _pill(f) if f else ""
+            return (f'<tr class="{cls}"><td>{html.escape(label)}<span class="m">{pill}</span></td>'
+                    f'<td class="opt">{pill}</td><td class="num">{value}</td></tr>')
+
+        rows = [row("Ausgewiesenes EBITDA", c.base, _chf(base.value[1]))]
+        for f, v in c.items:
+            amount = next(x for x in f.claim.facts if x.kind == "betrag")
+            text = (f.claim.clean_text[: amount.start] + f.claim.clean_text[amount.end :]).strip(" :,.")
+            text = text if len(text) < 80 else text[:78] + "…"
+            rows.append(row(text, f, f"{'−' if v < 0 else '+'} {_chf(abs(v))}"))
+        rows.append(row("Nachgerechnet", None, _chf(c.expected), "sum"))
+        rows.append(row("Bericht nennt", c.total, _chf(c.stated), "sum"))
+        verdict = ("Die Rechnung geht auf." if c.ok else "Die Rechnung geht nicht auf.")
+        if c.unsupported:
+            k = len(c.unsupported)
+            verdict += f" {k} von {len(c.items)} Bereinigungen {'hat' if k == 1 else 'haben'} keinen Beleg im Datenraum."
+        share = c.share
+        if share is not None:
+            verdict += f" Die Bereinigungen machen {share.quantize(1)} % des bereinigten EBITDA aus."
+        status = "geprueft" if c.ok and not c.unsupported else ("abweichung" if not c.ok else "ohne_beleg")
+        out.append(f'<article class="card s-{status}"><header><span class="badge">{"✓" if status == "geprueft" else "!"} '
+                   f'{html.escape(verdict.split(".")[0])}</span><span class="num">{html.escape(c.section)}</span></header>'
+                   f'<div class="tablebox flat"><table><tbody>{"".join(rows)}</tbody></table></div>'
+                   f'<p class="cite">{html.escape(verdict)}</p></article>')
+    return ('<h2>EBITDA-Bereinigungen nachgerechnet</h2><p class="lead">Jede Bereinigung braucht eine Fundstelle, '
+            "und die Summe muss aufgehen.</p>" + "".join(out))
+
+
+def _gaps_html(run: Run) -> str:
+    if not run.gaps:
+        return ""
+    rows = []
+    for g in run.gaps:
+        if g.present:
+            docs = ", ".join(d.label for d in g.documents[:4]) + (" …" if len(g.documents) > 4 else "")
+            state = f'<span class="pill s-geprueft">vorhanden</span> <span class="where">{html.escape(docs)}</span>'
+            if g.note:
+                state += f' <span class="warn">{html.escape(g.note)}</span>'
+        else:
+            state = '<span class="pill s-ohne_beleg">fehlt</span>'
+        rows.append(f"<tr><td>{html.escape(g.area)}</td><td>{html.escape(g.name)}</td><td>{state}</td></tr>")
+    missing = sum(not g.present for g in run.gaps)
+    lead = (f"{missing} von {len(run.gaps)} üblichen Unterlagen fehlen im Datenraum." if missing
+            else "Alle üblichen Unterlagen sind im Datenraum vorhanden.")
+    return (f'<h2>Erwartete Unterlagen</h2><p class="lead">{lead} Die Liste ist allgemein; '
+            "ob eine Unterlage für diesen Deal nötig ist, entscheidet das Team.</p>"
+            f'<div class="tablebox"><table><thead><tr><th>Bereich</th><th>Unterlage</th><th>Im Datenraum</th></tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div>')
+
+
 def to_html(run: Run) -> str:
     counts = run.counts()
     total = len(run.findings)
     problems = total - counts[Status.GEPRUEFT] - counts[Status.UNGEPRUEFT]
     headline = (
-        f"{problems} von {total} Aussagen brauchen eine Korrektur."
+        f"{problems} von {total} Aussagen brauchen eine Korrektur oder Klärung."
         if problems
         else f"Alle {total} prüfbaren Aussagen stimmen mit dem Datenraum überein."
     )
@@ -222,6 +370,7 @@ def to_html(run: Run) -> str:
     )
     protocol = "\n".join(_protocol_line(f) for f in run.findings)
     colors = {Status.GEPRUEFT: "var(--green)", Status.ABWEICHUNG: "var(--red)", Status.QUELLE_FEHLT: "var(--red)",
+              Status.WIDERSPRUCH: "var(--amber)",
               Status.FALSCHE_FUNDSTELLE: "var(--amber)", Status.OHNE_BELEG: "var(--amber)", Status.UNGEPRUEFT: "var(--gray-bg)"}
     stops, acc = [], 0
     for st in [Status.GEPRUEFT] + [x for x in ORDER if x is not Status.GEPRUEFT]:
@@ -236,6 +385,8 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
+    extra = _conflicts_html(run) + _addbacks_html(run)
+    gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""
     model = html.escape(run.model) if run.model else "aus (nur Regeln)"
@@ -259,6 +410,10 @@ def to_html(run: Run) -> str:
         chips=chips,
         protocol=protocol,
         cards=cards,
+        extra=extra,
+        gaps=gaps,
+        disclosure=base64.b64encode(to_disclosure_csv(run).encode("utf-8")).decode(),
+        disclosure_name=html.escape(run.report_name.rsplit(".", 1)[0] + "-offenlegungskarte.csv"),
         docs=docs,
         warnings=warnings_html,
         report_hash=run.report_sha256[:16],
@@ -345,7 +500,7 @@ h2 {{ font:200 30px/1.2 var(--display); margin:64px 0 18px; }}
 blockquote {{ margin:6px 0 0; padding:12px 16px; background:var(--page); border-radius:14px; font-size:14px; color:var(--ink-2); }}
 .s-geprueft {{ --c:var(--green); --cbg:var(--green-bg); }}
 .s-abweichung, .s-quelle_fehlt {{ --c:var(--red); --cbg:var(--red-bg); }}
-.s-falsche_fundstelle, .s-ohne_beleg {{ --c:var(--amber); --cbg:var(--amber-bg); }}
+.s-widerspruch, .s-falsche_fundstelle, .s-ohne_beleg {{ --c:var(--amber); --cbg:var(--amber-bg); }}
 .s-ungeprueft {{ --c:var(--gray); --cbg:var(--gray-bg); }}
 .tablebox {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:6px 14px; overflow-x:auto; }}
 table {{ width:100%; border-collapse:collapse; font-size:14px; }}
@@ -353,6 +508,20 @@ td, th {{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line)
 tr:last-child td {{ border-bottom:0; }}
 th {{ font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); }}
 .hash {{ font:12px var(--mono); color:var(--ink-3); }}
+.lead {{ color:var(--ink-2); margin:-6px 0 18px; max-width:720px; }}
+.tablebox.flat {{ box-shadow:none; padding:0; margin-top:10px; border-radius:0; background:transparent; }}
+td.num, th.num {{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }}
+tr.sum td {{ font-weight:700; }}
+.pill {{ display:inline-block; font-size:12px; font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px;
+  padding:2px 10px; text-decoration:none; white-space:nowrap; }}
+.pills {{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:13px; color:var(--ink-3); margin:12px 0 0; }}
+.where {{ color:var(--ink-3); font-size:13px; }}
+td .m {{ display:none; }}
+@media (max-width:640px) {{
+  .tablebox.flat .opt {{ display:none; }}
+  td .m {{ display:block; margin-top:4px; }}
+}}
+.review a.ghost {{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1px var(--line-2); }}
 .warn {{ color:var(--amber); font-size:13px; }}
 .note {{ font-size:13px; color:var(--ink-3); margin-top:40px; }}
 .decide {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }}
@@ -387,17 +556,21 @@ th {{ font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppe
     <label>Durchgesehen von <input type="text" id="reviewer" placeholder="Name" autocomplete="name"></label>
     <span id="progress">0 von {total} entschieden</span><span class="bar"><i id="bar"></i></span>
     <a id="export" href="data:text/csv;charset=utf-8;base64,{csv}" download="{csv_name}">Protokoll exportieren</a>
+    <a class="ghost" href="data:text/csv;charset=utf-8;base64,{disclosure}" download="{disclosure_name}"
+      title="Welche Aussage auf welcher Seite steht, mit Prüfsumme je Dokument: für W&amp;I-Underwriting">Offenlegungskarte</a>
   </div>
   <section class="proto" aria-label="Prüfprotokoll">
     <div class="head"><p class="kicker">Prüfprotokoll</p><span>{report}</span></div>
     {protocol}
   </section>
+  {extra}
   <h2>Aussagen im Detail</h2>
   {cards}
   <h2>Datenraum</h2>
   <div class="tablebox"><table><thead><tr><th>Index</th><th>Dokument</th><th>Seiten</th><th class="hash">SHA-256</th></tr></thead>
   <tbody>{docs}</tbody></table></div>
   {warnings}
+  {gaps}
   <p class="note">„Geprüft“ heisst: Jeder Betrag, jedes Datum, jeder Prozentsatz, jede Frist und jede UID der Aussage
   steht auf der zitierten Seite. Den Sinn einer Aussage bestätigt nur das Prüfmodell, und nur mit einem Zitat,
   das wörtlich in der Quelle steht. Bericht SHA-256 {report_hash}… · Zitatio {version}</p>

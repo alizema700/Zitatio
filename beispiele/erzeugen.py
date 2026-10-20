@@ -49,6 +49,16 @@ Die Gesellschaft hat Verpflichtungen aus langfristigen Mietverträgen von CHF 1'
 (Restlaufzeit bis 31.12.2029).
 Eventualverbindlichkeiten bestehen keine.""",
     ],
+    "2.3 Management Reporting 2025.pdf": [
+        """Alpenblick Präzision AG - Management Reporting (fiktiv)
+
+Erfolgsrechnung kumuliert 1.1. bis 31.12.2025, ungeprüft
+Nettoerlös: CHF 18'450'000
+EBITDA: CHF 2'530'000
+
+Einmalige Effekte 2025
+Beratungskosten Verkaufsprozess: CHF 180'000"""
+    ],
     "3.2.1 Mietvertrag Werk Winterthur.pdf": [
         """Mietvertrag für Geschäftsräume (fiktiv)
 

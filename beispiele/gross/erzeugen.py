@@ -1,11 +1,13 @@
-"""Grosser, realistischer Testfall: fiktiver Datenraum mit rund 200 Seiten und ein DD-Bericht
-mit einigen hundert Aussagen, von denen nur 12 absichtlich falsch sind.
+"""Grosser, realistischer Testfall: fiktiver Datenraum mit über 250 Seiten und ein DD-Bericht
+mit über 200 Aussagen, von denen nur 14 absichtlich falsch sind. Dazu drei Widersprüche
+im Datenraum selbst, wie sie bei falschen Angaben des Verkäufers vorkommen.
 
 Alle Firmen, Personen und Zahlen sind erfunden. Der Zufall ist fest (SEED), damit der Test
 reproduzierbar bleibt.
 
 Aufruf: python beispiele/gross/erzeugen.py   (braucht fpdf2 und openpyxl)
-Erzeugt datenraum/, dd-bericht.md und wahrheit.json (welche Aussage richtig ist und welche nicht).
+Erzeugt datenraum/, dd-bericht.md, wahrheit.json (welche Aussage richtig ist und welche nicht)
+und widersprueche.json (welche Grössen im Datenraum absichtlich widersprüchlich sind).
 """
 
 from __future__ import annotations
@@ -78,6 +80,7 @@ class Statement:
 
 DOCS: list[Doc] = []
 REPORT: list[Statement] = []
+CONFLICTS: list[dict] = []  # absichtlich eingebaute Widersprüche im Datenraum
 
 FILLER = [
     "Die Parteien verpflichten sich, die gegenseitigen Pflichten nach Treu und Glauben zu erfüllen.",
@@ -179,6 +182,9 @@ def build_corporate() -> None:
     statuten[1] = page("Art. 5: Die Übertragung von Namenaktien bedarf der Zustimmung des Verwaltungsrats (Vinkulierung).", fill=9)
     statuten[3] = page("Art. 12: Die Generalversammlung wird spätestens 20 Tage vor dem Versammlungstag einberufen.", fill=9)
     statuten[5] = page("Art. 21: Der Verwaltungsrat besteht aus einem oder mehreren Mitgliedern mit einer Amtsdauer von drei Jahren.", fill=9)
+    # Widerspruch: Die Statuten wurden nach der Kapitalerhöhung nicht nachgeführt.
+    statuten[0].insert(1, "Art. 3: Das Aktienkapital beträgt CHF 1'000'000 und ist eingeteilt in 10'000 Namenaktien zu CHF 100.")
+    CONFLICTS.append({"groesse": "Aktienkapital", "dokumente": ["1.1", "1.2"]})
     DOCS.append(Doc("1.2", "Statuten", statuten))
     say(SEC, f"Die Namenaktien sind vinkuliert; jede Übertragung braucht die Zustimmung des Verwaltungsrats {cite('1.2', 2)}.")
     say(SEC, f"Die Generalversammlung ist mindestens 20 Tage im Voraus einzuberufen {cite('1.2', 4)}.")
@@ -240,6 +246,11 @@ IS = {y: income_statement(y) for y in YEARS}
 def build_financials() -> None:
     for n, year in enumerate(YEARS, start=1):
         cur, prev = IS[year], IS.get(year - 1)
+        prev = dict(prev) if prev else None
+        if year == 2025:
+            # Widerspruch: Die Vorjahresspalte weicht ohne Erläuterung von der Jahresrechnung 2024 ab.
+            prev["Personalaufwand"] += 142_000
+            CONFLICTS.append({"groesse": "Personalaufwand 2024", "dokumente": ["2.2", "2.3"]})
         rows = [f"{k} {chf(v)}" + (f" {chf(prev[k])}" if prev else "") for k, v in cur.items()]
         cash = rng.randint(2_100_000, 3_900_000)
         debt = 6_400_000 if year == 2025 else 7_100_000
@@ -312,7 +323,9 @@ def build_financials() -> None:
             ["EBITDA", round(ebitda / 1000)], ["Auftragseingang", round(rev * rng.uniform(0.95, 1.12) / 1000)],
         ]))
     backlog = 14_820
-    sheets.append(("Übersicht", [["Kennzahlen 2025, in TCHF"], ["Umsatz kumuliert", round(YEARS[2025] / 1000)],
+    # Widerspruch: Die Übersicht der Management Accounts nennt einen anderen Jahresumsatz als der Abschluss.
+    CONFLICTS.append({"groesse": "Umsatz 2025", "dokumente": ["2.3", "2.5"]})
+    sheets.append(("Übersicht", [["Kennzahlen 2025, in TCHF"], ["Umsatz kumuliert", round(YEARS[2025] / 1000) + 455],
                                  ["Auftragsbestand 31.12.", backlog], ["Mitarbeitende (FTE)", "178"]]))
     DOCS.append(Doc("2.5", "Management Accounts 2025", [], kind="xlsx", sheets=sheets))
     MA = "2.5"
@@ -584,6 +597,44 @@ def build_rest() -> None:
     say(LIT, f"Weitere Rechtsstreitigkeiten sind nicht bekannt {cite('10.1', 1)}.")
 
 
+# --- Bereinigtes EBITDA und wörtliche Zitate ------------------------------------
+# Läuft nach allen anderen Bausteinen, damit der Zufall der übrigen Dokumente gleich bleibt.
+
+QOE = "11. Bereinigtes EBITDA (Quality of Earnings)"
+ADDBACKS = [("Beratungskosten für den Verkaufsprozess (M&A-Berater und Rechtsberatung)", 286_500),
+            ("Abgangsentschädigung des ehemaligen Leiters Produktion", 145_000),
+            ("Rechtskosten im Verfahren mit der Nordlicht Medical GmbH", 98_200)]
+
+
+def say_after(section: str, text: str, **kw) -> None:
+    """Aussage am Ende eines bestehenden Abschnitts einfügen."""
+    last = max(i for i, s in enumerate(REPORT) if s.section == section)
+    REPORT.insert(last + 1, Statement(section, text, **kw))
+
+
+def build_quality_of_earnings() -> None:
+    DOCS.append(Doc("2.7", "Aufstellung Sondereffekte 2025", [
+        page("Erstellt durch die Geschäftsleitung zuhanden der Käuferin.", fill=6,
+             title="Aufstellung einmaliger und betriebsfremder Effekte 2025 (fiktiv)"),
+    ] + [page(f"{text}: CHF {chf(amount)}", "Belege: Rechnungen und Vereinbarungen liegen bei.", fill=7)
+         for text, amount in ADDBACKS]))
+    ebitda = IS[2025]["EBITDA"]
+    rent = 120_000
+    say(QOE, f"Ausgangspunkt ist das ausgewiesene EBITDA 2025 von CHF {chf(ebitda)} {cite('2.3', 4)}.")
+    for n, (text, amount) in enumerate(ADDBACKS, start=1):
+        say(QOE, f"Bereinigung {n}: {text}, CHF {chf(amount)} {cite('2.7', n + 1)}.")
+    say(QOE, f"Bereinigung 4: Marktübliche Miete statt der tieferen Miete an den Hauptaktionär, CHF {chf(rent)}.")
+    REPORT[-1].correct, REPORT[-1].error = False, "Bereinigung ohne Beleg"
+    total = ebitda + sum(a for _, a in ADDBACKS) + rent
+    # Die Summe stimmt; weil Bereinigung 4 keinen Beleg hat, darf sie trotzdem nicht "Geprüft" sein.
+    say(QOE, f"Das bereinigte EBITDA 2025 beträgt damit CHF {mio(total)} Mio.", note="folgt aus Bereinigung ohne Beleg")
+
+    say_after(FIN, "Die Revisionsstelle hält fest: „Wir sind auf keine Sachverhalte gestossen, aus denen wir schliessen "
+                   f"müssten, dass die Jahresrechnung nicht Gesetz und Statuten entspricht“ {cite('2.4', 2)}.")
+    say_after(LIT, f"Die Rechtsvertreterin schreibt: „Das Prozessrisiko ist vernachlässigbar, eine Zahlung ist "
+                   f"ausgeschlossen“ {cite('10.1', 4)}.", correct=False, error="Zitat erfunden")
+
+
 # --- Fehler einbauen --------------------------------------------------------------
 
 def plant(where: str, new: str, error: str, detectable: bool = True) -> None:
@@ -618,13 +669,13 @@ def plant_errors() -> None:
     plant("Das EBITDA 2025 beträgt", f"CHF {mio(ebitda)} Mio. => CHF {chf(round(ebitda / 1000))}", "Einheit TCHF/CHF verwechselt")
     plant("Der Jahresgewinn 2025 beläuft sich",
           f"Der Jahresgewinn 2025 beläuft sich auf CHF {mio(IS[2025]['Jahresgewinn'])} Mio. => Der Jahresgewinn 2025 beläuft sich auf CHF {mio(IS[2025]['Betriebsergebnis (EBIT)'])} Mio.",
-          "EBIT als Jahresgewinn ausgewiesen", detectable=False)
+          "EBIT als Jahresgewinn ausgewiesen")
     plant("Der Vertrag mit der Spitalverbund Ostschweiz (fiktiv) enthält ein Kündigungsrecht",
           "enthält ein Kündigungsrecht bei Kontrollwechsel => enthält keine Klausel zum Kontrollwechsel",
           "Kontrollwechselklausel übersehen", detectable=False)
     plant("Der Materialaufwand 2025 belief sich",
           f"CHF {mio(IS[2025]['Materialaufwand'])} Mio. => CHF {mio(IS[2024]['Materialaufwand'])} Mio.",
-          "Vorjahreswert als aktuelles Jahr", detectable=False)
+          "Vorjahreswert als aktuelles Jahr")
     plant("Das EBITDA 2024 betrug", f"CHF {mio(IS[2024]['EBITDA'])} Mio. => CHF {mio(IS[2024]['EBITDA'] + 61_000)} Mio.",
           "falsch gerundet")
 
@@ -690,6 +741,7 @@ def main() -> None:
     build_contracts()
     build_rest()
     plant_errors()
+    build_quality_of_earnings()
     OUT.mkdir(parents=True, exist_ok=True)
     for old in OUT.iterdir():
         old.unlink()
@@ -702,9 +754,10 @@ def main() -> None:
         for s in REPORT
     ]
     (HERE / "wahrheit.json").write_text(json.dumps(truth, ensure_ascii=False, indent=1), encoding="utf-8")
+    (HERE / "widersprueche.json").write_text(json.dumps(CONFLICTS, ensure_ascii=False, indent=1), encoding="utf-8")
     pages = sum(len(d.pages) or len(d.sheets) for d in DOCS)
     print(f"{len(DOCS)} Dokumente, {pages} Seiten, {len(REPORT)} Aussagen, "
-          f"{sum(not s.correct for s in REPORT)} Fehler")
+          f"{sum(not s.correct for s in REPORT)} Fehler, {len(CONFLICTS)} Widersprüche im Datenraum")
 
 
 if __name__ == "__main__":
