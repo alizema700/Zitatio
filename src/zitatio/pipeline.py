@@ -11,7 +11,7 @@ from .gaps import check_gaps
 from .leakage import check_leakage, locked_box_date
 from .minutes import check_minutes
 from .netdebt import apply_netdebt, net_debt, netdebt_flags
-from .references import missing_amendments
+from .references import check_index, missing_amendments
 from .render import Run, sha256
 from .report import parse_report
 from .swiss import _latest_statement, apply_rates, swiss_flags
@@ -46,7 +46,7 @@ def run_check(
     revenue = (latest[1], latest[2]["umsatz"][0]) if latest and "umsatz" in latest[2] else None
     box_date = locked_box_date(spa[1] if spa else "", report_text)
     flags = (check_income_statements(room) + swiss_flags(room) + netdebt_flags(debt) + check_minutes(room, report_text if findings else None)
-             + missing_amendments(room) + check_leakage(room, box_date) + check_vat(room) + check_taxable_profit(room)
+             + missing_amendments(room) + check_index(room) + check_leakage(room, box_date) + check_vat(room) + check_taxable_profit(room)
              + check_privacy(room))
     flags.sort(key=lambda fl: ("warnung", "hinweis", "ok").index(fl.level))
     stale: dict = {}

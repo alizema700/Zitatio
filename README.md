@@ -236,6 +236,7 @@ oder Google Kalender, mit Erinnerung 14 Tage vorher. Jeder Termin nennt die Fund
 | MWST-Umsatzabstimmung | Summe der Ziffer 200 aller Quartalsabrechnungen gegen die Nettoerlöse der Jahresrechnung; Lücke über 1 % mit möglicher Nachsteuer (8.1 %), Verzugszins (Art. 87 MWSTG) und Verjährung (Art. 42 MWSTG). Steuer pro Quartal nachgerechnet, fehlende Quartale gemeldet. |
 | Datenschutz im Datenraum | AHV-Nummern (mit Prüfziffer) und Gesundheitsdaten zu einzelnen Personen (Art. 5 lit. c DSG) pro Dokument; vor der Weitergabe schwärzen oder in einen Clean Room verschieben. |
 | Steuerbarer Gewinn | Steuerbarer Reingewinn der Veranlagung gegen den Jahresgewinn (Massgeblichkeit, Art. 58 DBG; Steuern sind abziehbar, Art. 59 DBG). Über 10 % höher: Aufrechnungen, Aufstellung verlangen; tiefer: Verlustvorträge prüfen. |
+| Datenraum-Index | Liegt ein Index oder eine Dokumentenliste im Datenraum, meldet Zitatio jede aufgeführte Nummer ohne Dokument. |
 | Erfolgsrechnung nachgerechnet | Jede Spalte: EBITDA = Umsatz − Material − Personal − übriger Aufwand, EBIT, Jahresgewinn. Findet falsch übertragene Zeilen. |
 | Covenant | „Nettoverschuldung höchstens x-mal EBITDA“ aus dem Kreditvertrag, nachgerechnet aus der Bilanz. |
 | Nachträge | Erwähnt ein Vertrag einen Nachtrag, eine Zusatzvereinbarung oder einen Side Letter, der nicht im Datenraum liegt, ist das ein Warnsignal: Werte aus dem Grundvertrag können überholt sein. |

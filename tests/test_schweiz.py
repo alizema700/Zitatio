@@ -184,3 +184,16 @@ def test_taxable_profit_is_reconciled_with_net_income():
                         "3.1 Veranlagungsverfügung 2024.txt": f"Steuerbarer Reingewinn 2024: CHF {taxable}"})
         flag, = check_taxable_profit(room)
         assert (flag.level, word in flag.title) == (level, True), taxable
+
+
+def test_documents_listed_in_the_index_but_missing():
+    from zitatio.references import check_index
+
+    index = ("Datenraum-Index Projekt Muster\n1 Gesellschaft\n1.1 Handelsregisterauszug\n2 Finanzen\n"
+             "2.1 Jahresrechnung 2024\n2.2 Jahresrechnung 2025\n3 Verträge\n3.1 Mietvertrag\n")
+    room = _room(**{"0.1 Datenraum-Index.txt": index, "2.1 Jahresrechnung 2024.txt": "Jahresrechnung",
+                    "3.1 Mietvertrag.txt": "Mietvertrag"})
+    flag, = check_index(room)
+    assert flag.title.startswith("1 Dokument im Index") and "2.2 Jahresrechnung 2025" in flag.text
+    assert "3 Verträge" not in flag.text  # Kapitel mit vorhandenen Dokumenten
+    assert check_index(_room(**{"3.1 Mietvertrag.txt": "Indexmiete nach Landesindex"})) == []

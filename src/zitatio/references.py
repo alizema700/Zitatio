@@ -65,3 +65,35 @@ def _same_contract(amendment_title: str, title: str) -> bool:
 def _trim(text: str, width: int = 200) -> str:
     text = re.sub(r"\s+", " ", text).strip()
     return text if len(text) <= width else text[: width - 1].rstrip() + "…"
+
+
+# --- Datenraum-Index ------------------------------------------------------------------
+
+_INDEX_TITLE = re.compile(r"\b(?:datenraum-?index|index|inhaltsverzeichnis|dokumentenliste|table des matières|indice)\b",
+                          re.IGNORECASE)
+_INDEX_LINE = re.compile(r"^\s*(\d+(?:\.\d+)+|\d+)[\s;:.)]+([^\n;]{3,}?)\s*(?:;.*)?$", re.MULTILINE)
+
+
+def check_index(room: DataRoom) -> list[Flag]:
+    """Der Index des Datenraums gegen die Dokumente: was aufgeführt ist, aber fehlt."""
+    index_docs = [d for d in room.documents if _INDEX_TITLE.search(d.title)]
+    if not index_docs:
+        return []
+    doc = index_docs[0]
+    present = {d.index for d in room.documents if d.index}
+    missing = []
+    for page_no, text in enumerate(doc.pages, 1):
+        for m in _INDEX_LINE.finditer(text):
+            number, title = m.group(1), m.group(2).strip()
+            if number == doc.index or number in present or not re.search(r"[A-Za-zÄÖÜäöü]{3}", title):
+                continue
+            if "." not in number and any(p.startswith(number + ".") for p in present):
+                continue  # Kapitelüberschrift ("3 Steuern"), deren Dokumente da sind
+            missing.append((number, title, _evidence(doc, page_no, m.start(1), m.end(2))))
+    if not missing:
+        return []
+    listing = "; ".join(f"{n} {t}" for n, t, _ in missing[:12]) + (" …" if len(missing) > 12 else "")
+    return [Flag(WARNUNG, "Verweise", f"{len(missing)} Dokument{'e' if len(missing) > 1 else ''} im Index, aber nicht im Datenraum",
+                 f"Laut {doc.label} {doc.title} gehören dazu: {listing}. Nachreichen lassen oder bestätigen, dass sie "
+                 "bewusst fehlen; Garantien zur Vollständigkeit des Datenraums entsprechend einschränken.",
+                 [e for *_, e in missing], [doc.index])]
