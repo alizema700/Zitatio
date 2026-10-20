@@ -181,7 +181,7 @@ Fundstelle, sucht Zitatio die Belege selbst: Es ordnet alle Seiten des Datenraum
 (BM25, bei kurzen Sätzen mit dem Satz davor) und prüft die Werte auf den besten Seiten wie bei einer zitierten
 Aussage. Was gefunden wird, ist „Geprüft“ mit der gefundenen Fundstelle; was nicht, bleibt „Ohne Beleg“. Nennt eine
 passende Tabelle für dieselbe Grösse und dasselbe Jahr einen anderen Wert, ist es eine „Abweichung“. Im grossen
-Testfall ohne Fundstellen: 120 von 155 richtigen Aussagen belegt, kein falscher Wert als geprüft durchgelassen, 5 von
+Testfall ohne Fundstellen: 122 von 155 richtigen Aussagen belegt, kein falscher Wert als geprüft durchgelassen, 5 von
 11 falschen Werten als Abweichung erkannt (siehe `ergebnis.txt`). In einem Bericht mit Fundstellen bleibt eine Aussage
 ohne Fundstelle „Ohne Beleg“, mit dem gefundenen Beleg als Hinweis.
 

@@ -1,4 +1,4 @@
-Datenraum: 42 Dokumente, 269 Seiten · Bericht: 229 Aussagen · Laufzeit 1.0 s
+Datenraum: 42 Dokumente, 269 Seiten · Bericht: 229 Aussagen · Laufzeit 1.1 s
 Status: 163 Geprüft, 45 Ungeprüft, 12 Abweichung, 4 Ohne Beleg, 3 Falsche Fundstelle, 2 Widerspruch
 
 Eingebaute Fehler gefunden: 16 von 16
@@ -51,5 +51,5 @@ Schweizer Warnsignale gefunden: 6 von 6 eingebauten, 0 weitere gemeldet
 Richtige Aussagen: 163 geprüft, 45 ungeprüft (keine prüfbaren Werte), 2 mit Widerspruch im Datenraum, 3 Folgehinweis, 0 Fehlalarme
 
 Ohne Fundstellen (wie ein Information Memorandum): 166 Aussagen mit Werten
-  richtige Aussagen im Datenraum belegt: 120 von 155
+  richtige Aussagen im Datenraum belegt: 122 von 155
   falsche Werte als geprüft durchgelassen: 0 von 11 (5 als Abweichung erkannt, 6 ohne Beleg)
