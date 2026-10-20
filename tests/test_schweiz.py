@@ -171,3 +171,16 @@ def test_personal_data_in_the_data_room_is_flagged():
     flags = {f.docs[0]: f for f in check_privacy(room)}
     assert set(flags) == {"7.1", "7.2"}
     assert "AHV-Nummer" in flags["7.1"].text and "Art. 5 lit. c DSG" in flags["7.2"].text
+
+
+def test_taxable_profit_is_reconciled_with_net_income():
+    from zitatio.vat import check_taxable_profit
+
+    statement = ("Muster AG - Jahresrechnung 2024\nErfolgsrechnung (in CHF) 2024 2023\nSteuern 200'000 180'000\n"
+                 "Jahresgewinn 1'000'000 900'000\n")
+    for taxable, level, word in (("1'030'000", "ok", "passt"), ("1'400'000", "hinweis", "Aufrechnungen"),
+                                 ("400'000", "hinweis", "unter")):
+        room = _room(**{"2.1 Jahresrechnung 2024.txt": statement,
+                        "3.1 Veranlagungsverfügung 2024.txt": f"Steuerbarer Reingewinn 2024: CHF {taxable}"})
+        flag, = check_taxable_profit(room)
+        assert (flag.level, word in flag.title) == (level, True), taxable

@@ -89,3 +89,61 @@ def check_vat(room: DataRoom) -> list[Flag]:
             flags.append(Flag(OK, "MWST", f"Umsatzabstimmung {year} stimmt",
                               f"{basis} Differenz {_chf(abs(gap))}, unter 1 %.", ev))
     return flags
+
+
+# --- Steuerbarer Reingewinn gegen Jahresgewinn ---------------------------------------
+
+_TAXABLE = re.compile(r"steuerbare[rn]?\s+reingewinn[^\n]*?" + _NUM, re.IGNORECASE)
+_ASSESSMENT = re.compile(r"veranlagung|taxation|tassazione", re.IGNORECASE)
+
+
+def _profit(room: DataRoom, year: int):
+    """Jahresgewinn laut Jahresrechnung dieses Jahres (oder Vorjahresspalte der nächsten)."""
+    from .tables import doc_cells
+
+    for doc in sorted(room.documents, key=lambda d: years_in(d.title)[:1] != [year]):
+        if not doc.index or not re.search(r"jahresrechnung|jahresabschluss", doc.title, re.I):
+            continue
+        for p in range(1, len(doc.pages) + 1):
+            for cell in doc_cells(doc, p):
+                if cell.year == year and re.match(r"(?:jahresgewinn|jahresergebnis|reingewinn)", cell.label, re.I):
+                    return cell.fact.value[1], doc, p, cell
+    return None
+
+
+def check_taxable_profit(room: DataRoom) -> list[Flag]:
+    """Massgeblichkeit: Der steuerbare Reingewinn folgt dem handelsrechtlichen Jahresgewinn (Art. 58 DBG).
+    Steuern sind abziehbarer Aufwand (Art. 59 Abs. 1 lit. a DBG). Eine grosse Lücke heisst Aufrechnungen der
+    Steuerbehörde (etwa nicht anerkannter Aufwand oder geldwerte Leistungen) oder Abzüge (Verlustvortrag)."""
+    flags = []
+    for doc in room.documents:
+        if not doc.index or not _ASSESSMENT.search(doc.title) or not years_in(doc.title):
+            continue
+        year = years_in(doc.title)[0]
+        for p, text in enumerate(doc.pages, 1):
+            m = _TAXABLE.search(text)
+            if not m:
+                continue
+            taxable = _amount(m.group(1))
+            found = _profit(room, year)
+            if not found or not found[0]:
+                break
+            profit, pdoc, ppage, cell = found
+            ev = [_evidence(doc, p, m.start(1), m.end(1)), _evidence(pdoc, ppage, cell.fact.start, cell.fact.end)]
+            diff = taxable - profit
+            share = diff / abs(profit) * 100
+            basis = (f"Steuerbarer Reingewinn {year} {_chf(taxable)} ({doc.label}), Jahresgewinn laut Jahresrechnung "
+                     f"{_chf(profit)} ({pdoc.label}): {'+' if diff >= 0 else '−'}{_chf(abs(diff))} ({share:+.1f} %).")
+            if share > 10:
+                flags.append(Flag(HINWEIS, "Steuern", f"Aufrechnungen {year}: steuerbarer Gewinn {share:.0f} % über Jahresgewinn",
+                                  basis + " Der steuerbare Gewinn folgt dem Jahresgewinn (Art. 58 DBG); die Differenz sind "
+                                  "Aufrechnungen der Steuerbehörde. Aufstellung verlangen: Betreffen sie geldwerte "
+                                  "Leistungen an Aktionäre, fällt auch Verrechnungssteuer an.", ev, [doc.index]))
+            elif share < -10:
+                flags.append(Flag(HINWEIS, "Steuern", f"Steuerbarer Gewinn {year} {abs(share):.0f} % unter Jahresgewinn",
+                                  basis + " Abzüge wie Verlustvorträge (Art. 67 DBG) oder Beteiligungsabzug erklären das "
+                                  "oft. Verlustvorträge sind beim Kauf ein Wert und gehen bei Mantelhandel verloren.", ev))
+            else:
+                flags.append(Flag(OK, "Steuern", f"Steuerbarer Gewinn {year} passt zum Jahresgewinn", basis, ev))
+            break
+    return flags

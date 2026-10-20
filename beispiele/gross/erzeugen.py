@@ -354,7 +354,7 @@ TAX = "3. Steuern"
 
 def build_tax() -> None:
     for n, year in enumerate((2023, 2024), start=1):
-        taxable = int((IS[year]["Betriebsergebnis (EBIT)"] - IS[year]["Finanzaufwand"]) * 0.98)
+        taxable = int(IS[year]["Jahresgewinn"] * 1.02)  # Steuern sind abziehbar (Art. 59 DBG), kleine Aufrechnungen
         DOCS.append(Doc(f"3.{n}", f"Veranlagungsverfügung {year}", [
             page(f"Steuerbarer Reingewinn {year}: CHF {chf(taxable)}", f"Veranlagung vom {d(dt.date(year + 1, 9, 12 + n))}",
                  fill=6, title=f"Kantonales Steueramt St. Gallen - Veranlagungsverfügung Staats- und Gemeindesteuern {year} (fiktiv)"),

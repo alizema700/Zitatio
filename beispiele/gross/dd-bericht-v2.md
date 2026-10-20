@@ -59,9 +59,9 @@ Die Revisionsstelle hält fest: „Wir sind auf keine Sachverhalte gestossen, au
 
 ## 3. Steuern
 
-Für 2023 wurde ein steuerbarer Reingewinn von CHF 2'737'339 veranlagt [DR 3.1, S. 1].
+Für 2023 wurde ein steuerbarer Reingewinn von CHF 2'364'727 veranlagt [DR 3.1, S. 1].
 Die Veranlagung 2023 ist rechtskräftig [DR 3.1, S. 2].
-Für 2024 wurde ein steuerbarer Reingewinn von CHF 3'613'948 veranlagt [DR 3.2, S. 1].
+Für 2024 wurde ein steuerbarer Reingewinn von CHF 3'122'009 veranlagt [DR 3.2, S. 1].
 Die Veranlagung 2024 ist rechtskräftig [DR 3.2, S. 2].
 Die MWST-Abrechnungen 2025 wurden für alle vier Quartale eingereicht [DR 3.3, S. 1].
 Steuerliche Risiken aus offenen Veranlagungen bestehen für 2025, da diese noch nicht veranlagt ist [DR 3.2, S. 2].

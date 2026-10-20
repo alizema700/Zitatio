@@ -49,6 +49,8 @@ Schweizer Warnsignale gefunden: 8 von 8 eingebauten, 0 weitere gemeldet
   ok       Aktienbuch: Aktienbuch vollständig
   ok       Fusionskontrolle: Keine WEKO-Meldung nötig (ein Käufer)
   ok       Covenant: Covenant eingehalten (0.73x von höchstens 2.5x)
+  ok       Steuern: Steuerbarer Gewinn 2023 passt zum Jahresgewinn
+  ok       Steuern: Steuerbarer Gewinn 2024 passt zum Jahresgewinn
 
 Richtige Aussagen: 163 geprüft, 45 ungeprüft (keine prüfbaren Werte), 2 mit Widerspruch im Datenraum, 3 Folgehinweis, 0 Fehlalarme
 

@@ -329,7 +329,7 @@
   "hinweis": ""
  },
  {
-  "aussage": "Für 2023 wurde ein steuerbarer Reingewinn von CHF 2'737'339 veranlagt [DR 3.1, S. 1].",
+  "aussage": "Für 2023 wurde ein steuerbarer Reingewinn von CHF 2'364'727 veranlagt [DR 3.1, S. 1].",
   "richtig": true,
   "fehler": null,
   "regeln_koennen_es_sehen": true,
@@ -343,7 +343,7 @@
   "hinweis": ""
  },
  {
-  "aussage": "Für 2024 wurde ein steuerbarer Reingewinn von CHF 3'613'948 veranlagt [DR 3.2, S. 1].",
+  "aussage": "Für 2024 wurde ein steuerbarer Reingewinn von CHF 3'122'009 veranlagt [DR 3.2, S. 1].",
   "richtig": true,
   "fehler": null,
   "regeln_koennen_es_sehen": true,
