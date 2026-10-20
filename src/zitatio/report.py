@@ -19,6 +19,8 @@ class Citation:
 
     @property
     def label(self) -> str:
+        if self.index.startswith("Q&A"):
+            return self.index
         if self.page_from is None:
             return f"DR {self.index}"
         if self.page_to and self.page_to != self.page_from:
@@ -37,7 +39,9 @@ class Claim:
 
 
 # "[DR 3.2.1, S. 4]", "(VDR 2.1 p. 3-4)", "[Datenraum 5.3; DR 1.1, Seite 2]"
-_BRACKET_RE = re.compile(r"[\[(]\s*((?:DR|VDR|Datenraum|Data\s*Room)\b[^\])]*)[\])]", re.IGNORECASE)
+_BRACKET_RE = re.compile(r"[\[(]\s*((?:DR|VDR|Datenraum|Data\s*Room|Q\s*&\s*A(?![\w&]))[^\])]*)[\])]", re.IGNORECASE)
+# "[Q&A 17]", "[Q&A Nr. 17; DR 2.3, S. 4]": Eintrag der Q&A-Liste im Datenraum
+_QA_RE = re.compile(r"Q\s*&\s*A\s*(?:Nr\.?|Frage)?\s*(\d{1,4})\b", re.IGNORECASE)
 _CITE_RE = re.compile(
     r"(?:DR|VDR|Datenraum|Data\s*Room)\s*(\d+(?:\.\d+)*)"
     r"(?:\s*,?\s*(?:S\.|Seite|Seiten|p\.|pp\.|page)\s*(\d+)(?:\s*[-–]\s*(\d+))?)?",
@@ -73,10 +77,14 @@ def quotes(text: str) -> list[str]:
 def parse_citations(text: str) -> list[Citation]:
     citations = []
     for bracket in _BRACKET_RE.finditer(text):
+        found = []
         for m in _CITE_RE.finditer(bracket.group(1)):
             page_from = int(m.group(2)) if m.group(2) else None
             page_to = int(m.group(3)) if m.group(3) else page_from
-            citations.append(Citation(m.group(1), page_from, page_to, m.group(0)))
+            found.append((m.start(), Citation(m.group(1), page_from, page_to, m.group(0))))
+        for m in _QA_RE.finditer(bracket.group(1)):
+            found.append((m.start(), Citation(f"Q&A {int(m.group(1))}", None, None, m.group(0))))
+        citations += [c for _, c in sorted(found, key=lambda x: x[0])]
     return citations
 
 

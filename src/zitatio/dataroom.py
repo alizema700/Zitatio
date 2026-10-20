@@ -25,9 +25,12 @@ class Document:
     title: str
     sha256: str
     pages: list[str]
+    ref: str | None = None  # eigene Bezeichnung, z. B. "Q&A 17" für einen Eintrag der Q&A-Liste
 
     @property
     def label(self) -> str:
+        if self.ref:
+            return self.ref
         return f"DR {self.index}" if self.index else self.name
 
 
@@ -35,8 +38,27 @@ class Document:
 class DataRoom:
     documents: list[Document] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    _qa: dict | None = field(default=None, repr=False, compare=False)
+
+    def qa_entries(self) -> dict[int, Document]:
+        """Einträge der Q&A-Liste des Datenraums als eigene, zitierbare Einheiten: "[Q&A 17]".
+
+        Management-Antworten sind in der DD oft die einzige Quelle für eine Aussage. Jeder Eintrag
+        (Frage und Antwort) wird ein eigenes Dokument, damit ein Wert aus Eintrag 12 nicht Eintrag 17 belegt.
+        """
+        if self._qa is None:
+            self._qa = {}
+            for doc in self.documents:
+                if doc.index is None or not _QA_TITLE.search(doc.title):
+                    continue
+                for number, text in _qa_split(doc):
+                    self._qa.setdefault(number, Document(doc.name, doc.index, f"{doc.title}, Eintrag {number}",
+                                                         doc.sha256, [text], ref=f"Q&A {number}"))
+        return self._qa
 
     def get(self, index: str) -> Document | None:
+        if index.upper().startswith("Q&A"):
+            return self.qa_entries().get(int(re.sub(r"\D", "", index) or 0))
         wanted = normalize_index(index)
         for doc in self.documents:
             if doc.index == wanted:
@@ -66,6 +88,7 @@ class DataRoom:
             )
         digest = hashlib.sha256(data).hexdigest()
         self.documents.append(Document(Path(name).name, index, title, digest, pages))
+        self._qa = None
         self.documents.sort(key=lambda d: _index_key(d.index))
 
     def add_zip(self, name: str, data: bytes) -> None:
@@ -96,6 +119,23 @@ class DataRoom:
             if path.is_file() and not path.name.startswith("."):
                 room.add(path.name, path.read_bytes())
         return room
+
+
+_QA_TITLE = re.compile(r"q\s*&\s*a|fragen und antworten|fragenkatalog|fragenliste|management-antworten"
+                       r"|questions? (?:and|&) answers?|questions-réponses|domande e risposte", re.IGNORECASE)
+_QA_ENTRY = re.compile(r"^\s*(?:Frage|Nr\.?|Q|Question|Domanda)?\s*(\d{1,4})\s*[;:.)\t|]\s*(?=\S)", re.IGNORECASE)
+
+
+def _qa_split(doc: Document) -> list[tuple[int, str]]:
+    entries: list[tuple[int, list[str]]] = []
+    for page in doc.pages:
+        for line in page.splitlines():
+            m = _QA_ENTRY.match(line)
+            if m and not re.match(r"\s*\d{1,2}\.\d{1,2}\.\d{2,4}", line):  # Datum ist kein neuer Eintrag
+                entries.append((int(m.group(1)), [line]))
+            elif entries:
+                entries[-1][1].append(line)
+    return [(n, "\n".join(lines)) for n, lines in entries]
 
 
 def normalize_index(index: str) -> str:

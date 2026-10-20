@@ -306,7 +306,10 @@ def _resolve(claim: Claim, room: DataRoom):
     for c in claim.citations:
         doc = room.get(c.index)
         if doc is None:
-            problems.append(f"{c.label}: Dokument {c.index} gibt es im Datenraum nicht.")
+            if c.index.startswith("Q&A"):
+                problems.append(f"{c.label}: Diesen Eintrag gibt es in keiner Q&A-Liste des Datenraums.")
+            else:
+                problems.append(f"{c.label}: Dokument {c.index} gibt es im Datenraum nicht.")
             continue
         if c.page_from is None:
             pages = list(range(1, len(doc.pages) + 1))
@@ -350,16 +353,18 @@ def _locate_elsewhere(fact: Fact, room: DataRoom, skip: set[tuple[str, int]], ct
         return None
     cited_docs = {name for name, _ in skip}
     fallback = None
-    for doc in room.documents:
+    # Zitiert die Aussage einen Q&A-Eintrag, kommen zuerst die anderen Einträge der Liste in Frage
+    qa = list(room.qa_entries().values()) if any(name.startswith("Q&A ") for name in cited_docs) else []
+    for doc in qa + room.documents:
         if doc.index is None:
             continue
         # Im zitierten, kurzen Dokument ist eine andere Seite fast immer gemeint; in langen
         # Dokumenten und im übrigen Datenraum muss die Umgebung zur Aussage passen.
-        strict = bool(claim_text) and (doc.name not in cited_docs or len(doc.pages) > 20)
+        strict = bool(claim_text) and doc.ref is None and (doc.name not in cited_docs or len(doc.pages) > 20)
         if strict and doc.name not in cited_docs and not _shares_word(claim_text, doc.title):
             continue  # ein anderes Dokument nur, wenn die Aussage davon spricht
         for p in range(1, len(doc.pages) + 1):
-            if (doc.name, p) in skip:
+            if (_source_key(doc), p) in skip:
                 continue
             hit = _find(fact, doc, [p], ctx)
             if not hit or (strict and not _near_words(claim_text, doc.pages[p - 1], hit.fact.start)):
@@ -370,12 +375,17 @@ def _locate_elsewhere(fact: Fact, room: DataRoom, skip: set[tuple[str, int]], ct
     return None if ctx else fallback
 
 
+def _source_key(doc: Document) -> str:
+    """Ein Q&A-Eintrag ist eine eigene Quelle, obwohl er in derselben Datei steht wie die anderen."""
+    return doc.ref or doc.name
+
+
 def _locate_quote(quote: str, room: DataRoom, skip: set[tuple[str, int]]):
     for doc in room.documents:
         if doc.index is None:
             continue
         for p in range(1, len(doc.pages) + 1):
-            if (doc.name, p) not in skip and quote_in_source(quote, doc.pages[p - 1]) >= 0:
+            if (_source_key(doc), p) not in skip and quote_in_source(quote, doc.pages[p - 1]) >= 0:
                 return doc, p
     return None
 
@@ -463,7 +473,7 @@ def verify_claim(claim: Claim, room: DataRoom, model: ModelVerifier | None = Non
         finding.reasons = problems + finding.reasons
         return finding
 
-    cited = {(doc.name, p) for doc, pages in resolved for p in pages}
+    cited = {(_source_key(doc), p) for doc, pages in resolved for p in pages}
     missing: list[Fact] = []
     misfits: list[str] = []
     found: list[str] = []
