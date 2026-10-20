@@ -104,7 +104,9 @@ def collect_issues(run) -> list[Issue]:
             issues.append(Issue({"steuern"}, fl.title, fl.text, TEILLIQUIDATION, "#pruefungen"))
             continue
         if fl.area == "Kaufvertrag" and fl.level == "warnung":
-            if "Verwaltungsrats" in fl.title:
+            if "im Vertrag nicht geregelt" in fl.title:  # Vorkaufsrecht aus dem Aktionärbindungsvertrag
+                issues.append(Issue({"gesellschaft"}, fl.title, fl.text, BEDINGUNG, "#pruefungen", fl.area))
+            elif "Verwaltungsrats" in fl.title:
                 issues.append(Issue({"gesellschaft"}, f"Vinkulierung: {fl.title}", fl.text, BEDINGUNG, "#pruefungen", fl.area))
             elif "Kaufpreis" in fl.title:
                 issues.append(Issue({"jahresrechnung"}, fl.title, fl.text, PREIS, "#preis", fl.area))

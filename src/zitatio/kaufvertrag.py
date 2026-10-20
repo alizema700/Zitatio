@@ -5,6 +5,8 @@
   der Vertrag sie als Vollzugsbedingung vorsehen.
 - Kaufpreis: Liegt der Preis im Entwurf über dem Equity Value, der nach den Befunden übrig bleibt?
 - Locked Box: Gibt es zum Stichtag eine Bilanz im Datenraum?
+- Vorkaufsrecht: Räumt ein Aktionärbindungsvertrag den Mitaktionären ein Vorkaufs-, Vorhand- oder Mitverkaufsrecht
+  ein, muss der Vertrag den Verzicht der Berechtigten als Vollzugsbedingung vorsehen.
 - Konkurrenzverbot der Verkäuferin: Als Nebenabrede zum Unternehmenskauf gelten in der Regel bis drei Jahre (mit
   Übertragung von Know-how), sonst zwei Jahre; so die Praxis der EU-Kommission, an der sich die WEKO orientiert.
 """
@@ -32,6 +34,13 @@ _VINKULIERUNG = re.compile(r"vinkul|übertragung[^.]{0,60}(?:namenaktien|aktien)
                            r"transfert[^.]{0,80}(?:approbation|agrément) du conseil", re.IGNORECASE)
 _CONSENT_IN_SPA = re.compile(r"zustimmung des verwaltungsrat|(?:approbation|agrément|consentement) du conseil|vinkul|685[ab]?\s*(?:ff\.?\s*)?OR|eintragung[^.]{0,40}aktienbuch",
                              re.IGNORECASE)
+_PREEMPTION = re.compile(r"vorkaufsrecht\w*|vorhandrecht\w*|kaufsrecht\w*|mitverkaufsrecht\w*|tag[- ]along|"
+                         r"droit de préemption|droit de préférence|droit d'emption|diritto di prelazione", re.IGNORECASE)
+_WAIVER_IN_SPA = re.compile(r"verzicht\w*[^.]{0,80}(?:vorkauf|vorhand|kaufsrecht|mitverkauf)|(?:vorkauf|vorhand|kaufsrecht)"
+                            r"\w*[^.]{0,80}verzicht|renonc\w*[^.]{0,80}(?:préemption|préférence)|rinunci\w*[^.]{0,80}"
+                            r"prelazione", re.IGNORECASE)
+_SHAREHOLDERS_AGREEMENT = re.compile(r"aktionärbindungsvertrag|aktionärsbindungsvertrag|\bABV\b|aktionärsvereinbarung|"
+                                     r"shareholders'? agreement|convention d'actionnaires|patto parasociale", re.IGNORECASE)
 _LOCKED_BOX = re.compile(r"locked[- ]?box", re.IGNORECASE)
 
 
@@ -112,6 +121,25 @@ def check_spa(spa_name: str, spa_text: str, room: DataRoom, valuation=None) -> l
         elif value:
             flags.append(Flag(OK, "Kaufvertrag", f"Kaufpreis {_chf(value)} durch den geprüften Equity Value gedeckt",
                               f"Geprüfter Equity Value {_chf(checked)}."))
+
+    for doc in room.documents:
+        if not doc.index or not _SHAREHOLDERS_AGREEMENT.search(doc.title):
+            continue
+        hit = next(((p, m) for p, text in enumerate(doc.pages, 1) for m in [_PREEMPTION.search(text)] if m), None)
+        if not hit:
+            continue
+        p, m = hit
+        ev = [_evidence(doc, p, m.start(), m.end())]
+        if _WAIVER_IN_SPA.search(flat):
+            flags.append(Flag(OK, "Kaufvertrag", f"Verzicht auf das {m.group(0)} im Vertrag geregelt",
+                              f"{doc.label} {doc.title} (S. {p}); der Entwurf regelt den Verzicht der Berechtigten.", ev))
+        else:
+            flags.append(Flag(
+                WARNUNG, "Kaufvertrag", f"{m.group(0)[0].upper() + m.group(0)[1:]} aus {doc.label} im Vertrag nicht geregelt",
+                f"{doc.label} {doc.title}, S. {p}: Die Mitaktionäre haben ein {m.group(0)}. Ohne ihren schriftlichen "
+                "Verzicht können sie die Aktien zu den Bedingungen des Vertrags an sich ziehen oder mitverkaufen. Den "
+                "Verzicht als Vollzugsbedingung aufnehmen.", ev, [doc.index]))
+        break
 
     if _LOCKED_BOX.search(flat):
         box = next((f.value for m in re.finditer(r"[^.]*locked[- ]?box[^.]*\.", flat, re.I)

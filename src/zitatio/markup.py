@@ -91,7 +91,8 @@ def drafts(run) -> list[Draft]:
 
     cond = _next_number(spa_text, "4")
     consent = [i for i, _ in issues if i.action == BEDINGUNG and i.title.startswith("Vinkulierung")]
-    coc = [i for i, _ in issues if i.action == BEDINGUNG and not i.title.startswith("Vinkulierung")]
+    waiver = [i for i, _ in issues if i.action == BEDINGUNG and "im Vertrag nicht geregelt" in i.title]
+    coc = [i for i, _ in issues if i.action == BEDINGUNG and not i.title.startswith("Vinkulierung") and i not in waiver]
     if coc:
         names = [re.sub(r"^Kontrollwechselklausel ", "", i.title) for i in coc]
         listing = "; ".join(f"({chr(97 + n)}) {name}" for n, name in enumerate(names))
@@ -107,6 +108,12 @@ def drafts(run) -> list[Draft]:
                          "und die Käuferin als Aktionärin mit Stimmrecht ins Aktienbuch eingetragen (Art. 685a ff. OR). "
                          "Die Verkäuferin stellt sicher, dass der Verwaltungsrat vor dem Vollzug darüber beschliesst.",
                          [i.title for i in consent]))
+
+    if waiver:
+        out.append(Draft("Vollzugsbedingungen", cond(), "Verzicht der Mitaktionäre",
+                         "Die übrigen Parteien des Aktionärbindungsvertrags haben schriftlich und unwiderruflich auf ihre "
+                         "Vorkaufs-, Vorhand-, Kaufs- und Mitverkaufsrechte an den verkauften Aktien verzichtet.",
+                         [i.title for i in waiver]))
 
     number = _next_number(spa_text, "6")
     open_ = [i for i, covered in issues if i.action == FREISTELLUNG and not covered]

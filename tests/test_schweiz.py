@@ -335,3 +335,15 @@ def test_employment_and_dividend_review_regressions():
         room = _room(**{"2.1 Jahresrechnung 2024.txt": statement, "1.4 Protokolle 2025.txt": text + "\n" +
                         text.replace("Generalversammlung", "Der Verwaltungsrat beantragt, die Generalversammlung")})
         assert [f.title.split()[0] for f in check_dividends(room)] == titles, text
+
+
+def test_preemption_right_in_shareholders_agreement_needs_waiver():
+    from zitatio.kaufvertrag import check_spa
+
+    room = _room(**{"1.5 Aktionärbindungsvertrag.txt": "Aktionärbindungsvertrag\nArt. 4: Den übrigen Aktionären steht "
+                                                       "an allen Aktien ein Vorkaufsrecht zu."})
+    flag, = [f for f in check_spa("spa.md", "2.1 Die Verkäuferin verkauft 100 Aktien.", room) if "Vorkaufsrecht" in f.title]
+    assert flag.level == "warnung" and flag.docs == ["1.5"]
+    spa = "2.1 Die Verkäuferin verkauft 100 Aktien.\n4.3 Die Mitaktionäre haben schriftlich auf ihr Vorkaufsrecht verzichtet."
+    flag, = [f for f in check_spa("spa.md", spa, room) if "Vorkaufsrecht" in f.title]
+    assert flag.level == "ok"
