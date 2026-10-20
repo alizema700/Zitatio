@@ -452,6 +452,13 @@ def _more_downloads(run: Run) -> str:
         links.append('<a class="ghost" href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;'
                      f'base64,{data}" download="{base}-klauseln.docx" title="Vollzugsbedingungen, Freistellungen und '
                      'Kaufpreisabzüge als Entwurf">Klauseln (Word)</a>')
+    from .summary import to_markdown as memo
+    from .word import markdown_to_docx
+
+    data = base64.b64encode(markdown_to_docx(memo(run))).decode()
+    links.insert(0, '<a class="ghost" href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;'
+                    f'base64,{data}" download="{base}-ic-memo.docx" title="Das Wichtigste und die offenen Befunde als '
+                    'Word-Datei fürs Investment Committee">IC-Memo (Word)</a>')
     return "\n    ".join(links)
 
 
