@@ -51,6 +51,8 @@ _FLAG_QUESTIONS = {
     "MWST": "Bitte MWST-Umsatzabstimmung zur Jahresrechnung vorlegen und Differenzen erklären: {title}.",
     "Datenschutz": "Bitte Personendaten schwärzen und das Dokument neu in den Datenraum stellen: {title}.",
     "Arbeitsrecht": "Bitte betroffene Mitarbeitende und den geschätzten Betrag nennen: {title}.",
+    "Ausschüttung": "Bitte Generalversammlungsbeschluss, Zwischenabschluss und Verrechnungssteuer-Abrechnung "
+                    "(Formular 103) mit Zahlungsbeleg vorlegen: {title}.",
     "Aktienbuch": "Bitte vollständiges, nachgeführtes Aktienbuch vorlegen: {title}.",
 }
 

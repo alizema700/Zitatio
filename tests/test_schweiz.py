@@ -272,3 +272,23 @@ def test_employment_contracts_against_mandatory_law():
     flags = sorted((f.docs[0], f.level, f.title.split(" ")[0]) for f in check_employment(room))
     assert flags == [("7.1", "hinweis", "Konkurrenzverbot"), ("7.1", "warnung", "Ferienanspruch"),
                      ("7.3", "hinweis", "Konkurrenzverbot")]
+
+
+def test_dividends_against_balance_sheet_and_withholding_tax():
+    from zitatio.ausschuettung import check_dividends
+
+    statement = ("Muster AG - Jahresrechnung 2024\nBilanz per 31.12.2024 (in CHF)\nAktienkapital 1'000'000\n"
+                 "Gesetzliche Gewinnreserve 700'000\nEigenkapital 3'000'000\n")
+    cases = (("900'000", set()), ("1'500'000", {"hinweis"}), ("2'000'000", {"warnung"}))
+    for amount, levels in cases:
+        room = _room(**{"2.1 Jahresrechnung 2024.txt": statement,
+                        "1.4 Protokoll Generalversammlung 2025.txt":
+                            f"Die Generalversammlung beschliesst eine Dividende von CHF {amount} aus dem Bilanzgewinn 2024."})
+        flags = check_dividends(room)
+        assert {f.level for f in flags if "Verrechnungssteuer" not in f.title} == levels, amount
+        assert any("Verrechnungssteuer" in f.title for f in flags)
+    room = _room(**{"2.1 Jahresrechnung 2024.txt": statement,
+                    "1.4 Protokoll Generalversammlung 2025.txt": "Die Generalversammlung beschliesst eine Dividende "
+                                                                 "von CHF 500'000 für das Geschäftsjahr 2024.",
+                    "3.4 Formular 103.txt": "Formular 103: Verrechnungssteuer auf Dividenden CHF 175'000"})
+    assert check_dividends(room) == []

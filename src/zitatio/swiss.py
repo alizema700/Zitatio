@@ -183,14 +183,14 @@ _ROWS = {
 }
 
 
-def _latest_statement(room: DataRoom) -> tuple[Document, int, dict] | None:
-    """Neueste Jahresrechnung mit Bilanz: {Zeile: (Wert, Zelle)} aus der Spalte des Abschlussjahrs."""
+def _latest_statement(room: DataRoom, year: int | None = None) -> tuple[Document, int, dict] | None:
+    """Neueste Jahresrechnung mit Bilanz (oder die des Jahres `year`): {Zeile: (Wert, Zelle)} aus der Spalte des Abschlussjahrs."""
     best = None
     for doc in room.documents:
         if not doc.index or not re.search(r"jahresrechnung|jahresabschluss|comptes annuels|états financiers|conto annuale|bilancio", doc.title, re.I):
             continue
         years = years_in(doc.title)
-        if not years:
+        if not years or year is not None and years[0] != year:
             continue
         values = {}
         for p in range(1, len(doc.pages) + 1):

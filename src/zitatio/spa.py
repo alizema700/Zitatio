@@ -92,12 +92,12 @@ def collect_issues(run) -> list[Issue]:
         "Kapitalschutz": {"jahresrechnung", "gesellschaft"}, "Revision": {"jahresrechnung"},
         "Covenant": {"finanzierung"}, "Vorsorge": {"vorsorge"}, "Aktienbuch": {"gesellschaft"},
         "Verweise": {"vertraege", "datenraum"}, "Leakage": {"leakage"}, "MWST": {"steuern"},
-        "Arbeitsrecht": {"personal"},
+        "Arbeitsrecht": {"personal"}, "Ausschüttung": {"gesellschaft", "jahresrechnung"},
     }
     actions = {"Zeichnungsberechtigung": "Genehmigung der Gesellschaft vor dem Closing verlangen",
                "Nachgerechnet": KLAEREN, "Kapitalschutz": KLAEREN, "Revision": KLAEREN, "Covenant": FREISTELLUNG,
                "Vorsorge": FREISTELLUNG, "Aktienbuch": NACHREICHEN, "Verweise": NACHREICHEN,
-               "Leakage": FREISTELLUNG, "MWST": FREISTELLUNG, "Arbeitsrecht": FREISTELLUNG}
+               "Leakage": FREISTELLUNG, "MWST": FREISTELLUNG, "Arbeitsrecht": FREISTELLUNG, "Ausschüttung": FREISTELLUNG}
     for fl in run.flags:
         if fl.area == "Steuern" and "Teilliquidation" in fl.title:
             issues.append(Issue({"steuern"}, fl.title, fl.text, TEILLIQUIDATION, "#pruefungen"))
