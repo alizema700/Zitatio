@@ -39,6 +39,9 @@ zitatio redflags -d beispiele/gross/datenraum -o red-flags.html --fragen fragen.
 # Verkäuferseite: Antwortentwürfe mit Fundstelle für die Fragen der Käufer
 zitatio antworten kaeuferfragen.xlsx -d beispiele/gross/datenraum -o antworten.md
 
+# Verkäuferseite: Entwurf des Offenlegungsschreibens zu den Garantien
+zitatio redflags -d beispiele/gross/datenraum --spa beispiele/gross/spa-entwurf.md -o red-flags.html --offenlegungsschreiben offenlegung.docx
+
 # Verkäuferseite: anonymer Teaser, dazu eine Prüffassung mit Fundstellen (teaser-pruefung.docx)
 zitatio teaser -d beispiele/gross/datenraum -o teaser.docx
 
@@ -227,6 +230,15 @@ Käufer (Excel mit Spalte „Frage“, Text oder Markdown) und sucht zu jeder Fr
 beantwortet, mit Dokument und Seite. Gefragt wird nach einem Wert („wie hoch“, „wann“, „wie lange“), zählen nur
 Sätze mit einem Wert dieser Art. Nennt der Datenraum für diesen Wert verschiedene Zahlen, steht das bei der Antwort.
 Findet Zitatio nichts Tragfähiges, steht „Im Datenraum nicht gefunden“ statt einer erfundenen Antwort.
+
+### Offenlegungsschreiben für die Verkäuferseite
+
+`--offenlegungsschreiben offenlegung.docx` (oder der Link im Bericht) schreibt den Entwurf eines Disclosure Letters:
+die allgemeine Offenlegung des Datenraums mit SHA-256 je Dokument, dann je Garantie des SPA-Entwurfs die Tatsachen,
+die die Verkäuferin offenlegen sollte (Kontrollwechselklauseln, Klage mit Streitwert, Steuerprüfung,
+MWST-Differenz …), jeweils mit Fundstelle und ohne die Ratschläge an die Käuferin. Was man nicht offenlegt, sondern
+bereinigt, steht in einer eigenen Liste: Widersprüche, Rechenfehler, fehlende Unterlagen und Genehmigungen,
+Personendaten, Fehler im Vertragsentwurf. Ohne `--spa` sind die Offenlegungen nach Thema gegliedert.
 
 ### Teaser für die Verkäuferseite
 

@@ -459,6 +459,12 @@ def _more_downloads(run: Run) -> str:
     links.insert(0, '<a class="ghost" href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;'
                     f'base64,{data}" download="{base}-ic-memo.docx" title="Das Wichtigste und die offenen Befunde als '
                     'Word-Datei fürs Investment Committee">IC-Memo (Word)</a>')
+    from .offenlegung import to_markdown as disclosure
+
+    data = base64.b64encode(markdown_to_docx(disclosure(run))).decode()
+    links.append('<a class="ghost" href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;'
+                 f'base64,{data}" download="{base}-offenlegungsschreiben.docx" title="Entwurf für die Verkäuferin: '
+                 'Offenlegungen je Garantie mit Fundstelle und was vorher zu bereinigen ist">Offenlegungsschreiben (Word)</a>')
     from .teaser import anonymity_leaks, codename, teaser
     from .teaser import to_markdown as teaser_markdown
 

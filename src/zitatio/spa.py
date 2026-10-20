@@ -48,6 +48,7 @@ class Issue:
     text: str
     action: str
     href: str
+    area: str = ""  # Prüfbereich des Warnsignals, aus dem der Befund stammt
 
 
 @dataclass
@@ -104,11 +105,11 @@ def collect_issues(run) -> list[Issue]:
             continue
         if fl.area == "Kaufvertrag" and fl.level == "warnung":
             if "Verwaltungsrats" in fl.title:
-                issues.append(Issue({"gesellschaft"}, f"Vinkulierung: {fl.title}", fl.text, BEDINGUNG, "#pruefungen"))
+                issues.append(Issue({"gesellschaft"}, f"Vinkulierung: {fl.title}", fl.text, BEDINGUNG, "#pruefungen", fl.area))
             elif "Kaufpreis" in fl.title:
-                issues.append(Issue({"jahresrechnung"}, fl.title, fl.text, PREIS, "#preis"))
+                issues.append(Issue({"jahresrechnung"}, fl.title, fl.text, PREIS, "#preis", fl.area))
             else:
-                issues.append(Issue({"gesellschaft"}, fl.title, fl.text, KLAEREN, "#pruefungen"))
+                issues.append(Issue({"gesellschaft"}, fl.title, fl.text, KLAEREN, "#pruefungen", fl.area))
             continue
         if fl.area == "Protokolle":
             topics = _topics(fl.title) | ({"recht"} if "Rechtsstreit" in fl.title or "Behörden" in fl.title else set())
@@ -123,7 +124,7 @@ def collect_issues(run) -> list[Issue]:
             action = NACHREICHEN if fl.title.startswith("Nur ") else KLAEREN  # fehlende Abrechnung, Mehrdeklaration
         titles = " ".join(d.title for d in run.room.documents if d.index in fl.docs)
         topics = set(flag_topics[fl.area]) | _topics(fl.title) | (_topics(titles) & {"finanzierung", "immobilien"})
-        issues.append(Issue(topics, f"{fl.area}: {fl.title}", fl.text, action, "#pruefungen"))
+        issues.append(Issue(topics, f"{fl.area}: {fl.title}", fl.text, action, "#pruefungen", fl.area))
 
     for c in run.conflicts:
         topics = {"gesellschaft"} if c.metric == "aktienkapital" else {"jahresrechnung"}

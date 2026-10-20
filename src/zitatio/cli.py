@@ -33,6 +33,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--fragen", type=Path, help="Fragenliste an den Verkäufer als Markdown, für den Q&A-Prozess")
     p.add_argument("--spa", type=Path, help="Entwurf des Kaufvertrags: Garantien mit den Befunden abgleichen")
     p.add_argument("--klauseln", type=Path, help="Klauselvorschläge für den Kaufvertrag (.md oder .docx)")
+    p.add_argument("--offenlegungsschreiben", type=Path,
+                   help="Entwurf des Offenlegungsschreibens für die Verkäuferin (.md oder .docx)")
     p.add_argument("--kaeuferfragen", type=Path, help="Fragen der Käufer (.xlsx/.md): Antwortentwürfe im Bericht")
     p.add_argument("--datenraum-vorher", type=Path, help="früherer Export des Datenraums: was ist neu oder geändert")
     p.add_argument("--sanktionen", type=Path, help="Sanktionsliste (SECO-XML, CSV oder Text): Namen im Datenraum abgleichen")
@@ -47,6 +49,8 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--fragen", type=Path, help="Fragenliste an den Verkäufer als Markdown")
     r.add_argument("--spa", type=Path, help="Entwurf des Kaufvertrags: Garantien mit den Befunden abgleichen")
     r.add_argument("--klauseln", type=Path, help="Klauselvorschläge für den Kaufvertrag (.md oder .docx)")
+    r.add_argument("--offenlegungsschreiben", type=Path,
+                   help="Entwurf des Offenlegungsschreibens für die Verkäuferin (.md oder .docx)")
     r.add_argument("--kaeuferfragen", type=Path, help="Fragen der Käufer (.xlsx/.md): Antwortentwürfe im Bericht")
     r.add_argument("--datenraum-vorher", type=Path, help="früherer Export des Datenraums: was ist neu oder geändert")
     r.add_argument("--sanktionen", type=Path, help="Sanktionsliste (SECO-XML, CSV oder Text): Namen im Datenraum abgleichen")
@@ -119,6 +123,8 @@ def main(argv: list[str] | None = None) -> int:
         _write_calendar(args.kalender, run)
     if args.klauseln:
         _write_clauses(args.klauseln, run)
+    if args.offenlegungsschreiben:
+        _write_disclosure(args.offenlegungsschreiben, run)
     if args.offenlegung:
         args.offenlegung.write_text(to_disclosure_csv(run), encoding="utf-8")
 
@@ -188,6 +194,8 @@ def _redflags(args) -> int:
         _write_calendar(args.kalender, run)
     if args.klauseln:
         _write_clauses(args.klauseln, run)
+    if args.offenlegungsschreiben:
+        _write_disclosure(args.offenlegungsschreiben, run)
     questions = request_list(run)
     if args.fragen:
         args.fragen.write_text(questions_markdown(questions), encoding="utf-8")
@@ -247,6 +255,18 @@ def _teaser(args) -> int:
         print("Achtung, die Käuferfassung nennt: " + ", ".join(leaks))
         return 1
     return 0
+
+
+def _write_disclosure(path: Path, run) -> None:
+    from .offenlegung import to_markdown as disclosure
+    from .word import markdown_to_docx
+
+    md = disclosure(run)
+    if path.suffix.lower() == ".docx":
+        path.write_bytes(markdown_to_docx(md))
+    else:
+        path.write_text(md, encoding="utf-8")
+    print(f"{md.count(chr(10) + '- ')} Punkte im Offenlegungsschreiben: {path}")
 
 
 def _write_clauses(path: Path, run) -> None:
