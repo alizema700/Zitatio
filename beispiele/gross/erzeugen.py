@@ -662,7 +662,8 @@ def build_swiss() -> None:
     # Zwei Unterschriften, die die Gesellschaft nicht binden:
     signed["6.1"] = f"Für die {NAME}: Nadia Brunner, CFO"
     signed["6.2"] = f"Für die {NAME}: Thomas Brunner, Leiter Produktion"
-    WARNINGS.extend([{"art": "Zeichnungsberechtigung", "dokument": "6.1"},
+    WARNINGS.extend([{"art": "Nachgerechnet", "dokument": "2.3"},  # Vorjahresspalte Personalaufwand, siehe oben
+                     {"art": "Zeichnungsberechtigung", "dokument": "6.1"},
                      {"art": "Zeichnungsberechtigung", "dokument": "6.2"}])
     for idx, line in signed.items():
         doc_by_index(idx).pages[-1].append(line)

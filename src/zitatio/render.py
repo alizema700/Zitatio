@@ -43,6 +43,7 @@ class Run:
     gaps: list = field(default_factory=list)  # gaps.Gap
     contracts: list = field(default_factory=list)  # clauses.ContractEntry
     flags: list = field(default_factory=list)  # swiss.Flag
+    internal: list = field(default_factory=list)  # consistency.ReportConflict
 
     def __post_init__(self):
         self.created = self.created or dt.datetime.now().astimezone()
@@ -143,6 +144,10 @@ def to_json(run: Run) -> str:
                     "stimmt": c.ok,
                 }
                 for c in run.addbacks
+            ],
+            "widersprueche_im_bericht": [
+                {"groesse": c.title, "werte": c.values, "aussagen": [f.claim.number for f in c.findings]}
+                for c in run.internal
             ],
             "schweiz": [
                 {"stufe": fl.level, "bereich": fl.area, "titel": fl.title, "text": fl.text,
@@ -377,6 +382,23 @@ def _contracts_html(run: Run) -> str:
             f'<tbody>{"".join(rows)}</tbody></table></div>')
 
 
+def _internal_html(run: Run) -> str:
+    if not run.internal:
+        return ""
+    cards = []
+    for c in run.internal:
+        rows = "".join(
+            f'<tr><td>{_pill(f)}</td>'
+            f'<td>{html.escape(f.claim.clean_text)}</td></tr>' for f in c.findings)
+        cards.append(
+            f'<article class="card s-widerspruch"><header><span class="badge">≠ im Bericht</span>'
+            f'<span class="num">{html.escape(c.title)}: {html.escape(" vs. ".join(c.values))}</span></header>'
+            f'<div class="tablebox flat"><table><thead><tr><th>Aussage</th><th>Text</th></tr></thead>'
+            f'<tbody>{rows}</tbody></table></div></article>')
+    return ('<h2>Widersprüche im Bericht</h2><p class="lead">Der Bericht nennt für dieselbe Grösse und Periode '
+            "an verschiedenen Stellen verschiedene Werte. Gerundete Schreibweisen zählen als gleich.</p>" + "".join(cards))
+
+
 def _flags_html(run: Run) -> str:
     if not run.flags:
         return ""
@@ -393,9 +415,9 @@ def _flags_html(run: Run) -> str:
                      f'<span class="num">{html.escape(fl.title)}</span></header>'
                      f'<p class="cite">{html.escape(fl.text)}</p>{quotes}</article>')
     n = sum(f.level == "warnung" for f in run.flags)
-    lead = (f"{n} Warnsignal{'e' if n != 1 else ''} nach Schweizer Recht. " if n else "Keine Warnsignale nach Schweizer Recht. ")
-    return (f'<h2>Schweizer Prüfungen</h2><p class="lead">{lead}Zeichnungsberechtigung gegen das Handelsregister, '
-            "Kapitalschutz (Art. 725a OR), Revisionspflicht (Art. 727 OR), Vorsorge, Aktienbuch und Fusionskontrolle "
+    lead = f"{n} Warnsignal{'e' if n != 1 else ''}. " if n else "Keine Warnsignale. "
+    return (f'<h2>Prüfungen im Datenraum</h2><p class="lead">{lead}Erfolgsrechnungen nachgerechnet, '
+            "Zeichnungsberechtigung gegen das Handelsregister, Kapitalschutz (Art. 725a OR), Revisionspflicht (Art. 727 OR), Vorsorge, Aktienbuch und Fusionskontrolle "
             "(Art. 9 KG).</p>" + "".join(cards))
 
 
@@ -453,7 +475,7 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _flags_html(run) + _conflicts_html(run) + _addbacks_html(run) + _contracts_html(run)
+    extra = _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _contracts_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""

@@ -72,4 +72,25 @@ def test_report_shows_swiss_section():
     run = run_check("b.md", "Text.", b"Text.", room)
     assert any(f.level == "warnung" for f in run.flags)
     from zitatio.render import to_html
-    assert "Schweizer Prüfungen" in to_html(run) and swiss_flags(room)
+    assert "Prüfungen im Datenraum" in to_html(run) and swiss_flags(room)
+
+
+def test_income_statement_is_recomputed():
+    from zitatio.consistency import check_income_statements
+    pnl = ("Muster AG - Erfolgsrechnung 2025 (in CHF)\n"
+           "Nettoerlös 1'000'000\nMaterialaufwand 400'000\nPersonalaufwand 300'000\n"
+           "Übriger betrieblicher Aufwand 100'000\nEBITDA {}\n")
+    assert check_income_statements(_room(**{"2.1 Erfolgsrechnung.txt": pnl.format("200'000")})) == []
+    flag, = check_income_statements(_room(**{"2.1 Erfolgsrechnung.txt": pnl.format("230'000")}))
+    assert flag.level == "warnung" and "EBITDA" in flag.title and "30'000" in flag.text
+
+
+def test_report_contradicting_itself():
+    from zitatio.consistency import report_conflicts
+    text = ("Das EBITDA 2025 betrug CHF 2.1 Mio.\n\nIm Ausblick steht: Das EBITDA 2025 lag bei CHF 2'100'000.\n\n"
+            "Zusammengefasst erreichte das EBITDA 2025 CHF 2.4 Mio.")
+    findings = verify(parse_report(text), DataRoom())
+    conflict, = report_conflicts(findings)
+    assert len(conflict.values) == 2 and "EBITDA 2025" in conflict.title
+    assert all(f.status is Status.WIDERSPRUCH for f in findings)
+    assert "Aussage 3" in findings[0].reasons[-1] and "Aussage 1" in findings[2].reasons[-1]
