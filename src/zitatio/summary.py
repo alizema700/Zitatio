@@ -33,6 +33,9 @@ def _short(text: str, width: int = 90) -> str:
     return text if len(text) <= width else text[: width - 1].rstrip() + "…"
 
 
+MAX_FLAGS = 5
+
+
 def key_points(run) -> list[KeyPoint]:
     points: list[KeyPoint] = []
     wrong = [f for f in run.findings if f.status is Status.ABWEICHUNG]
@@ -42,10 +45,6 @@ def key_points(run) -> list[KeyPoint]:
         points.append(KeyPoint(KRITISCH, f"{len(wrong)} Aussage{'n' if len(wrong) != 1 else ''} widersprechen dem Datenraum",
                                f"{examples}{more}.", f"#a{wrong[0].claim.number}"))
 
-    for fl in run.flags:
-        if fl.level == "warnung":
-            points.append(KeyPoint(KRITISCH, f"{fl.area}: {fl.title}", _short(fl.text, 220), "#pruefungen"))
-
     v = run.valuation
     if v is not None and v.impacts and v.equity:
         delta = v.checked_equity - v.equity
@@ -54,6 +53,16 @@ def key_points(run) -> list[KeyPoint]:
                                f"({'−' if delta < 0 else '+'}{abs(delta / v.equity * 100):.1f} %)",
                                f"Equity Value {_chf(v.equity)} laut Rechnung, {_chf(v.checked_equity)} nach Abzug von "
                                + ", ".join(i.label for i in v.impacts) + "." + risk, "#preis"))
+
+    # Warnsignale: die ersten einzeln, der Rest in einem Punkt, damit die Preiswirkung oben sichtbar bleibt
+    warnings = [fl for fl in run.flags if fl.level == "warnung"]
+    shown = warnings if len(warnings) <= MAX_FLAGS + 1 else warnings[:MAX_FLAGS]
+    for fl in shown:
+        points.append(KeyPoint(KRITISCH, f"{fl.area}: {fl.title}", _short(fl.text, 220), "#pruefungen"))
+    rest = warnings[len(shown):]
+    if rest:
+        points.append(KeyPoint(KRITISCH, f"{len(rest)} weitere Warnsignale",
+                               "; ".join(f"{fl.area}: {_short(fl.title, 80)}" for fl in rest) + ".", "#pruefungen"))
 
     if run.closing:
         from .terms import revenue_at_risk

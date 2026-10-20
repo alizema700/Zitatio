@@ -399,6 +399,28 @@ def _versions_html(run: Run) -> str:
             + table)
 
 
+def _more_downloads(run: Run) -> str:
+    """Kalender und Klauselvorschläge, wenn es etwas dafür gibt."""
+    from .fristen import to_ics
+    from .markup import drafts, to_docx
+
+    base = html.escape(run.report_name.rsplit(".", 1)[0])
+    links = []
+    items = _deadlines(run)
+    if items:
+        data = base64.b64encode(to_ics(items, run.report_name).encode("utf-8")).decode()
+        links.append(f'<a class="ghost" href="data:text/calendar;charset=utf-8;base64,{data}" download="{base}-fristen.ics" '
+                     f'title="{len(items)} Vertragsenden, Kündigungstage und Ablaufdaten für Outlook oder Google Kalender">'
+                     "Fristen (.ics)</a>")
+    clauses = drafts(run)
+    if clauses:
+        data = base64.b64encode(to_docx(clauses, run.spa_name)).decode()
+        links.append('<a class="ghost" href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;'
+                     f'base64,{data}" download="{base}-klauseln.docx" title="Vollzugsbedingungen, Freistellungen und '
+                     'Kaufpreisabzüge als Entwurf">Klauseln (Word)</a>')
+    return "\n    ".join(links)
+
+
 def _xlsx(run: Run) -> bytes:
     from .excel import to_xlsx
 
@@ -915,6 +937,7 @@ def to_html(run: Run) -> str:
         disclosure_name=html.escape(run.report_name.rsplit(".", 1)[0] + "-offenlegungskarte.csv"),
         xlsx=base64.b64encode(_xlsx(run)).decode(),
         xlsx_name=html.escape(run.report_name.rsplit(".", 1)[0] + "-pruefung.xlsx"),
+        more_downloads=_more_downloads(run),
         docs=docs,
         warnings=warnings_html,
         report_hash=run.report_sha256[:16],
@@ -1078,6 +1101,7 @@ td .m {{ display:none; }}
       title="Welche Aussage auf welcher Seite steht, mit Prüfsumme je Dokument: für W&amp;I-Underwriting">Offenlegungskarte</a>
     <a class="ghost" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{xlsx}"
       download="{xlsx_name}" title="Aussagen, EBITDA-Brücke, Nettoverschuldung und Closing-Liste mit Formeln">Excel-Mappe</a>
+    {more_downloads}
   </div>
   <section class="proto" aria-label="Prüfprotokoll">
     <div class="head"><p class="kicker">Prüfprotokoll</p><span>{report}</span></div>
