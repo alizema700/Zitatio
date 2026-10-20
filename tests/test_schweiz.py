@@ -303,3 +303,35 @@ def test_seller_non_compete_in_the_spa():
                            ("7.1 Le vendeur s'abstient de toute concurrence pendant quatre ans.", [4])):
         flags = [f for f in check_spa("spa.md", text, room) if "Konkurrenzverbot" in f.title]
         assert [int(f.title.split("über ")[1].split()[0]) for f in flags] == expected, text
+
+
+def test_employment_and_dividend_review_regressions():
+    from zitatio.arbeitsrecht import check_employment
+    from zitatio.ausschuettung import check_dividends
+
+    room = _room(**{
+        "7.2 Personalreglement.txt": "Personalreglement\nDer Ferienanspruch beträgt 25 Arbeitstage. Ab dem 50. "
+                                     "Altersjahr besteht zusätzlich Anspruch auf 5 Ferientage. Höchstens 10 Ferientage "
+                                     "können übertragen werden.",
+        "7.3 Arbeitsvertrag Keller.txt": "Arbeitsvertrag\nNach 5 Jahren Betriebszugehörigkeit gilt ein "
+                                         "Konkurrenzverbot von 12 Monaten.",
+        "7.4 Arbeitsvertrag Huber.txt": "Arbeitsvertrag\nEs gilt ein Konkurrenzverbot gemäss Art. 340 OR für die "
+                                        "Dauer von fünf Jahren.",
+        "7.5 Contratto di lavoro.txt": "Contratto di lavoro\nIl lavoratore ha diritto a 3 settimane di vacanze.",
+    })
+    assert sorted((f.docs[0], f.level) for f in check_employment(room)) == [("7.4", "hinweis"), ("7.5", "warnung")]
+
+    statement = ("Muster AG - Jahresrechnung 2024\nBilanz per 31.12.2024 (in CHF)\nAktienkapital 1'000'000\n"
+                 "Gesetzliche Gewinnreserve 700'000\nEigenkapital 3'000'000\n")
+    for text, titles in (
+        ("Die Generalversammlung beschliesst, aus dem Bilanzgewinn 2024 von CHF 2'500'000 eine Dividende von "
+         "CHF 400'000 auszuschütten.", ["Verrechnungssteuer-Abrechnung"]),
+        ("Die Generalversammlung beschliesst, keine Dividende auszuschütten und den Bilanzgewinn von CHF 2'500'000 "
+         "vorzutragen.", []),
+        ("Die Generalversammlung beschliesst für 2024 eine Dividende von CHF 2'000'000.", ["Dividende", "Verrechnungssteuer-Abrechnung"]),
+        ("Die Generalversammlung beschliesst eine Dividende von CHF 500'000 aus Kapitaleinlagereserven für das "
+         "Geschäftsjahr 2024.", []),
+    ):
+        room = _room(**{"2.1 Jahresrechnung 2024.txt": statement, "1.4 Protokolle 2025.txt": text + "\n" +
+                        text.replace("Generalversammlung", "Der Verwaltungsrat beantragt, die Generalversammlung")})
+        assert [f.title.split()[0] for f in check_dividends(room)] == titles, text

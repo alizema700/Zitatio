@@ -5,7 +5,7 @@
   gesetzlichen Reserven über der Hälfte des Aktienkapitals ist ausschüttbar (Art. 671 Abs. 2, 672 Abs. 2 OR).
   Zu Unrecht bezogene Dividenden können zurückgefordert werden (Art. 678 OR).
 - Auf jede Dividende fallen 35 % Verrechnungssteuer an, abzurechnen mit Formular 103 innert 30 Tagen (Art. 4 und
-  16 VStG), im Meldeverfahren mit Formular 106. Fehlt die Abrechnung im Datenraum, nachfragen.
+  16 VStG), im Meldeverfahren mit Formular 106 oder 108; Kapitaleinlagereserven sind befreit (Art. 5 Abs. 1bis). Fehlt die Abrechnung im Datenraum, nachfragen.
 """
 
 from __future__ import annotations
@@ -22,8 +22,12 @@ from .verify import _evidence
 
 _DIVIDEND = re.compile(r"dividende|gewinnausschüttung|dividendo|distribution d'un dividende", re.I)
 _DECIDED = re.compile(r"beschlo|beschlie|genehmig|décid|approuv|delibera|approva", re.I)
-_FOR_YEAR = re.compile(r"(?:geschäftsjahr|bilanzgewinn|jahresgewinn|exercice|esercizio)\s+(\d{4})", re.I)
-_VST_RETURN = re.compile(r"formular\s*10[36]|formulaire\s*10[36]|modulo\s*10[36]|verrechnungssteuer-?(?:abrechnung|deklaration)"
+_FOR_YEAR = re.compile(r"(?:geschäftsjahr|bilanzgewinn|jahresgewinn|exercice|esercizio|für\s+(?:das\s+jahr\s+)?|pour\s+)"
+                       r"\s*(\d{4})\b", re.I)
+_NONE = re.compile(r"\bkein\w*\s+(?:dividende|ausschüttung)|vorgetragen|vorzutragen|verzicht|aucun dividende|"
+                   r"reporté|nessun dividendo|riportat", re.I)
+_CAPITAL_RESERVE = re.compile(r"kapitaleinlage|apports? de capital|apporti di capitale", re.I)
+_VST_RETURN = re.compile(r"formular\s*10[368]|formulaire\s*10[368]|modulo\s*10[368]|verrechnungssteuer-?(?:abrechnung|deklaration)"
                          r"|décompte de l'impôt anticipé", re.I)
 
 
@@ -39,7 +43,10 @@ def check_dividends(room: DataRoom) -> list[Flag]:
         for page_no, start, sentence in _sentences(doc):
             if not (_DIVIDEND.search(sentence) and _DECIDED.search(sentence)):
                 continue
-            amounts = [f for f in extract_facts(sentence) if f.kind == AMOUNT and f.value[0] == "CHF"]
+            if _NONE.search(sentence):
+                continue
+            keyword = _DIVIDEND.search(sentence).start()
+            amounts = [f for f in extract_facts(sentence) if f.kind == AMOUNT and f.value[0] == "CHF" and f.start > keyword]
             if not amounts:
                 continue
             year = _FOR_YEAR.search(sentence)
@@ -50,9 +57,11 @@ def check_dividends(room: DataRoom) -> list[Flag]:
                 title_years = years_in(doc.title)
                 year = int(dated.group(1) or dated.group(2)) - 1 if dated else (title_years[0] - 1 if title_years else None)
             ev = _evidence(doc, page_no, start + amounts[0].start, start + amounts[0].end)
-            found.append((doc, amounts[0].value[1], year, ev))
+            if any(a == amounts[0].value[1] and y == year for _, a, y, _, _ in found):
+                continue  # derselbe Beschluss im VR- und im GV-Protokoll
+            found.append((doc, amounts[0].value[1], year, ev, bool(_CAPITAL_RESERVE.search(sentence))))
 
-    for doc, amount, year, ev in found:
+    for doc, amount, year, ev, _ in found:
         statement = _latest_statement(room, year) if year else None
         if not statement:
             continue
@@ -80,13 +89,14 @@ def check_dividends(room: DataRoom) -> list[Flag]:
                 "gesetzlichen Reserven ausschüttbar, der die Hälfte des Aktienkapitals übersteigt (Art. 671 Abs. 2, "
                 "672 Abs. 2 OR). Beschluss der Generalversammlung und Revisionsbestätigung prüfen.", sev, [doc.index]))
 
-    if found and not any(_VST_RETURN.search(t) for d in room.documents if d.index for t in d.pages):
-        doc, amount, _, ev = found[0]
-        total = sum((a for _, a, _, _ in found), Decimal(0))
+    taxable = [f for f in found if not f[4]]  # Rückzahlung von Kapitaleinlagereserven: keine VSt (Art. 5 Abs. 1bis VStG)
+    if taxable and not any(_VST_RETURN.search(t) for d in room.documents if d.index for t in d.pages):
+        total = sum((a for _, a, *_ in taxable), Decimal(0))
         flags.append(Flag(
             HINWEIS, "Ausschüttung", "Verrechnungssteuer-Abrechnung zur Dividende fehlt im Datenraum",
-            f"Beschlossene Dividenden von {_chf(total)} ({', '.join(sorted({d.label for d, *_ in found}))}). Darauf fallen "
-            f"35 % Verrechnungssteuer an ({_chf(total * Decimal('0.35'))}), abzurechnen innert 30 Tagen mit Formular 103 "
-            "oder im Meldeverfahren mit Formular 106 (Art. 16 VStG). Abrechnung und Zahlungsbeleg nachfordern.",
-            [e for *_, e in found], sorted({d.index for d, *_ in found})))
+            f"Beschlossene Dividenden von {_chf(total)} ({', '.join(sorted({d.label for d, *_ in taxable}))}). Darauf fallen "
+            f"35 % Verrechnungssteuer an ({_chf(total * Decimal('0.35'))}), soweit sie nicht aus Kapitaleinlagereserven "
+            "stammen (Art. 5 Abs. 1bis VStG). Abzurechnen innert 30 Tagen mit Formular 103, im Meldeverfahren mit "
+            "Formular 106 oder 108 (Art. 16 VStG). Abrechnung und Zahlungsbeleg nachfordern.",
+            [f[3] for f in taxable], sorted({d.index for d, *_ in taxable})))
     return flags

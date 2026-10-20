@@ -240,8 +240,10 @@ def check_capital(room: DataRoom) -> list[Flag]:
 
 
 def _fte(room: DataRoom, year: int) -> tuple[int, Document, int] | None:
+    not_year = r"(?!(?:19|20)\d\d\b)"  # "Vollzeitstellen im Jahresdurchschnitt 2024: 48"
     rx = re.compile(r"(\d{2,5})\s+(?:Vollzeitstellen|postes à plein temps|posti a tempo pieno)"
-                    r"|Vollzeitstellen\D{0,30}(\d{2,5})|(?:FTE|EPT)\D{0,20}(\d{2,5})")
+                    rf"|Vollzeitstellen[^\n]{{0,40}}?\b{not_year}(\d{{2,5}})\b"
+                    rf"|(?<![A-Za-z])(?:FTE|EPT)\b[^\n]{{0,30}}?\b{not_year}(\d{{2,5}})\b")
     for doc in room.documents:
         if doc.index and str(year) in doc.title:
             for p, text in enumerate(doc.pages, 1):

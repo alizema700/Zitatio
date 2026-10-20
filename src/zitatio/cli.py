@@ -266,7 +266,8 @@ def _write_disclosure(path: Path, run) -> None:
         path.write_bytes(markdown_to_docx(md))
     else:
         path.write_text(md, encoding="utf-8")
-    print(f"{md.count(chr(10) + '- ')} Punkte im Offenlegungsschreiben: {path}")
+    specific = md.split("## 2. Spezifische Offenlegungen")[1].split("\n## ")[0]
+    print(f"{specific.count(chr(10) + '- ')} spezifische Offenlegungen im Offenlegungsschreiben: {path}")
 
 
 def _write_clauses(path: Path, run) -> None:

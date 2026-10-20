@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 
-from .spa import NACHREICHEN, PREIS, TEILLIQUIDATION, Issue, check_warranties, collect_issues
+from .spa import NACHREICHEN, TEILLIQUIDATION, Issue, check_warranties, collect_issues
 from .swiss import company_name
 
 _TOPIC_NAMES = {"gesellschaft": "Gesellschaft und Aktien", "jahresrechnung": "Jahresrechnung",
@@ -34,10 +34,14 @@ def _correct_first(issue: Issue) -> bool:
             or issue.title.startswith(("Widerspruch im Datenraum", "Nachgerechnet")))
 
 
+def _in_contract(issue: Issue) -> bool:
+    """Gehört in den Vertrag, nicht ins Schreiben: Leakage und indirekte Teilliquidation."""
+    return issue.action == TEILLIQUIDATION or issue.area == "Leakage"
+
+
 def _disclosable(issue: Issue) -> bool:
-    if issue.action in (PREIS, TEILLIQUIDATION) or _correct_first(issue):
-        return False
-    return issue.area not in ("Kaufvertrag", "Leakage", "Sanktionen")
+    # Schuldenähnliche Posten (PREIS) legt die Verkäuferin offen; der Kaufpreis-Befund zum SPA selbst nicht
+    return not (_correct_first(issue) or _in_contract(issue) or issue.area in ("Kaufvertrag", "Sanktionen"))
 
 
 def _entry(issue: Issue) -> str:
@@ -51,14 +55,15 @@ def _entry(issue: Issue) -> str:
 def to_markdown(run) -> str:
     company = company_name(run.room)
     out = ["# Offenlegungsschreiben (Entwurf)", "",
-           f"Die Verkäuferin legt der Käuferin zum Aktienkaufvertrag über die {company or 'Gesellschaft'} die folgenden "
+           f"Die Verkäuferin legt der Käuferin zum Kaufvertrag über die {company or 'Gesellschaft'} die folgenden "
            "Tatsachen offen. Ein Entwurf aus Zitatio für die Anwälte der Verkäuferin; jede Offenlegung nennt die "
            "Fundstelle im Datenraum.", "", "## 1. Allgemeine Offenlegung", "",
            "Als offengelegt gilt der Inhalt des Datenraums mit den folgenden Dokumenten (SHA-256 der Datei, damit der "
            "Stand belegbar bleibt):", "", "| Dokument | Titel | SHA-256 |", "|---|---|---|"]
     out += [f"| {d.label} | {d.title} | {d.sha256[:16]}… |" for d in run.room.documents if d.index]
 
-    out += ["", "## 2. Spezifische Offenlegungen", ""]
+    out += ["", "## 2. Spezifische Offenlegungen", "",
+            "Jede Offenlegung gilt gegenüber allen Garantien, nicht nur der Ziffer, unter der sie steht.", ""]
     disclosed = 0
     if getattr(run, "spa_text", None):
         seen: set[str] = set()
@@ -69,6 +74,10 @@ def to_markdown(run) -> str:
             seen |= {i.title for i in items}
             out += [f"### Gegen Ziff. {w.number} {w.heading}".rstrip(), ""] + [_entry(i) for i in items] + [""]
             disclosed += len(items)
+        rest = list({i.title: i for i in collect_issues(run) if _disclosable(i) and i.title not in seen}.values())
+        if rest:
+            out += ["### Weitere Offenlegungen (keiner Garantie zugeordnet)", ""] + [_entry(i) for i in rest] + [""]
+            disclosed += len(rest)
     else:
         by_topic: dict[str, list[Issue]] = {}
         for i in collect_issues(run):
@@ -88,4 +97,9 @@ def to_markdown(run) -> str:
                 "Diese Punkte gehören nicht ins Schreiben: Widersprüche korrigieren, fehlende Unterlagen und "
                 "Genehmigungen nachholen, Personendaten schwärzen, den Vertragsentwurf anpassen.",
                 ""] + [f"- {i.title}" for i in dict((i.title, i) for i in fix).values()] + [""]
+    contract = list({i.title: i for i in collect_issues(run) if _in_contract(i)}.values())
+    if contract:
+        out += ["## 4. Im Kaufvertrag regeln", "",
+                "Diese Punkte löst eine Offenlegung nicht; sie gehören als Klausel in den Vertrag.", ""]
+        out += [f"- {i.title}" for i in contract] + [""]
     return "\n".join(out)

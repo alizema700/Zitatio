@@ -25,8 +25,18 @@ _WORDS = {"ein": 1, "einem": 1, "eines": 1, "zwei": 2, "drei": 3, "vier": 4, "f�
           "quattro": 4, "cinque": 5}
 _DURATION = re.compile(r"\b(\d{1,2}|" + "|".join(_WORDS) + r")\s+(jahre?n?s?|monate?n?|ans?|années?|mois|anni|mesi)\b",
                        re.I)
-_HOLIDAYS = re.compile(r"(\d{1,2})\s+(?:ferientage|arbeitstage ferien|tage ferien|jours de vacances|giorni di vacanza)"
-                       r"|(\d)\s+wochen ferien|(\d)\s+semaines de vacances|(\d)\s+settimane di vacanza", re.I)
+_NUM = r"(\d{1,2}|" + "|".join(_WORDS) + r")"
+_HOLIDAYS = re.compile(_NUM + r"\s+(?:(ferientage|arbeitstage(?: ferien)?|tage ferien|jours (?:ouvrables )?de vacances|"
+                       r"giorni (?:lavorativi )?di (?:vacanz[ae]|ferie))|(wochen ferien|semaines de vacances|"
+                       r"settimane di (?:vacanz[ae]|ferie)))", re.I)
+# Nur der Grundanspruch zählt, nicht Zusatztage, Übertrag, Bezug am Stück oder Teilzeit
+_CLAIM = re.compile(r"ferienanspruch|anspruch auf|haben? (?:jährlich )?\w* ?\d* ?(?:ferientage|wochen)|es gelten|"
+                    r"droit à|ont droit|diritto a|hanno diritto", re.I)
+_NOT_BASIC = re.compile(r"zusätzlich|weitere|übertrag|höchstens|maximal|am stück|teilzeit|pensum|supplémentaire|"
+                        r"report|consécutiv|supplementar|riport|consecutiv", re.I)
+# Dauer des Verbots: direkt nach "während", "für die Dauer von" … oder nach dem Stichwort
+_TERM = re.compile(r"(?:während|für die dauer von|für|von|pendant|durant|durante|per)\s+(?:der\s+|einer\s+)?"
+                   + _NUM + r"\s+(jahre?n?s?|monate?n?|ans?|années?|mois|anni|mesi)\b", re.I)
 
 
 def _months(number: str, unit: str) -> int:
@@ -34,10 +44,14 @@ def _months(number: str, unit: str) -> int:
     return n if unit.lower().startswith(("monat", "mois", "mes")) else 12 * n
 
 
+_STOP = re.compile(r"(?<!\bArt)(?<!\bAbs)(?<!\bZiff)(?<!\bNr)(?<!\bDr)(?<!\bS)(?<!\d)\.(?=\s|$)|\n")
+
+
 def _sentence(text: str, pos: int) -> tuple[int, int]:
-    start = max(text.rfind(".", 0, pos), text.rfind("\n", 0, pos)) + 1
-    ends = [i for i in (text.find(".", pos), text.find("\n", pos)) if i != -1]
-    return start, min(ends) if ends else len(text)
+    """Satz um pos; Abkürzungen wie "Art. 340 OR" beenden ihn nicht."""
+    starts = [m.end() for m in _STOP.finditer(text, 0, pos)]
+    end = _STOP.search(text, pos)
+    return (starts[-1] if starts else 0), (end.start() if end else len(text))
 
 
 def check_employment(room: DataRoom) -> list[Flag]:
@@ -48,11 +62,9 @@ def check_employment(room: DataRoom) -> list[Flag]:
         for p, text in enumerate(doc.pages, 1):
             for m in _NON_COMPETE.finditer(text):
                 start, end = _sentence(text, m.start())
-                durations = [d for d in _DURATION.finditer(text, start, end)]
-                if not durations:
-                    continue
-                d = max(durations, key=lambda d: _months(d.group(1), d.group(2)))
-                if _months(d.group(1), d.group(2)) <= 36:
+                terms = list(_TERM.finditer(text, start, end))
+                d = terms[0] if terms else _DURATION.search(text, m.end(), end)
+                if not d or _months(d.group(1), d.group(2)) <= 36:
                     continue
                 flags.append(Flag(
                     HINWEIS, "Arbeitsrecht", f"Konkurrenzverbot über drei Jahre in {doc.label}",
@@ -62,7 +74,12 @@ def check_employment(room: DataRoom) -> list[Flag]:
                     "OR). Nicht als Schutz für den Käufer einrechnen.",
                     [_evidence(doc, p, d.start(), d.end())], [doc.index]))
             for m in _HOLIDAYS.finditer(text):
-                days = int(m.group(1)) if m.group(1) else 5 * int(next(g for g in m.groups()[1:] if g))
+                start, end = _sentence(text, m.start())
+                sentence = text[start:end]
+                if not _CLAIM.search(sentence) or _NOT_BASIC.search(sentence):
+                    continue
+                n = int(m.group(1)) if m.group(1).isdigit() else _WORDS[m.group(1).lower()]
+                days = n if m.group(2) else 5 * n
                 if days >= 20:
                     continue
                 flags.append(Flag(
