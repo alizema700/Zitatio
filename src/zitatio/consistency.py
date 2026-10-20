@@ -84,6 +84,9 @@ _LINES = {
     "steuern": r"^steuern|^ertragssteuern|^direkte steuern|^impôts|^imposte",
     "gewinn": r"^jahresgewinn|^jahresergebnis|^reingewinn|^bénéfice|^résultat de l'exercice|^utile",
 }
+# Ohne eines dieser Wörter hat eine Seite keine Zwischensumme, die sich nachrechnen liesse
+_TOTALS = ("ebitda", "ebit", "betriebsergebnis", "jahresgewinn", "jahresergebnis", "reingewinn", "résultat",
+           "bénéfice", "utile", "risultato")
 _RULES = [
     ("EBITDA", "ebitda", ["umsatz"], ["material", "personal", "uebriger"]),
     ("EBIT", "ebit", ["ebitda"], ["abschreibungen"]),
@@ -97,6 +100,9 @@ def check_income_statements(room: DataRoom) -> list[Flag]:
         if doc.index is None:
             continue
         for p in range(1, len(doc.pages) + 1):
+            lower = doc.pages[p - 1].lower()
+            if not any(w in lower for w in _TOTALS):
+                continue
             columns: dict[int | None, dict[str, object]] = defaultdict(dict)
             for cell in doc_cells(doc, p):
                 label = cell.label.lower()

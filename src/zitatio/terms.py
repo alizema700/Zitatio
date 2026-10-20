@@ -16,7 +16,7 @@ import re
 from dataclasses import dataclass, field
 from decimal import Decimal
 
-from .clauses import ContractEntry
+from .clauses import _CONTRACT_TITLE, ContractEntry
 from .facts import AMOUNT, DATE, DURATION, extract_facts
 from .verify import Evidence, _evidence
 
@@ -26,6 +26,7 @@ _START = re.compile(r"beginnt am|tritt am|in kraft|ab\b|entre en vigueur|débute
 _TERM = re.compile(r"laufzeit|durée|durata", re.I)
 _NOTICE = re.compile(r"künd\w*|résili\w*|préavis|disdett\w*|disdire|preavviso", re.I)
 _VOLUME = re.compile(r"volumen|umsatz|volume|chiffre d'affaires|fatturato", re.I)
+_ANY_TERM = re.compile("|".join(rx.pattern for rx in (_END, _START, _TERM, _NOTICE, _VOLUME)), re.I)
 _SENTENCE = re.compile(r"(?:[^.!?]|[.!?](?=\d))+(?:[.!?]|$)")
 
 
@@ -64,6 +65,8 @@ def contract_terms(entry: ContractEntry) -> Terms:
         flat = text.replace("\n", " ")
         for m in _SENTENCE.finditer(flat):
             sentence = m.group(0)
+            if not _ANY_TERM.search(sentence):
+                continue
             facts = extract_facts(sentence)
             dates = [f for f in facts if f.kind == DATE]
             durations = [f for f in facts if f.kind == DURATION]
@@ -108,7 +111,7 @@ def closing_list(register: list[ContractEntry], today: dt.date | None = None,
                  horizon_months: int = 18) -> tuple[list[Terms], list[ClosingItem]]:
     today = today or dt.date.today()
     horizon = _add_months(today, horizon_months)
-    terms = [contract_terms(e) for e in register]
+    terms = [contract_terms(e) if _CONTRACT_TITLE.search(e.doc.title) else Terms(e) for e in register]
     items = []
     for t in terms:
         coc = [c for c in t.entry.clauses if c.kind == "kontrollwechsel" and c.present]

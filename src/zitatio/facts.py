@@ -205,19 +205,25 @@ _UNITS = {"tag": "Tage", "woche": "Wochen", "monat": "Monate", "jahr": "Jahre",
           "jour": "Tage", "semaine": "Wochen", "mois": "Monate", "an": "Jahre", "année": "Jahre",
           "giorn": "Tage", "settiman": "Wochen", "mes": "Monate", "ann": "Jahre"}
 _DURATION_RE = re.compile(
-    rf"\b(\d+|{'|'.join(NUMBER_WORDS)})\s*[- ]?\s*"
-    r"(?:(Tag|Woche|Monat|Jahr)(?:e|en|es|s|n)?"
+    r"\b(?:(Tag|Woche|Monat|Jahr)(?:e|en|es|s|n)?"
     r"|(jour|semaine|année|an)s?|(mois)"
     r"|(giorn(?=[io])|settiman(?=[ae])|mes(?=[ie])|ann(?=[io]))[aeio])\b",
     re.IGNORECASE,
 )
+# Zahl vor der Einheit: zuerst die (seltenen) Einheiten finden, dann rückwärts die Zahl lesen
+_COUNT_BEFORE = re.compile(r"(?<![\w.,'’])(\d+|[a-zäöüéèß]{2,14})\s*[- ]?\s*$", re.IGNORECASE)
 
 
 def _durations(text: str):
     for m in _DURATION_RE.finditer(text):
-        raw_n, unit = m.group(1).lower(), next(g for g in m.groups()[1:] if g).lower()
+        before = _COUNT_BEFORE.search(text, max(0, m.start() - 20), m.start())
+        if not before:
+            continue
+        raw_n, unit = before.group(1).lower(), next(g for g in m.groups() if g).lower()
+        if not raw_n.isdigit() and raw_n not in NUMBER_WORDS:
+            continue
         n = int(raw_n) if raw_n.isdigit() else NUMBER_WORDS[raw_n]
-        yield Fact(DURATION, (n, _UNITS[unit]), m.group(0), m.start(), m.end())
+        yield Fact(DURATION, (n, _UNITS[unit]), text[before.start() : m.end()], before.start(), m.end())
 
 
 # --- UID (Unternehmens-Identifikationsnummer) --------------------------------

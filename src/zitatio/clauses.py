@@ -10,6 +10,7 @@ Die Erkennung arbeitet mit Wortmustern und einer Verneinungsregel, nicht mit ein
 
 from __future__ import annotations
 
+import bisect
 import re
 from dataclasses import dataclass, field
 
@@ -34,7 +35,7 @@ KINDS: list[tuple[str, str, re.Pattern, str]] = [
         ("konventionalstrafe", "Konventionalstrafe", r"konventionalstrafe\w*|vertragsstrafe\w*|pönale\w*|peine conventionnelle|pena convenzionale",
          "Zahlungsrisiko bei Verletzung"),
         ("abtretung", "Abtretung nur mit Zustimmung",
-         r"(?:abtret\w*|übertrag\w*|cédé\w*|céder|cession|transf[ée]r\w*|ced\w*|cessione|trasfer\w*)[^.]{0,80}"
+         r"(?:abtret\w*|übertrag\w*|cédé\w*|céder|cession|transf[ée]r\w*|\bced\w*|cessione|trasfer\w*)[^.]{0,80}"
          r"(?:zustimmung|einwilligung|genehmigung|consentement|accord préalable|consenso)"
          r"|(?:zustimmung|einwilligung|consentement|consenso)[^.]{0,80}(?:abtret\w*|übertrag\w*|cession|céd\w*|cessione)",
          "Asset Deal oder Umstrukturierung braucht Zustimmung"),
@@ -48,6 +49,18 @@ KINDS: list[tuple[str, str, re.Pattern, str]] = [
     ]
 ]
 LABELS = {key: label for key, label, _, _ in KINDS}
+KIND_RX = {key: rx for key, _, rx, _ in KINDS}
+# Wortteile, ohne die das Muster nicht treffen kann: erspart die Regex-Suche auf den meisten Seiten
+_ANCHORS = {
+    "kontrollwechsel": ("kontrollwechsel", "control", "wechsel", "übernahme der", "contrôle", "controllo"),
+    "exklusivitaet": ("exklusiv", "allein", "ausschliesslich", "exclusiv", "exclusif", "esclusiv"),
+    "konkurrenzverbot": ("verbot", "compete", "concurrence", "concorrenza"),
+    "konventionalstrafe": ("strafe", "pönale", "peine conventionnelle", "pena convenzionale"),
+    "abtretung": ("zustimmung", "einwilligung", "genehmigung", "consentement", "accord préalable", "consenso"),
+    "meistbeguenstigung": ("meistbegünstig", "favo", "favorisée", "favorita"),
+    "haftungsbegrenzung": ("haftung", "responsabilit"),
+    "garantie": ("bürgschaft", "garantieerklärung", "patronat", "cautionnement", "patronage", "fideiussion"),
+}
 WHY = {key: why for key, _, _, why in KINDS}
 
 _NEGATION = re.compile(r"\b(?:nicht|kein\w*|ohne|weder|pas|aucun\w*|sans|ni|non(?!-)|nessun\w*|senza|né)\b"
@@ -94,11 +107,27 @@ def _sentences(text: str):
 def find_clauses(doc: Document) -> list[Clause]:
     out = []
     for page_no, text in enumerate(doc.pages, 1):
-        for start, end, sentence in _sentences(text):
-            for key, _, rx, _ in KINDS:
-                if rx.search(sentence):
-                    out.append(Clause(key, doc, page_no, start, end, sentence, not _NEGATION.search(sentence)))
-    return out
+        flat = text.replace("\n", " ")
+        # Muster auf der ganzen Seite suchen und nur die Treffer einem Satz zuordnen: schneller bei 10-K-Grössen
+        lower = flat.lower()
+        hits = sorted({(key, m.start()) for key, _, rx, _ in KINDS if any(w in lower for w in _ANCHORS[key])
+                       for m in rx.finditer(flat)}, key=lambda h: h[1])
+        if not hits:
+            continue
+        sentences = list(_sentences(text))
+        starts = [s for s, _, _ in sentences]
+        seen = set()
+        for key, pos in hits:
+            i = bisect.bisect_right(starts, pos) - 1
+            if i < 0 or (key, i) in seen:
+                continue
+            start, end, sentence = sentences[i]
+            if pos >= end or not KIND_RX[key].search(sentence):
+                continue
+            seen.add((key, i))
+            out.append(Clause(key, doc, page_no, start, end, sentence, not _NEGATION.search(sentence)))
+    order = {key: n for n, (key, *_) in enumerate(KINDS)}
+    return sorted(out, key=lambda c: (c.page, c.start, order[c.kind]))
 
 
 _CONTRACT_TITLE = re.compile(r"vertrag|vereinbarung|police|lizenz|agreement|reglement|statuten"
