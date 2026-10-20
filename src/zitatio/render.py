@@ -526,7 +526,26 @@ def _closing_html(run: Run) -> str:
     return (f'<h2 id="closing">Closing-Liste</h2><p class="lead">{html.escape(lead)} Was vor Signing und Closing mit den '
             "Gegenparteien zu klären ist, mit Seite im Vertrag.</p>"
             '<div class="tablebox"><table><thead><tr><th>Index</th><th class="opt">Vertrag</th><th>Zu klären</th>'
-            f'<th>Volumen p.a.</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
+            f'<th>Volumen p.a.</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>' + _exit_html(run))
+
+
+def _exit_html(run: Run) -> str:
+    from .terms import _n, exit_profile
+
+    profile = exit_profile(run.terms, run.created.date())
+    if not profile:
+        return ""
+    rows = []
+    for year, volume, terms in profile:
+        share = f"{volume / run.revenue[1] * 100:.0f} %" if run.revenue and run.revenue[1] else "–"
+        names = ", ".join(f'<span title="{html.escape(t.doc.title)}">{html.escape(t.doc.label)}</span>' for t in terms)
+        rows.append(f'<tr><td>bis Ende {year}</td><td class="num">CHF {_n(volume)}</td><td class="num">{share}</td>'
+                    f"<td>{names}</td></tr>")
+    return ('<p class="lead" style="margin-top:22px">Frühester ordentlicher Ausstieg der Kunden: Wird heute gekündigt, '
+            "kann so viel Jahresvolumen bis zu diesem Datum wegfallen (Laufzeit, Kündigungsfrist und -termin aus dem "
+            "Vertrag).</p>"
+            '<div class="tablebox"><table><thead><tr><th>Frühestens weg</th><th>Volumen p.a.</th><th>Anteil Umsatz</th>'
+            f'<th>Verträge</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
 
 
 def _contracts_html(run: Run) -> str:

@@ -37,6 +37,8 @@ class Terms:
     end: dt.date | None = None
     notice: tuple[int, str] | None = None
     volume: Decimal | None = None
+    notice_to: str | None = None  # Kündigung auf das Ende eines "jahr", "quartal" oder "monat"
+    after_fixed: bool = False  # ordentlich kündbar erst nach Ablauf der festen Dauer
     evidence: dict[str, Evidence] = field(default_factory=dict)
 
     @property
@@ -44,7 +46,28 @@ class Terms:
         return self.entry.doc
 
     def notice_text(self) -> str:
-        return f"{self.notice[0]} {self.notice[1]}" if self.notice else ""
+        if not self.notice:
+            return ""
+        to = {"jahr": " auf Jahresende", "quartal": " auf Quartalsende", "monat": " auf Monatsende"}.get(self.notice_to, "")
+        return f"{self.notice[0]} {self.notice[1]}{to}"
+
+    def earliest_exit(self, today: dt.date) -> dt.date | None:
+        """Frühestes Datum, auf das der Vertrag ordentlich endet, wenn heute gekündigt wird."""
+        if self.end and self.end < today:
+            return self.end  # abgelaufen: das Volumen hängt schon jetzt an einer Verlängerung
+        if self.notice is None or self.after_fixed:
+            return self.end
+        n, unit = self.notice
+        months = {"Monate": n, "Jahre": 12 * n}.get(unit)
+        d = _add_months(today, months) if months is not None else today + dt.timedelta(days=n * (7 if unit == "Wochen" else 1))
+        if self.notice_to == "jahr":
+            d = dt.date(d.year, 12, 31)
+        elif self.notice_to == "quartal":
+            q_end = ((d.month - 1) // 3 + 1) * 3
+            d = _add_months(dt.date(d.year, q_end, 1), 1) - dt.timedelta(days=1)
+        elif self.notice_to == "monat":
+            d = _add_months(dt.date(d.year, d.month, 1), 1) - dt.timedelta(days=1)
+        return min(d, self.end) if self.end and self.end >= today else d
 
 
 def _add_months(d: dt.date, months: int) -> dt.date:
@@ -91,7 +114,16 @@ def contract_terms(entry: ContractEntry) -> Terms:
                                       sentence, re.I)):
                 t.notice = durations[0].value
                 keep("kuendigung", durations[0])
-            if t.volume is None and amounts and _VOLUME.search(sentence) and amounts[0].value[0] == "CHF":
+                if re.search(r"ende (?:eines|des) (?:kalender)?jahres|jahresende|fin d'une année|fin de l'année"
+                             r"|fine dell'anno|fine di un anno", sentence, re.I):
+                    t.notice_to = "jahr"
+                elif re.search(r"quartal|trimestre", sentence, re.I):
+                    t.notice_to = "quartal"
+                elif re.search(r"ende (?:eines|des) monats|monatsende|fin d'un mois|fine del mese", sentence, re.I):
+                    t.notice_to = "monat"
+                t.after_fixed = bool(re.search(r"nach ablauf|après l'expiration|dopo la scadenza", sentence, re.I))
+            if (t.volume is None and amounts and _VOLUME.search(sentence) and amounts[0].value[0] == "CHF"
+                    and not re.search(r"mindestabnahme|abnahmeverpflichtung", sentence, re.I)):
                 t.volume = amounts[0].value[1]
                 keep("volumen", amounts[0])
     return t
@@ -128,6 +160,17 @@ def closing_list(register: list[ContractEntry], today: dt.date | None = None,
             items.append(ClosingItem("laufzeit", t, f"Endet am {t.end:%d.%m.%Y}, in weniger als {horizon_months} "
                                      "Monaten. Verlängerung klären.", [t.evidence["ende"]]))
     return terms, items
+
+
+def exit_profile(terms: list[Terms], today: dt.date | None = None) -> list[tuple[int, Decimal, list[Terms]]]:
+    """Jährliches Vertragsvolumen nach dem Jahr, in dem es frühestens wegfallen kann."""
+    today = today or dt.date.today()
+    by_year: dict[int, list[Terms]] = {}
+    for t in terms:
+        exit_date = t.earliest_exit(today) if t.volume else None
+        if exit_date:
+            by_year.setdefault(exit_date.year, []).append(t)
+    return [(year, sum((t.volume for t in ts), Decimal(0)), ts) for year, ts in sorted(by_year.items())]
 
 
 def revenue_at_risk(items: list[ClosingItem]) -> Decimal:
