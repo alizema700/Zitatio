@@ -31,10 +31,13 @@ zitatio pruefen beispiele/alpenblick/dd-bericht.md -d beispiele/alpenblick/daten
 # Zweiter Entwurf: behobene, offene und neue Befunde, Entscheide aus dem CSV übernehmen, eine Seite fürs IC-Memo
 zitatio pruefen beispiele/gross/dd-bericht-v2.md -d beispiele/gross/datenraum --vorher beispiele/gross/dd-bericht.md \
   --entscheide pruefbericht.csv --memo ic-memo.md --excel pruefung.xlsx --fragen fragen.md \
-  --spa beispiele/gross/spa-entwurf.md
+  --spa beispiele/gross/spa-entwurf.md --memo ic-memo.docx --klauseln klauseln.docx --kalender fristen.ics
 
 # Red-Flag-Bericht aus dem Datenraum allein, mit Fragenliste und Garantien
 zitatio redflags -d beispiele/gross/datenraum -o red-flags.html --fragen fragen.md --spa beispiele/gross/spa-entwurf.md
+
+# Verkäuferseite: Antwortentwürfe mit Fundstelle für die Fragen der Käufer
+zitatio antworten kaeuferfragen.xlsx -d beispiele/gross/datenraum -o antworten.md
 
 # Benchmark mit künstlich eingebauten Fehlern
 zitatio benchmark -d beispiele/alpenblick/datenraum
@@ -139,7 +142,7 @@ ist, was genau geprüft wurde.
 
 Oben im Prüfbericht stehen die Befunde nach Gewicht: zuerst, was Preis oder Closing betrifft (Abweichungen,
 Warnsignale, Umsatz unter Kontrollwechselklauseln), dann, was vor dem Signing zu klären ist. Jeder Punkt verlinkt
-seinen Abschnitt. `--memo ic-memo.md` schreibt dieselbe Seite mit den offenen Befunden als Markdown fürs IC-Memo.
+seinen Abschnitt. `--memo ic-memo.md` schreibt dieselbe Seite mit den offenen Befunden als Markdown fürs IC-Memo, mit `--memo ic-memo.docx` als Word-Datei mit Tabelle.
 `--excel` (und der Link „Excel-Mappe“ im Prüfbericht) liefert die Aussagen, die EBITDA-Brücke, die Nettoverschuldung
 mit Covenant, die Closing-Liste und die Fragenliste als Excel-Mappe; die Rechnungen stehen dort als Formeln.
 
