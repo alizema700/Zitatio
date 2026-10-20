@@ -85,11 +85,47 @@ def main(details: bool) -> None:
     other = len(correct) - ok - open_ - len(false_alarms) - len(follow_ups)
     print(f"\nRichtige Aussagen: {ok} geprüft, {open_} ungeprüft (keine prüfbaren Werte), "
           f"{other} mit Widerspruch im Datenraum, {len(follow_ups)} Folgehinweis, {len(false_alarms)} Fehlalarme")
+    without_citations(room, truth)
     if details:
         for f, t in rows:
             print(f"{f.claim.number:03d} {f.status.label:<18} {'OK ' if t['richtig'] else 'ERR'} {f.claim.clean_text}")
             for r in f.reasons:
                 print(f"      {r}")
+
+
+# Fehler, die nur die Fundstelle betreffen: ohne Fundstellen ist die Aussage richtig
+CITATION_ERRORS = {"falsche Seite", "falsches Dokument", "falscher Q&A-Eintrag"}
+
+
+def without_citations(room: DataRoom, truth: dict) -> None:
+    """Derselbe Bericht ohne jede Fundstelle, wie ein Information Memorandum: Zitatio sucht die Belege selbst."""
+    import re
+
+    from zitatio.report import parse_report
+
+    def strip(text: str) -> str:
+        return re.sub(r"\s*\[(?:DR|Q&A)[^\]]*\]", "", text).strip()
+
+    by_text = {}
+    for t in truth.values():
+        claims = parse_report(strip(t["aussage"]))
+        if claims:
+            by_text[claims[0].clean_text] = t
+    text, _ = load_report(HERE / "dd-bericht.md")
+    plain = strip(text)
+    run = run_check("ohne-fundstellen.md", plain, plain.encode(), room)
+    rows = [(f, by_text[f.claim.clean_text]) for f in run.findings if f.claim.clean_text in by_text]
+    wrong = [(f, t) for f, t in rows if not t["richtig"] and t["fehler"] not in CITATION_ERRORS]
+    right = [(f, t) for f, t in rows if t["richtig"] or t["fehler"] in CITATION_ERRORS]
+    located = sum(f.status is Status.GEPRUEFT for f, _ in right)
+    wrong_ok = [t["fehler"] for f, t in wrong if f.status is Status.GEPRUEFT]
+    deviations = sum(f.status is Status.ABWEICHUNG for f, _ in wrong)
+    print(f"\nOhne Fundstellen (wie ein Information Memorandum): {len(rows)} Aussagen mit Werten")
+    print(f"  richtige Aussagen im Datenraum belegt: {located} von {len(right)}")
+    print(f"  falsche Werte als geprüft durchgelassen: {len(wrong_ok)} von {len(wrong)} "
+          f"({deviations} als Abweichung erkannt, {len(wrong) - deviations - len(wrong_ok)} ohne Beleg)")
+    for e in wrong_ok:
+        print(f"    durchgelassen: {e}")
 
 
 if __name__ == "__main__":

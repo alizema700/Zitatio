@@ -49,3 +49,7 @@ Schweizer Warnsignale gefunden: 6 von 6 eingebauten, 0 weitere gemeldet
   ok       Covenant: Covenant eingehalten (0.73x von höchstens 2.5x)
 
 Richtige Aussagen: 163 geprüft, 45 ungeprüft (keine prüfbaren Werte), 2 mit Widerspruch im Datenraum, 3 Folgehinweis, 0 Fehlalarme
+
+Ohne Fundstellen (wie ein Information Memorandum): 166 Aussagen mit Werten
+  richtige Aussagen im Datenraum belegt: 120 von 155
+  falsche Werte als geprüft durchgelassen: 0 von 11 (5 als Abweichung erkannt, 6 ohne Beleg)

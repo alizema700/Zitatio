@@ -174,6 +174,17 @@ Hochladen ohne Bericht) prüft ihn allein: Warnsignale aus Handelsregister, Prot
 Widersprüche zwischen Dokumenten, Nettoverschuldung, Closing-Liste, Garantien (mit `--spa`) und die Fragenliste an
 den Verkäufer. Im grossen Testfall: 7 Warnsignale und 25 Fragen, ohne eine Zeile Bericht.
 
+### Belegsuche ohne Fundstellen
+
+Ein Information Memorandum oder eine Management-Präsentation nennt Zahlen ohne Seite. Hat ein Dokument keine einzige
+Fundstelle, sucht Zitatio die Belege selbst: Es ordnet alle Seiten des Datenraums nach Ähnlichkeit zur Aussage
+(BM25, bei kurzen Sätzen mit dem Satz davor) und prüft die Werte auf den besten Seiten wie bei einer zitierten
+Aussage. Was gefunden wird, ist „Geprüft“ mit der gefundenen Fundstelle; was nicht, bleibt „Ohne Beleg“. Nennt eine
+passende Tabelle für dieselbe Grösse und dasselbe Jahr einen anderen Wert, ist es eine „Abweichung“. Im grossen
+Testfall ohne Fundstellen: 120 von 155 richtigen Aussagen belegt, kein falscher Wert als geprüft durchgelassen, 5 von
+11 falschen Werten als Abweichung erkannt (siehe `ergebnis.txt`). In einem Bericht mit Fundstellen bleibt eine Aussage
+ohne Fundstelle „Ohne Beleg“, mit dem gefundenen Beleg als Hinweis.
+
 ### Fragenliste an den Verkäufer
 
 Aus den Befunden, die nur der Verkäufer klären kann, macht Zitatio eine nummerierte Fragenliste mit Priorität und
@@ -313,6 +324,7 @@ src/zitatio/
   netdebt.py   Nettoverschuldung, schuldenähnliche Posten, Covenant
   valuation.py Preisbrücke: Unternehmenswert, Equity Value, Preiswirkung der Befunde
   questions.py Fragenliste an den Verkäufer
+  locate.py    Belegsuche ohne Fundstellen (BM25 über alle Seiten)
   spa.py       Garantien im SPA-Entwurf gegen die Befunde
   leakage.py   Zahlungen an die Verkäuferin nach dem Locked-Box-Stichtag
   minutes.py   Themen aus VR-Protokollen, die der Bericht nicht erwähnt

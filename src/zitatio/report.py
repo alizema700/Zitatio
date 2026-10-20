@@ -36,6 +36,7 @@ class Claim:
     section: str
     citations: list[Citation] = field(default_factory=list)
     facts: list[Fact] = field(default_factory=list)
+    before: str = ""  # vorhergehender Satz im selben Abschnitt, für die Belegsuche ohne Fundstelle
 
 
 # "[DR 3.2.1, S. 4]", "(VDR 2.1 p. 3-4)", "[Datenraum 5.3; DR 1.1, Seite 2]"
@@ -135,12 +136,14 @@ def _blocks(text: str):
 def parse_report(text: str) -> list[Claim]:
     claims: list[Claim] = []
     for section, block in _blocks(text):
+        previous = ""
         for sentence in split_sentences(block):
             citations = parse_citations(sentence)
             clean = strip_citations(sentence)
             facts = extract_facts(clean)
             if citations or facts:
-                claims.append(Claim(len(claims) + 1, sentence, clean, section, citations, facts))
+                claims.append(Claim(len(claims) + 1, sentence, clean, section, citations, facts, previous))
+            previous = clean
     return claims
 
 

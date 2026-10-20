@@ -375,6 +375,48 @@ def _locate_elsewhere(fact: Fact, room: DataRoom, skip: set[tuple[str, int]], ct
     return None if ctx else fallback
 
 
+def _locate_by_search(fact: Fact, room: DataRoom, claim: Claim, k: int = 6):
+    """Fundort eines Werts auf den Seiten, die am besten zur Aussage passen (Belegsuche ohne Fundstelle).
+
+    "Die Zahlungsfrist beträgt 30 Tage." sagt nicht, welcher Vertrag gemeint ist; dann hilft der Satz davor."""
+    from .locate import page_index
+
+    if _COMPUTED_RE.search(claim.clean_text):
+        return None
+    ctx = _context(claim, fact)
+    for query in dict.fromkeys(q for q in (claim.clean_text, f"{claim.before} {claim.clean_text}") if q.strip()):
+        for doc, page, _ in page_index(room).search(query, k):
+            hit = _find(fact, doc, [page], ctx)
+            if hit and hit.misfit is None and (_near_words(query, doc.pages[page - 1], hit.fact.start)
+                                               or _distinct_title_word(query, doc.title)):
+                return hit
+    return None
+
+
+def _distinct_title_word(text: str, title: str) -> bool:
+    """Ein Name aus dem Dokumenttitel (Gegenpartei, Person) steht in der Aussage, nicht nur "Liefervertrag"."""
+    names = re.findall(r"\b[A-ZÄÖÜ][\wäöüé-]{3,}", title)
+    common = {"Liefervertrag", "Rahmenvertrag", "Mietvertrag", "Jahresrechnung", "Vertrag", "Protokolle", "Liste"}
+    return any(n not in common and re.search(rf"\b{re.escape(n)}\b", text) for n in names)
+
+
+def _contradiction_by_search(fact: Fact, room: DataRoom, claim: Claim, k: int = 4):
+    """Ohne Fundstelle: Nennt eine passende Seite für dieselbe Grösse und dasselbe Jahr einen anderen Wert?"""
+    from .locate import page_index
+
+    if fact.kind != AMOUNT or _COMPUTED_RE.search(claim.clean_text):
+        return None
+    ctx = _context(claim, fact)
+    if not ctx.metric or not ctx.year:
+        return None
+    for doc, page, _ in page_index(room).search(claim.clean_text, k):
+        for cell in doc_cells(doc, page):
+            if (cell.metric == ctx.metric and cell.year == ctx.year and not cell.plan and cell.tabular
+                    and not fact.match(cell.fact)):
+                return fact, doc, page, cell
+    return None
+
+
 def _source_key(doc: Document) -> str:
     """Ein Q&A-Eintrag ist eine eigene Quelle, obwohl er in derselben Datei steht wie die anderen."""
     return doc.ref or doc.name
@@ -453,7 +495,8 @@ def verify_claim(claim: Claim, room: DataRoom, model: ModelVerifier | None = Non
     if not claim.citations:
         finding.status = Status.OHNE_BELEG
         finding.reasons.insert(0, "Keine Fundstelle angegeben.")
-        hits = [_locate_elsewhere(f, room, set(), _context(claim, f), claim.clean_text) for f in checkable]
+        hits = [_locate_by_search(f, room, claim) or _locate_elsewhere(f, room, set(), _context(claim, f), claim.clean_text)
+                for f in checkable]
         quote_places = [_locate_quote(q, room, set()) for q in quotes(claim.clean_text)]
         if (checkable or quote_places) and all(hits) and all(quote_places):
             places = sorted({f"{h.doc.label}, S. {h.page}" for h in hits} | {f"{d.label}, S. {p}" for d, p in quote_places})
@@ -465,6 +508,13 @@ def verify_claim(claim: Claim, room: DataRoom, model: ModelVerifier | None = Non
                 finding.evidence.append(_quote_evidence(quotes(claim.clean_text)[0], d, p))
         else:
             finding.missing = [f for f, h in zip(checkable, hits) if not h]
+            other = next((c for f in finding.missing if (c := _contradiction_by_search(f, room, claim))), None)
+            if other:
+                fact, doc, page, cell = other
+                finding.status = Status.ABWEICHUNG
+                finding.reasons.append(f"{fact.display()} steht nicht im Datenraum. {cell.label} {cell.year} laut "
+                                       f"{doc.label}, S. {page}: {cell.fact.display()}.")
+                finding.evidence.append(_evidence(doc, page, cell.fact.start, cell.fact.end))
         return finding
 
     resolved, problems = _resolve(claim, room)
@@ -637,4 +687,17 @@ def _apply_model(finding: Finding, resolved, model: ModelVerifier) -> None:
 
 
 def verify(claims: list[Claim], room: DataRoom, model: ModelVerifier | None = None) -> list[Finding]:
-    return [verify_claim(c, room, model) for c in claims]
+    findings = [verify_claim(c, room, model) for c in claims]
+    if claims and not any(c.citations for c in claims):
+        # Ein Dokument ganz ohne Fundstellen (Information Memorandum, Management-Präsentation): was Zitatio im
+        # Datenraum findet, gilt als geprüft; der Rest bleibt "Ohne Beleg".
+        for f in findings:
+            if f.status is Status.OHNE_BELEG and f.evidence and not f.missing:
+                f.status = Status.GEPRUEFT
+                f.method = "Belegsuche"
+                f.reasons = [r.replace("Beleg im Datenraum gefunden", "Fundstelle von Zitatio gefunden")
+                             for r in f.reasons if r != "Keine Fundstelle angegeben."]
+            elif f.status is Status.OHNE_BELEG:
+                f.reasons = ["Im Datenraum nicht gefunden." if r == "Keine Fundstelle angegeben." else r
+                             for r in f.reasons]
+    return findings

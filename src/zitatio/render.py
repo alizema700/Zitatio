@@ -764,6 +764,8 @@ def to_html(run: Run) -> str:
     )
     kicker, mode = "Prüfbericht", ""
     sub = f"{html.escape(run.report_name)} · {total} Aussagen gegen {len(run.room.documents)} Dokumente im Datenraum geprüft."
+    if total and not any(f.claim.citations for f in run.findings):
+        sub += " Das Dokument nennt keine Fundstellen; Zitatio hat die Belege im Datenraum selbst gesucht."
     if not total:
         # Kein DD-Bericht: Red-Flag-Bericht aus dem Datenraum allein
         from .questions import request_list
