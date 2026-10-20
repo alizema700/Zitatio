@@ -53,6 +53,7 @@ class Run:
     decisions: dict = field(default_factory=dict)  # Aussagenummer -> übernommener Entscheid
     stale: dict = field(default_factory=dict)  # Aussagenummer -> geänderte Dokumente, Entscheid nicht übernommen
     spa_name: str | None = None
+    spa_text: str = ""
     warranties: list = field(default_factory=list)  # spa.Warranty
 
     def __post_init__(self):
@@ -217,6 +218,7 @@ def to_json(run: Run) -> str:
                            "befunde": [{"befund": i.title, "massnahme": i.action,
                                         "freistellung": w.covered_by.get(id(i))} for i in w.issues]}
                           for w in run.warranties],
+            "klauseln": _clauses_json(run),
             "fragenliste": [{"nr": q.number, "bereich": q.area, "prioritaet": q.priority, "frage": q.text,
                              "bezug": q.reference, "qa": q.related or None} for q in _questions(run)],
             "fristen": [{"datum": d.date.isoformat(), "titel": d.title, "text": d.detail, "fundstelle": d.reference}
@@ -634,6 +636,24 @@ def _warranties_html(run: Run) -> str:
             f'<tbody>{"".join(blocks)}</tbody></table></div>')
 
 
+def _clauses_html(run: Run) -> str:
+    if not run.warranties:
+        return ""
+    from .markup import drafts
+
+    items = drafts(run)
+    if not items:
+        return ""
+    blocks = "".join(f'<tr><td class="nw">{html.escape(d.number or "–")}</td><td><span class="where">'
+                     f'{html.escape(d.group)}</span><br><b>{html.escape(d.heading)}</b><br>{html.escape(d.text)}</td></tr>'
+                     for d in items)
+    return ('<h3 id="klauseln">Klauselvorschläge</h3><p class="lead">Entwurf aus den Befunden, für die Anwältin oder '
+            "den Anwalt: Vollzugsbedingungen, spezifische Freistellungen ausserhalb von Freibetrag und Cap, Abzüge im "
+            "Kaufpreis. Mit <code>--klauseln vorschlaege.docx</code> als Word-Datei.</p>"
+            '<div class="tablebox"><table><thead><tr><th>Ziffer</th><th>Vorschlag</th></tr></thead>'
+            f"<tbody>{blocks}</tbody></table></div>")
+
+
 def _questions(run: Run):
     from .questions import request_list
 
@@ -660,6 +680,15 @@ def _questions_html(run: Run) -> str:
             "Excel-Mappe und mit <code>--fragen</code> als Markdown.</p>"
             '<div class="tablebox"><table><thead><tr><th>Nr</th><th class="opt">Bereich</th><th>Priorität</th>'
             f'<th>Frage</th><th class="opt">Bezug</th></tr></thead><tbody>{rows}</tbody></table></div>')
+
+
+def _clauses_json(run: Run) -> list:
+    if not run.warranties:
+        return []
+    from .markup import drafts
+
+    return [{"gruppe": d.group, "ziffer": d.number or None, "titel": d.heading, "text": d.text, "befunde": d.basis}
+            for d in drafts(run)]
 
 
 def _deadlines(run: Run) -> list:
@@ -849,7 +878,7 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _valuation_html(run) + _netdebt_html(run) + _closing_html(run) + _deadlines_html(run) + _contracts_html(run) + _warranties_html(run) + _questions_html(run)
+    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _valuation_html(run) + _netdebt_html(run) + _closing_html(run) + _deadlines_html(run) + _contracts_html(run) + _warranties_html(run) + _clauses_html(run) + _questions_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""
@@ -960,6 +989,7 @@ h1 {{ font:500 clamp(30px, 4.4vw, 48px)/1.08 var(--display); letter-spacing:-.03
 .pl .where {{ color:var(--ink-3); font-size:13px; white-space:nowrap; }}
 .pl .st {{ font-size:12px; font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px; padding:3px 10px; white-space:nowrap; text-transform:none; }}
 h2 {{ font:500 30px/1.2 var(--display); letter-spacing:-.025em; margin:64px 0 18px; }}
+h3 {{ font:500 21px/1.25 var(--display); letter-spacing:-.015em; margin:40px 0 12px; }}
 .card {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:22px 24px; margin:0 0 14px; }}
 .card header {{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:13px; color:var(--ink-3); }}
 .badge {{ font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px; padding:4px 12px; }}

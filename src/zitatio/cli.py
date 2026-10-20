@@ -32,6 +32,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--memo", type=Path, help="eine Seite fürs IC-Memo als Markdown: das Wichtigste und offene Befunde")
     p.add_argument("--fragen", type=Path, help="Fragenliste an den Verkäufer als Markdown, für den Q&A-Prozess")
     p.add_argument("--spa", type=Path, help="Entwurf des Kaufvertrags: Garantien mit den Befunden abgleichen")
+    p.add_argument("--klauseln", type=Path, help="Klauselvorschläge für den Kaufvertrag (.md oder .docx)")
     p.add_argument("--kalender", type=Path, help="Fristen (Vertragsenden, Kündigungstage, Ablaufdaten) als .ics")
     p.add_argument("--vorher", type=Path, help="frühere Version des Berichts: zeigt behobene, offene und neue Befunde")
     p.add_argument("--entscheide", type=Path,
@@ -42,6 +43,7 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--excel", type=Path, help="Excel-Mappe mit Nettoverschuldung, Closing-Liste und Fragenliste")
     r.add_argument("--fragen", type=Path, help="Fragenliste an den Verkäufer als Markdown")
     r.add_argument("--spa", type=Path, help="Entwurf des Kaufvertrags: Garantien mit den Befunden abgleichen")
+    r.add_argument("--klauseln", type=Path, help="Klauselvorschläge für den Kaufvertrag (.md oder .docx)")
     r.add_argument("--kalender", type=Path, help="Fristen als Kalenderdatei (.ics)")
     r.add_argument("--json", type=Path, help="zusätzlich als JSON speichern")
     b = sub.add_parser("benchmark", help="Trefferquote mit künstlich eingebauten Fehlern messen")
@@ -90,6 +92,8 @@ def main(argv: list[str] | None = None) -> int:
         args.fragen.write_text(questions_markdown(request_list(run)), encoding="utf-8")
     if args.kalender:
         _write_calendar(args.kalender, run)
+    if args.klauseln:
+        _write_clauses(args.klauseln, run)
     if args.offenlegung:
         args.offenlegung.write_text(to_disclosure_csv(run), encoding="utf-8")
 
@@ -156,6 +160,8 @@ def _redflags(args) -> int:
         args.excel.write_bytes(to_xlsx(run))
     if args.kalender:
         _write_calendar(args.kalender, run)
+    if args.klauseln:
+        _write_clauses(args.klauseln, run)
     questions = request_list(run)
     if args.fragen:
         args.fragen.write_text(questions_markdown(questions), encoding="utf-8")
@@ -165,6 +171,17 @@ def _redflags(args) -> int:
     print(f"\n{sum(fl.level == 'warnung' for fl in run.flags)} Warnsignale, {len(questions)} Fragen an den Verkäufer")
     print(f"Red-Flag-Bericht: {args.out}")
     return 0
+
+
+def _write_clauses(path: Path, run) -> None:
+    from .markup import drafts, to_docx, to_markdown
+
+    items = drafts(run)
+    if path.suffix.lower() == ".docx":
+        path.write_bytes(to_docx(items, run.spa_name))
+    else:
+        path.write_text(to_markdown(items, run.spa_name), encoding="utf-8")
+    print(f"{len(items)} Klauselvorschläge: {path}")
 
 
 def _write_calendar(path: Path, run) -> None:

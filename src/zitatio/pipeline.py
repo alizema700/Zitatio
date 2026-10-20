@@ -58,7 +58,7 @@ def run_check(
     if spa is not None:
         from .spa import check_warranties
 
-        run.spa_name = spa[0]
+        run.spa_name, run.spa_text = spa
         run.warranties = check_warranties(spa[1], run)
     return run
 

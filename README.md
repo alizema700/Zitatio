@@ -162,6 +162,16 @@ Käufer verlangen kann (Freistellung, Closing-Bedingung, Nachreichen, Abzug im K
 Entwurf ihn schon abdeckt. `beispiele/gross/spa-entwurf.md` ist ein fiktiver Entwurf dazu: 10 von 11 Garantien sind
 berührt, die Steuerprüfung ist durch die Steuerfreistellung Ziff. 6.1 abgedeckt, die Klage nicht.
 
+### Klauselvorschläge für den Kaufvertrag
+
+Aus den Befunden schreibt Zitatio einen Entwurf in der Sprache eines Schweizer Aktienkaufvertrags: eine
+Vollzugsbedingung für alle Zustimmungen zum Kontrollwechsel, spezifische Freistellungen für bekannte Risiken
+(unabhängig von der Offenlegung, ausserhalb von Freibetrag und Haftungshöchstbetrag, bei einer Klage mit Sperrkonto
+in Höhe des Streitwerts), schuldenähnliche Posten für die Kaufpreisformel, die Klausel zur indirekten
+Teilliquidation, nachzureichende Unterlagen und Garantien, die präzisiert werden müssen. Was eine Freistellung im
+SPA-Entwurf schon deckt, kommt nicht doppelt; neue Ziffern schliessen an die bestehenden an. Mit `--spa` steht der
+Entwurf im Prüfbericht, mit `--klauseln vorschlaege.docx` als Word-Datei oder `.md`.
+
 ### Leakage nach dem Locked-Box-Stichtag
 
 Nennt der SPA-Entwurf oder der Bericht einen Locked-Box-Stichtag, sucht Zitatio im Datenraum nach Dividenden,
