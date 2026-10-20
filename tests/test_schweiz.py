@@ -292,3 +292,14 @@ def test_dividends_against_balance_sheet_and_withholding_tax():
                                                                  "von CHF 500'000 für das Geschäftsjahr 2024.",
                     "3.4 Formular 103.txt": "Formular 103: Verrechnungssteuer auf Dividenden CHF 175'000"})
     assert check_dividends(room) == []
+
+
+def test_seller_non_compete_in_the_spa():
+    from zitatio.kaufvertrag import check_spa
+
+    room = _room(**{"1.1 Handelsregisterauszug.txt": "Firma: Muster AG"})
+    for text, expected in (("7.1 Die Verkäuferin unterlässt während zwei Jahren jede konkurrenzierende Tätigkeit.", []),
+                           ("7.1 Die Verkäuferin unterlässt während 60 Monaten jede konkurrenzierende Tätigkeit.", [5]),
+                           ("7.1 Le vendeur s'abstient de toute concurrence pendant quatre ans.", [4])):
+        flags = [f for f in check_spa("spa.md", text, room) if "Konkurrenzverbot" in f.title]
+        assert [int(f.title.split("über ")[1].split()[0]) for f in flags] == expected, text

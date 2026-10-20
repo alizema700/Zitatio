@@ -176,7 +176,7 @@ berührt, die Steuerprüfung ist durch die Steuerfreistellung Ziff. 6.1 abgedeck
 Mit `--spa` prüft Zitatio auch den Entwurf selbst: Verkauft die Verkäuferin mehr Aktien, als ihr laut Aktienbuch
 gehören? Vinkulieren die Statuten die Namenaktien, ohne dass der Vertrag die Zustimmung des Verwaltungsrats als
 Vollzugsbedingung vorsieht (Art. 685a ff. OR)? Liegt der Kaufpreis über dem Equity Value, der nach den Befunden
-übrig bleibt? Gibt es eine Bilanz per Locked-Box-Stichtag? Im grossen Testfall verkauft die Rohner Beteiligungen AG
+übrig bleibt? Gibt es eine Bilanz per Locked-Box-Stichtag? Geht das Konkurrenzverbot der Verkäuferin über die drei Jahre hinaus, die EU-Kommission und WEKO als Nebenabrede in der Regel zulassen? Im grossen Testfall verkauft die Rohner Beteiligungen AG
 alle 12'000 Aktien, hält aber nur 7'200.
 
 ### Klauselvorschläge für den Kaufvertrag

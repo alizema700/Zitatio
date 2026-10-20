@@ -58,3 +58,8 @@ nahestehende Personen geleistet.
 6.1 Die Verkäuferin stellt die Käuferin von allen Steuern frei, die die Zeit bis zum Vollzugstag betreffen.
 
 6.2 Die Verkäuferin stellt die Käuferin von jeder Leakage frei, franken-genau.
+
+## 7. Konkurrenzverbot
+
+7.1 Die Verkäuferin verpflichtet sich, während fünf Jahren nach dem Vollzugstag in der Schweiz keine Tätigkeit
+aufzunehmen, die mit dem Geschäft der Gesellschaft im Wettbewerb steht.

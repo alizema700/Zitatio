@@ -1,4 +1,4 @@
-Datenraum: 42 Dokumente, 269 Seiten · Bericht: 229 Aussagen · Laufzeit 1.2 s
+Datenraum: 42 Dokumente, 269 Seiten · Bericht: 229 Aussagen · Laufzeit 1.1 s
 Status: 163 Geprüft, 45 Ungeprüft, 12 Abweichung, 4 Ohne Beleg, 3 Falsche Fundstelle, 2 Widerspruch
 
 Eingebaute Fehler gefunden: 16 von 16
@@ -49,6 +49,7 @@ Schweizer Warnsignale gefunden: 12 von 12 eingebauten, 0 weitere gemeldet
   hinweis  Protokolle: Rechtsstreit (DR 1.4, S. 9)
   hinweis  Management Accounts: EBITDA 2025 im Management Reporting -19 % gegenüber der Jahresrechnung
   hinweis  Arbeitsrecht: Konkurrenzverbot über drei Jahre in DR 7.1
+  hinweis  Kaufvertrag: Konkurrenzverbot der Verkäuferin über 5 Jahre
   ok       Kapitalschutz: Kein Kapitalverlust per 2025
   ok       Revision: Revisionspflicht 2025: eingeschränkte Revision genügt
   ok       Vorsorge: Deckungsgrad 112.4 %

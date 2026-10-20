@@ -5,6 +5,8 @@
   der Vertrag sie als Vollzugsbedingung vorsehen.
 - Kaufpreis: Liegt der Preis im Entwurf über dem Equity Value, der nach den Befunden übrig bleibt?
 - Locked Box: Gibt es zum Stichtag eine Bilanz im Datenraum?
+- Konkurrenzverbot der Verkäuferin: Als Nebenabrede zum Unternehmenskauf gelten in der Regel bis drei Jahre (mit
+  Übertragung von Know-how), sonst zwei Jahre; so die Praxis der EU-Kommission, an der sich die WEKO orientiert.
 """
 
 from __future__ import annotations
@@ -122,4 +124,15 @@ def check_spa(spa_name: str, spa_text: str, room: DataRoom, valuation=None) -> l
                 flags.append(Flag(HINWEIS, "Kaufvertrag", f"Keine Bilanz per Locked-Box-Stichtag {stamp}",
                                   "Der Preis beruht auf der Bilanz zum Stichtag. Im Datenraum liegt keine Bilanz mit "
                                   "diesem Datum; sie gehört als Locked-Box-Bilanz ins SPA."))
+    for m in re.finditer(r"[^.]*(?:konkurrenz|wettbewerb|concurrence|concorrenza)[^.]*\.", flat, re.I):
+        from .arbeitsrecht import _DURATION, _months
+
+        months = max((_months(d.group(1), d.group(2)) for d in _DURATION.finditer(m.group(0))), default=0)
+        if months > 36:
+            flags.append(Flag(HINWEIS, "Kaufvertrag", f"Konkurrenzverbot der Verkäuferin über {months // 12} Jahre",
+                              f"{spa_name}: «{re.sub(r'^\d+\s+', '', m.group(0).strip())}» Als Nebenabrede zum Unternehmenskauf lassen die "
+                              "EU-Kommission und, ihr folgend, die WEKO in der Regel drei Jahre zu, wenn Know-how "
+                              "übergeht, sonst zwei. Länger braucht eine Begründung; sonst droht die Kürzung (Art. 5 KG, "
+                              "bei natürlichen Personen Art. 27 ZGB). Vertragsdauer oder Begründung prüfen."))
+            break
     return flags
