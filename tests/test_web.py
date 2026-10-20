@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -13,6 +14,17 @@ def test_index_and_example():
     assert "Kein Satz ohne Beleg" in page
     assert "{graph}" not in page and "\"aussagen\"" in page
     assert "Prüfprotokoll" in client.get("/beispiel").text
+
+
+def test_hero_shows_real_findings_from_large_test():
+    page = client.get("/").text
+    assert "{hero}" not in page
+    data = json.loads(page.split('id="hero-data">', 1)[1].split("</script>", 1)[0])
+    assert data["seiten"] > 200 and len(data["dokumente"]) > 30
+    labels = {b["label"] for b in data["befunde"]}
+    assert {"Geprüft", "Abweichung", "Widerspruch", "Falsche Fundstelle"} <= labels
+    for b in data["befunde"]:
+        assert b["belege"] and all(0 <= e["seite"] < data["seiten"] for e in b["belege"])
 
 
 def test_upload():

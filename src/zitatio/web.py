@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import html
 import json
+import re
+import time
 from functools import lru_cache
 from importlib import resources
 from pathlib import Path
@@ -66,6 +68,78 @@ def example_graph() -> str:
     return json.dumps(graph, ensure_ascii=False).replace("</", "<\\/")
 
 
+LARGE = Path(__file__).resolve().parents[2] / "beispiele" / "gross"
+
+
+def _trim(text: str, width: int, left: bool = False) -> str:
+    text = " ".join(text.split())
+    if len(text) <= width:
+        return text
+    return "…" + text[-width:].lstrip() if left else text[:width].rstrip() + "…"
+
+
+@lru_cache(maxsize=1)
+def hero_data() -> str:
+    """Prüfscan der Startseite: der grosse Testfall, echt geprüft, mit einigen typischen Befunden."""
+    report = LARGE / "dd-bericht.md"
+    if not report.exists():
+        return "null"
+    from .report import load_report
+    from .verify import Status
+
+    started = time.perf_counter()
+    room = DataRoom.from_folder(LARGE / "datenraum")
+    text, data = load_report(report)
+    run = run_check(report.name, text, data, room)
+    seconds = time.perf_counter() - started
+    order, pages = {}, 0
+    for d in room.documents:
+        order[d.label] = pages
+        pages += len(d.pages)
+    picks = [
+        lambda f: f.status is Status.GEPRUEFT and f.method == "Regeln" and "EBITDA" in f.claim.text and "Mio." in f.claim.text,
+        lambda f: f.status is Status.ABWEICHUNG and any("Spalte" in r for r in f.reasons),
+        lambda f: f.status is Status.WIDERSPRUCH and len(f.evidence) > 1 and f.claim.facts,
+        lambda f: f.status is Status.GEPRUEFT and f.method == "Nachgerechnet" and "Wachstum" in f.claim.text,
+        lambda f: f.status is Status.FALSCHE_FUNDSTELLE and f.claim.facts,
+        lambda f: f.status is Status.ABWEICHUNG and any("Zitat" in r for r in f.reasons),
+        lambda f: f.status is Status.ABWEICHUNG and any("Betriebsergebnis" in r for r in f.reasons),
+    ]
+    chosen = []
+    for pick in picks:
+        f = next((f for f in run.findings if f not in chosen and pick(f)), None)
+        if f:
+            chosen.append(f)
+    items = []
+    for f in chosen:
+        clean = f.claim.clean_text
+        quote = re.search(r"„[^“]+“", clean)
+        start, end = (quote.span() if quote else (f.claim.facts[0].start, f.claim.facts[0].end)) if (quote or f.claim.facts) else (0, 0)
+        items.append({
+            "nr": f.claim.number,
+            "text": clean,
+            "mark": [start, end],
+            "status": f.status.value,
+            "label": f.status.label,
+            "grund": _trim(f.reasons[-1] if f.status is Status.WIDERSPRUCH else f.reasons[0], 150),
+            "zitiert": [order[d.label] + c.page_from - 1 for c in f.claim.citations
+                        if (d := room.get(c.index)) and c.page_from and c.page_from <= len(d.pages)],
+            "belege": [
+                {"wo": f"{e.doc_label}, S. {e.page}", "seite": order.get(e.doc_label, 0) + e.page - 1,
+                 "vor": _trim(e.before, 46, left=True), "treffer": e.match, "nach": _trim(e.after, 46)}
+                for e in list({(e.doc_label, e.page, e.match): e for e in f.evidence}.values())[:2]
+            ],
+        })
+    hero = {
+        "dokumente": [{"label": d.label, "titel": d.title, "seiten": len(d.pages)} for d in room.documents],
+        "seiten": pages,
+        "aussagen": len(run.findings),
+        "sekunden": round(seconds, 1),
+        "befunde": items,
+    }
+    return json.dumps(hero, ensure_ascii=False).replace("</", "<\\/")
+
+
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
     model = _model()[1]
@@ -73,7 +147,7 @@ def index() -> str:
         f"Prüfmodell: {html.escape(model)}" if model else "Läuft lokal · Prüfmodell aus, nur Regeln"
     )
     page = resources.files("zitatio").joinpath("assets/index.html").read_text(encoding="utf-8")
-    values = {"logo": logo_svg(), "status": status, "version": __version__, "graph": example_graph()}
+    values = {"logo": logo_svg(), "status": status, "version": __version__, "graph": example_graph(), "hero": hero_data()}
     for key, value in values.items():
         page = page.replace("{" + key + "}", value)
     return page

@@ -192,7 +192,7 @@ def _font_faces() -> str:
     faces = []
     for family, weight, name in (("Familjen Grotesk", 400, "familjen-grotesk-latin-400-normal"),
                                  ("Familjen Grotesk", 700, "familjen-grotesk-latin-700-normal"),
-                                 ("Fahkwang", 200, "fahkwang-latin-extralight-normal")):
+                                 ("Familjen Grotesk", 500, "familjen-grotesk-latin-500-normal")):
         data = resources.files("zitatio").joinpath(f"assets/fonts/{name}.woff2").read_bytes()
         faces.append(
             '@font-face {{ font-family:"%s"; font-weight:%d; font-display:swap; '
@@ -436,7 +436,7 @@ TEMPLATE = """<!doctype html>
   --amber:#9A5B00; --amber-bg:#F3E8D2; --gray:#5B6670; --gray-bg:#E7EAEC; --mark:#DCEDE3; --mark-claim:#ECE7DE;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
   --sans: "Familjen Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --display: "Fahkwang", "Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --display: "Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;
 }}
 @media (prefers-color-scheme: dark) {{
   :root:not([data-theme="light"]) {{
@@ -454,11 +454,11 @@ main {{ max-width:1040px; margin:0 auto; padding:36px 20px 80px; }}
 .meta {{ font-size:13px; line-height:1.5; color:var(--ink-3); text-align:right; }}
 .kicker {{ font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-2); margin:0 0 10px; }}
 .summary {{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:32px; align-items:center; margin:64px 0 28px; }}
-h1 {{ font:200 clamp(30px, 4.4vw, 48px)/1.12 var(--display); letter-spacing:-.01em; margin:0 0 12px; }}
+h1 {{ font:500 clamp(30px, 4.4vw, 48px)/1.08 var(--display); letter-spacing:-.035em; margin:0 0 12px; }}
 .sub {{ color:var(--ink-2); margin:0; }}
 .donut {{ width:132px; height:132px; border-radius:50%; background:conic-gradient({donut}); display:grid; place-items:center; }}
 .donut span {{ width:96px; height:96px; border-radius:50%; background:var(--page); display:grid; place-items:center; text-align:center;
-  font:200 24px/1 var(--display); }}
+  font:500 24px/1 var(--display); }}
 .donut small {{ display:block; font:12px var(--sans); color:var(--ink-3); margin-top:4px; }}
 .chips {{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 18px; }}
 .chip {{ font:500 13px var(--sans); border:0; background:var(--cbg); color:var(--c); border-radius:999px; padding:7px 14px; cursor:pointer; }}
@@ -483,13 +483,13 @@ h1 {{ font:200 clamp(30px, 4.4vw, 48px)/1.12 var(--display); letter-spacing:-.01
 .pl .txt {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .pl .where {{ color:var(--ink-3); font-size:13px; white-space:nowrap; }}
 .pl .st {{ font-size:12px; font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px; padding:3px 10px; white-space:nowrap; text-transform:none; }}
-h2 {{ font:200 30px/1.2 var(--display); margin:64px 0 18px; }}
+h2 {{ font:500 30px/1.2 var(--display); letter-spacing:-.025em; margin:64px 0 18px; }}
 .card {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:22px 24px; margin:0 0 14px; }}
 .card header {{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:13px; color:var(--ink-3); }}
 .badge {{ font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px; padding:4px 12px; }}
 .method {{ margin-left:auto; }}
 .sec {{ }}
-.claim {{ font:200 21px/1.45 var(--display); margin:14px 0 6px; }}
+.claim {{ font:400 19px/1.5 var(--display); margin:14px 0 6px; }}
 .claim mark, blockquote mark {{ background:var(--mark); color:inherit; border-radius:4px; padding:0 3px; }}
 .claim mark {{ background:var(--mark-claim); }}
 .cite {{ font-size:13px; color:var(--ink-3); margin:0 0 10px; }}
