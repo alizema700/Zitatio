@@ -73,5 +73,5 @@ def check_leakage(room: DataRoom, box_date: dt.date | None) -> list[Flag]:
 
 
 def _trim(text: str, width: int = 220) -> str:
-    text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"\s+", " ", text).strip(" ;|")
     return text if len(text) <= width else text[: width - 1].rstrip() + "…"

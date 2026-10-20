@@ -762,6 +762,19 @@ def to_html(run: Run) -> str:
         if problems
         else f"Alle {total} prüfbaren Aussagen stimmen mit dem Datenraum überein."
     )
+    kicker, mode = "Prüfbericht", ""
+    sub = f"{html.escape(run.report_name)} · {total} Aussagen gegen {len(run.room.documents)} Dokumente im Datenraum geprüft."
+    if not total:
+        # Kein DD-Bericht: Red-Flag-Bericht aus dem Datenraum allein
+        from .questions import request_list
+
+        warnings_count = sum(1 for fl in run.flags if fl.level == "warnung")
+        questions = len(request_list(run))
+        kicker, mode = "Red-Flag-Bericht", "redflag"
+        headline = (f"{warnings_count} Warnsignal{'e' if warnings_count != 1 else ''} im Datenraum, "
+                    f"{questions} Frage{'n' if questions != 1 else ''} an den Verkäufer.")
+        pages = sum(len(d.pages) for d in run.room.documents)
+        sub = f"{len(run.room.documents)} Dokumente mit {pages} Seiten geprüft, ohne DD-Bericht."
     chips = "".join(
         f'<button class="chip s-{s.value}" data-filter="{s.value}">'
         f'<b>{n}</b> {s.label}</button>'
@@ -808,6 +821,9 @@ def to_html(run: Run) -> str:
         stamp=stamp,
         model=model,
         headline=headline,
+        kicker=kicker,
+        mode=mode,
+        sub=sub,
         total=total,
         docs_count=len(run.room.documents),
         chips=chips,
@@ -875,6 +891,8 @@ h1 {{ font:500 clamp(30px, 4.4vw, 48px)/1.08 var(--display); letter-spacing:-.03
 .review .bar {{ flex:1 1 160px; height:4px; background:var(--gray-bg); border-radius:2px; overflow:hidden; }}
 .review .bar i {{ display:block; height:100%; width:0; background:var(--green); transition:width .2s; }}
 .review a {{ background:var(--ink); color:var(--page); text-decoration:none; border-radius:999px; padding:9px 18px; font-weight:500; }}
+.redflag .donut, .redflag .proto, .redflag .claims, .redflag #reviewer, .redflag #progress, .redflag .bar,
+.redflag .review label, .redflag #export, .redflag a[download$="offenlegungskarte.csv"] {{ display:none; }}
 .todo a {{ color:inherit; text-decoration:none; border-bottom:1px solid var(--line-2); }}
 .todo a:hover {{ border-bottom-color:var(--ink-3); }}
 .proto {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:10px 0; overflow:hidden; }}
@@ -959,14 +977,14 @@ td .m {{ display:none; }}
 @media print {{ .chips, .review a, .decide button:not(.on) {{ display:none; }} .card {{ break-inside:avoid; }} }}
 </style>
 </head>
-<body>
+<body class="{mode}">
 <main>
   <div class="top">{logo}
     <div class="meta">Prüfbericht · {stamp}<br>Prüfmodell: {model}</div>
   </div>
   <div class="summary">
-    <div><p class="kicker">Prüfbericht</p><h1>{headline}</h1>
-    <p class="sub">{report} · {total} Aussagen gegen {docs_count} Dokumente im Datenraum geprüft.</p></div>
+    <div><p class="kicker">{kicker}</p><h1>{headline}</h1>
+    <p class="sub">{sub}</p></div>
     <div class="donut" aria-hidden="true"><span>{ok_share}<small>geprüft</small></span></div>
   </div>
   <div class="chips">{chips}</div>
@@ -985,7 +1003,7 @@ td .m {{ display:none; }}
     {protocol}
   </section>
   {extra}
-  <h2>Aussagen im Detail</h2>
+  <h2 class="claims">Aussagen im Detail</h2>
   {cards}
   <h2>Datenraum</h2>
   <div class="tablebox"><table><thead><tr><th>Index</th><th>Dokument</th><th>Seiten</th><th class="hash">SHA-256</th></tr></thead>

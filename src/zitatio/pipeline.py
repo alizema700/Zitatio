@@ -43,7 +43,7 @@ def run_check(
     latest = _latest_statement(room)
     revenue = (latest[1], latest[2]["umsatz"][0]) if latest and "umsatz" in latest[2] else None
     box_date = locked_box_date(spa[1] if spa else "", report_text)
-    flags = (check_income_statements(room) + swiss_flags(room) + netdebt_flags(debt) + check_minutes(room, report_text)
+    flags = (check_income_statements(room) + swiss_flags(room) + netdebt_flags(debt) + check_minutes(room, report_text if findings else None)
              + missing_amendments(room) + check_leakage(room, box_date))
     flags.sort(key=lambda fl: ("warnung", "hinweis", "ok").index(fl.level))
     carried = carry_decisions(findings, decisions, diff) if decisions else {}

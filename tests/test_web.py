@@ -44,3 +44,11 @@ def test_upload_with_previous_version():
     response = client.post("/pruefen", files=files)
     assert response.status_code == 200
     assert "Änderungen gegenüber der Vorversion" in response.text and "0 geändert, 0 neu" in response.text
+
+
+def test_upload_without_report_gives_red_flag_report():
+    files = [("datenraum", (f"datenraum/{pdf.name}", pdf.read_bytes(), "application/pdf"))
+             for pdf in sorted((EXAMPLE / "datenraum").glob("*.pdf"))]
+    response = client.post("/pruefen", files=files)
+    assert response.status_code == 200
+    assert "Red-Flag-Bericht" in response.text and 'class="redflag"' in response.text

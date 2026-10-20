@@ -331,8 +331,8 @@ footer a { color:var(--ink-2); }
     <div class="head"><div><p class="kicker">Ausprobieren</p><h2>Ihr Bericht, Ihr Datenraum</h2></div>
       <p class="body">Die Dateien bleiben auf diesem Rechner. Ohne Prüfmodell verlässt kein Dokument die Maschine.</p></div>
     <form class="upload" action="/pruefen" method="post" enctype="multipart/form-data">
-      <label class="drop"><b>DD-Bericht</b><span>Word, PDF, Markdown oder Text</span>
-        <input type="file" name="bericht" accept=".md,.txt,.pdf,.docx" required></label>
+      <label class="drop"><b>DD-Bericht</b><span>Word, PDF, Markdown oder Text. Ohne Bericht: Red-Flag-Bericht aus dem Datenraum</span>
+        <input type="file" name="bericht" accept=".md,.txt,.pdf,.docx"></label>
       <div class="drop dr"><b>Datenraum</b><span>Ordner oder ZIP-Export mit PDF, Word und Excel</span>
         <div class="pick"><label>Ordner wählen<input type="file" name="datenraum" webkitdirectory directory multiple></label>
         <label>ZIP wählen<input type="file" name="datenraum" accept=".zip"></label></div>

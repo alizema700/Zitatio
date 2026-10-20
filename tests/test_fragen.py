@@ -38,3 +38,17 @@ def test_questions_of_large_case():
     assert '"fragenliste"' in to_json(run)
     with zipfile.ZipFile(io.BytesIO(to_xlsx(run))) as z:
         assert "Fragenliste" in z.read("xl/workbook.xml").decode()
+
+
+def test_red_flag_report_without_dd_report(tmp_path):
+    from zitatio.cli import main
+
+    out = tmp_path / "rf.html"
+    questions = tmp_path / "fragen.md"
+    assert main(["redflags", "-d", str(GROSS / "datenraum"), "-o", str(out), "--fragen", str(questions),
+                 "--spa", str(GROSS / "spa-entwurf.md")]) == 0
+    page = out.read_text(encoding="utf-8")
+    assert "Red-Flag-Bericht" in page and "Warnsignale im Datenraum" in page
+    assert "im Bericht nicht erwähnt" not in page
+    assert 'id="garantien"' in page and "Leakage" in page
+    assert questions.read_text(encoding="utf-8").startswith("# Fragenliste")

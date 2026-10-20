@@ -32,6 +32,9 @@ zitatio pruefen beispiele/gross/dd-bericht-v2.md -d beispiele/gross/datenraum --
   --entscheide pruefbericht.csv --memo ic-memo.md --excel pruefung.xlsx --fragen fragen.md \
   --spa beispiele/gross/spa-entwurf.md
 
+# Red-Flag-Bericht aus dem Datenraum allein, mit Fragenliste und Garantien
+zitatio redflags -d beispiele/gross/datenraum -o red-flags.html --fragen fragen.md --spa beispiele/gross/spa-entwurf.md
+
 # Benchmark mit künstlich eingebauten Fehlern
 zitatio benchmark -d beispiele/alpenblick/datenraum
 
@@ -163,6 +166,13 @@ Nennt der SPA-Entwurf oder der Bericht einen Locked-Box-Stichtag, sucht Zitatio 
 Management Fees, Darlehen an Nahestehende, Boni für den Verkauf und anderen Zahlungen an die Verkäuferin mit einem
 Datum nach dem Stichtag. Im grossen Testfall steht eine Management Fee von CHF 60'000 an die Holding der Aktionärin
 in der Q&A-Liste; Zitatio meldet sie als Warnsignal und ordnet sie der Garantie „Keine Leakage“ zu.
+
+### Red-Flag-Bericht ohne DD-Bericht
+
+Vor dem ersten Entwurf gibt es nur den Datenraum. `zitatio redflags -d datenraum -o red-flags.html` (oder das
+Hochladen ohne Bericht) prüft ihn allein: Warnsignale aus Handelsregister, Protokollen, Verträgen und Jahresrechnungen,
+Widersprüche zwischen Dokumenten, Nettoverschuldung, Closing-Liste, Garantien (mit `--spa`) und die Fragenliste an
+den Verkäufer. Im grossen Testfall: 7 Warnsignale und 25 Fragen, ohne eine Zeile Bericht.
 
 ### Fragenliste an den Verkäufer
 

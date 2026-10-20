@@ -155,7 +155,7 @@ def index() -> str:
 
 
 @app.post("/pruefen", response_class=HTMLResponse)
-async def check(bericht: UploadFile = File(...), datenraum: list[UploadFile] = File(...),
+async def check(bericht: UploadFile | None = File(None), datenraum: list[UploadFile] = File(...),
                 vorher: UploadFile | None = File(None), entscheide: UploadFile | None = File(None),
                 spa: UploadFile | None = File(None)) -> str:
     room = DataRoom()
@@ -164,9 +164,12 @@ async def check(bericht: UploadFile = File(...), datenraum: list[UploadFile] = F
             room.add(Path(upload.filename).name, await upload.read())
     if not room.documents:
         raise HTTPException(400, "Der Datenraum enthält keine lesbaren Dokumente.")
-    data = await bericht.read()
-    name = Path(bericht.filename or "bericht").name
-    text = report_text(data, Path(name).suffix.lower())
+    if bericht is not None and bericht.filename:
+        data = await bericht.read()
+        name = Path(bericht.filename).name
+        text = report_text(data, Path(name).suffix.lower())
+    else:  # ohne Bericht: Red-Flag-Bericht aus dem Datenraum allein
+        data, name, text = b"", "Datenraum", ""
     model, model_name = _model()
     previous = decisions = None
     if vorher is not None and vorher.filename:

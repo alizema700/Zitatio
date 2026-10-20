@@ -43,8 +43,9 @@ _SENTENCE = re.compile(r"(?:[^.!?]|[.!?](?=\d))+(?:[.!?]|$)")
 _BOILERPLATE = re.compile(r"einvernehmlich|gerichtsstand|schriftform|unwirksam", re.IGNORECASE)
 
 
-def check_minutes(room: DataRoom, report_text: str) -> list[Flag]:
-    report_sentences = [m.group(0) for m in _SENTENCE.finditer(report_text.replace("\n", " "))]
+def check_minutes(room: DataRoom, report_text: str | None) -> list[Flag]:
+    """report_text None: kein Bericht (Red-Flag-Bericht), jedes Thema ist ein Warnsignal ohne Bezug zum Bericht."""
+    report_sentences = [m.group(0) for m in _SENTENCE.finditer((report_text or "").replace("\n", " "))]
     flags = []
     for doc in room.documents:
         if doc.index is None or not _MINUTES.search(doc.title):
@@ -68,6 +69,9 @@ def check_minutes(room: DataRoom, report_text: str) -> list[Flag]:
                         flags.append(Flag(HINWEIS, "Protokolle", f"{topic} ({where})",
                                           f"Im Protokoll: «{_trim(sentence)}» Der Bericht behandelt das Thema: "
                                           f"«{_trim(mentioned.strip())}»", [ev], [doc.index]))
+                    elif report_text is None:
+                        flags.append(Flag(WARNUNG, "Protokolle", f"{topic} ({where})", f"Im Protokoll: «{_trim(sentence)}»",
+                                          [ev], [doc.index]))
                     else:
                         flags.append(Flag(WARNUNG, "Protokolle", f"{topic} ({where}), im Bericht nicht erwähnt",
                                           f"Im Protokoll: «{_trim(sentence)}» Der Bericht sagt nichts dazu.",
