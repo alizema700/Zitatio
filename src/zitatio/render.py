@@ -459,6 +459,17 @@ def _more_downloads(run: Run) -> str:
     links.insert(0, '<a class="ghost" href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;'
                     f'base64,{data}" download="{base}-ic-memo.docx" title="Das Wichtigste und die offenen Befunde als '
                     'Word-Datei fürs Investment Committee">IC-Memo (Word)</a>')
+    from .teaser import anonymity_leaks, codename, teaser
+    from .teaser import to_markdown as teaser_markdown
+
+    lines = teaser(run.room)
+    if len(lines) >= 3:
+        text = teaser_markdown(lines, codename(run.room), with_sources=False)
+        if not anonymity_leaks(text, run.room):
+            data = base64.b64encode(markdown_to_docx(text)).decode()
+            links.append('<a class="ghost" href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.'
+                         f'document;base64,{data}" download="{base}-teaser.docx" title="Anonymes Kurzprofil für '
+                         'Käufer aus dem Datenraum (Verkäuferseite); Zahlen vor dem Versand prüfen">Teaser (Word)</a>')
     return "\n    ".join(links)
 
 
