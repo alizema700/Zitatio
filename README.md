@@ -8,6 +8,12 @@ Dazu prüft Zitatio den Datenraum selbst: Nennen zwei Dokumente für dieselbe Gr
 Widerspruch im Prüfbericht. EBITDA-Bereinigungen und abgeleitete Werte (Wachstum, Margen, Summen) werden nachgerechnet,
 fehlende Standardunterlagen gelistet, und eine Offenlegungskarte hält fest, welche Aussage auf welcher Seite steht.
 
+Für Schweizer Deals kommen Prüfungen hinzu, die über „steht es auf der Seite?“ hinausgehen: Zeichnungsberechtigung
+gegen das Handelsregister, Kapitalschutz nach Art. 725a/b OR, Revisionspflicht, gesetzliche Steuer- und Beitragssätze,
+WEKO-Schwelle, Vertragsregister mit Closing-Liste, Nettoverschuldung mit Covenant und Themen aus den VR-Protokollen,
+die der Bericht verschweigt. Datenräume aus der Romandie und dem Tessin (Französisch, Italienisch) werden gelesen.
+Oben im Prüfbericht steht auf einer Seite, was das Investment Committee wissen muss.
+
 Stand: Prototyp 0.1. Er prüft Werte (Beträge, Daten, Prozente, Fristen, UIDs) deterministisch. Ein Prüfmodell
 für den Sinn einer Aussage kann optional über eine OpenAI-kompatible Schnittstelle angeschlossen werden.
 
@@ -20,6 +26,10 @@ pip install -e ".[web,dev]"
 # Kommandozeile (HTML, dazu optional JSON, CSV für Excel und die Offenlegungskarte für W&I)
 zitatio pruefen beispiele/alpenblick/dd-bericht.md -d beispiele/alpenblick/datenraum -o pruefbericht.html \
   --csv pruefbericht.csv --offenlegung offenlegungskarte.csv
+
+# Zweiter Entwurf: behobene, offene und neue Befunde, Entscheide aus dem CSV übernehmen, eine Seite fürs IC-Memo
+zitatio pruefen beispiele/gross/dd-bericht-v2.md -d beispiele/gross/datenraum --vorher beispiele/gross/dd-bericht.md \
+  --entscheide pruefbericht.csv --memo ic-memo.md
 
 # Benchmark mit künstlich eingebauten Fehlern
 zitatio benchmark -d beispiele/alpenblick/datenraum
@@ -40,6 +50,11 @@ pytest
 - **Bericht:** Word, PDF, Markdown oder Text. In Word werden Überschriften zu Abschnitten und Tabellenzeilen zu Aussagen.
 - **Fundstellen im Bericht:** `[DR 3.2.1, S. 2]`, `(VDR 2.1 p. 3-4)` und `[Datenraum 5.3; DR 1.1, Seite 2]`.
   Ohne Seitenangabe wird das ganze Dokument durchsucht.
+- **Q&A-Liste:** `[Q&A 17]` zitiert Eintrag 17 einer Q&A-Liste im Datenraum (Dateiname mit „Q&A“, „Fragenkatalog“
+  o. ä.; eine Zeile pro Eintrag, die mit der Nummer beginnt). Jeder Eintrag ist eine eigene Quelle: ein Wert aus
+  Eintrag 17 belegt nicht Eintrag 19.
+- **Sprachen:** Bericht auf Deutsch, Datenraum auf Deutsch, Französisch oder Italienisch (Daten wie „31 décembre
+  2031“, Beträge wie „1 200 000“ oder „12,4 millions“, Kennzahlen, Klauseln, Handelsregister, Unterschriften).
 
 ## So wird geprüft
 
@@ -112,6 +127,52 @@ mit Notiz und Namen. Die Entscheide bleiben im Browser gespeichert und gehen mit
 Der Prüfbericht enthält SHA-256-Hashes des Berichts und aller Datenraum-Dokumente, damit später nachvollziehbar
 ist, was genau geprüft wurde.
 
+## Schweizer Prüfungen und Deal-Themen
+
+### Das Wichtigste für das Investment Committee
+
+Oben im Prüfbericht stehen die Befunde nach Gewicht: zuerst, was Preis oder Closing betrifft (Abweichungen,
+Warnsignale, Umsatz unter Kontrollwechselklauseln), dann, was vor dem Signing zu klären ist. Jeder Punkt verlinkt
+seinen Abschnitt. `--memo ic-memo.md` schreibt dieselbe Seite mit den offenen Befunden als Markdown fürs IC-Memo.
+
+### Prüfungen im Datenraum
+
+| Prüfung | Was Zitatio tut |
+|---|---|
+| Zeichnungsberechtigung | Liest Einzel- und Kollektivunterschriften aus dem Handelsregisterauszug und prüft jeden Unterschriftenblock „Für die … AG“. Warnt, wenn jemand ohne Eintrag oder mit Kollektivunterschrift allein unterschreibt. |
+| Kapitalschutz | Hälftiger Kapitalverlust und Überschuldung nach Art. 725a/b OR aus der neuesten Bilanz. |
+| Revisionspflicht | Schwellen nach Art. 727 OR (Bilanzsumme, Umsatz, Vollzeitstellen) gegen die Revisionsart. |
+| Vorsorge | Deckungsgrad der Pensionskasse unter 100 %. |
+| Aktienbuch | Verbuchte Aktien gegen Handelsregister. |
+| Fusionskontrolle | Umsatzschwelle Art. 9 KG; Lex Koller bei Grundeigentum. |
+| Erfolgsrechnung nachgerechnet | Jede Spalte: EBITDA = Umsatz − Material − Personal − übriger Aufwand, EBIT, Jahresgewinn. Findet falsch übertragene Zeilen. |
+| Covenant | „Nettoverschuldung höchstens x-mal EBITDA“ aus dem Kreditvertrag, nachgerechnet aus der Bilanz. |
+| Protokolle | Steuerprüfung, Klage, Rückruf, Sanierung, Abgänge und weitere Themen aus VR- und GV-Protokollen; Warnung, wenn der Bericht das Thema nirgends anspricht. |
+
+Gesetzliche Sätze im Bericht (MWST je nach Jahr, Verrechnungssteuer, Emissionsabgabe, AHV/IV/EO, BVG-Umwandlungssatz,
+direkte Bundessteuer) werden gegen das Gesetz geprüft: Ein veralteter MWST-Satz von 7.7 % ist eine Abweichung.
+
+### Verträge und Closing-Liste
+
+Das Vertragsregister zeigt pro Vertrag Kontrollwechsel, Exklusivität, Konkurrenzverbot, Konventionalstrafe,
+Abtretung mit Zustimmung, Meistbegünstigung, Haftungsbegrenzung und Garantien, jeweils mit Seite und Satz, dazu Ende
+und Kündigungsfrist. Aussagen wie „enthält keine Change-of-Control-Klausel“ werden dagegen geprüft. Die Closing-Liste
+nennt die Gegenparteien, die vor dem Closing zustimmen müssen, das jährliche Volumen daran (Anteil am Umsatz), und
+Verträge, die abgelaufen sind oder in den nächsten 18 Monaten enden.
+
+### Nettoverschuldung
+
+Finanzschulden und flüssige Mittel aus der Bilanz, dazu schuldenähnliche Posten aus dem Datenraum (Leasing bis
+Laufzeitende, Verbindlichkeiten gegenüber Vorsorgeeinrichtungen, beschlossene Dividenden) und Klagen als
+Eventualverbindlichkeiten. Aussagen zur Nettoverschuldung und zum Covenant werden nachgerechnet.
+
+### Widersprüche im Bericht und Versionsvergleich
+
+Nennt der Bericht für dieselbe Grösse und Periode an zwei Stellen verschiedene Werte, steht das im Prüfbericht.
+Mit `--vorher` vergleicht Zitatio zwei Entwürfe: welche Befunde behoben, offen oder neu sind, mit wortweisem
+Unterschied. `--entscheide` übernimmt Zustimmen/Widersprechen und Notizen aus dem CSV der Vorversion für
+unveränderte Aussagen. Beides geht auch im Upload-Formular der Weboberfläche.
+
 ## Benchmark
 
 `zitatio benchmark` baut aus jeder Zeile des Datenraums mit einem prüfbaren Wert eine korrekt belegte Aussage und
@@ -124,21 +185,23 @@ Benchmark mit anonymisierten, von Menschen geschriebenen DD-Berichten.
 ### Grosser Testfall
 
 `beispiele/gross` ist näher an einem echten Deal: 41 Dokumente mit 268 Seiten (PDF und Excel) und ein DD-Bericht
-mit 220 Aussagen, von denen nur 14 absichtlich falsch sind. Dazu enthält der Datenraum drei Widersprüche, wie sie bei
-falschen Angaben des Verkäufers vorkommen. `wahrheit.json` hält fest, welche Aussage richtig ist,
-`widersprueche.json`, welche Grössen im Datenraum widersprüchlich sind.
+mit 223 Aussagen, von denen nur 15 absichtlich falsch sind. Dazu enthält der Datenraum drei Widersprüche, wie sie bei
+falschen Angaben des Verkäufers vorkommen, und vier Schweizer Warnsignale (eine falsch übertragene Zeile der
+Erfolgsrechnung, zwei Unterschriften ohne Zeichnungsberechtigung, eine angekündigte Steuerprüfung im VR-Protokoll).
+`wahrheit.json` hält fest, welche Aussage richtig ist, `widersprueche.json` und `warnsignale.json`, was im Datenraum
+eingebaut ist. `dd-bericht-v2.md` (aus `entwurf2.py`) ist ein zweiter Entwurf für den Versionsvergleich.
 
 ```bash
 python beispiele/gross/erzeugen.py    # Datenraum und Bericht neu erzeugen (fester Zufall)
 python beispiele/gross/auswerten.py   # Zitatio laufen lassen und gegen die Wahrheit vergleichen
 ```
 
-Ergebnis ohne Prüfmodell (siehe `beispiele/gross/ergebnis.txt`): 13 von 14 Fehlern gefunden, kein Fehlalarm bei 206
-richtigen Aussagen, alle 3 Widersprüche im Datenraum gefunden und keiner zu viel, Laufzeit rund 1 Sekunde. Gefunden
-werden auch Vorjahresspalte, EBIT statt Jahresgewinn, ein erfundenes Zitat und eine Bereinigung ohne Beleg.
-Wachstum, Marge und zwei Summen werden nachgerechnet und sind geprüft. Verpasst wird eine falsch beschriebene
-Vertragsklausel; dafür braucht es das Prüfmodell. 59 richtige Aussagen ohne Zahlen bleiben „Ungeprüft“ und müssen
-gelesen werden.
+Ergebnis ohne Prüfmodell (siehe `beispiele/gross/ergebnis.txt`): alle 15 Fehler gefunden, kein Fehlalarm bei 208
+richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 4 Warnsignale gefunden, keines zu viel, Laufzeit rund
+1 Sekunde. Gefunden werden auch Vorjahresspalte, EBIT statt Jahresgewinn, ein erfundenes Zitat, eine Bereinigung
+ohne Beleg, ein veralteter MWST-Satz und eine übersehene Kontrollwechselklausel. Wachstum, Marge, zwei Summen und
+der Covenant werden nachgerechnet und sind geprüft. 45 richtige Aussagen ohne Zahlen bleiben „Ungeprüft“ und
+müssen gelesen werden.
 
 Die Aussagen im Bericht sind generiert und lehnen sich eng an die Formulierungen im Datenraum an. Echte Berichte
 umschreiben freier; die Zahlen hier sind deshalb eher eine obere Grenze.
@@ -192,6 +255,14 @@ src/zitatio/
   verify.py    Prüfkern: Status, Begründung, Belegstellen, Zitate, Dokumentbezug; optionales Prüfmodell
   crosscheck.py Widersprüche zwischen Datenraum-Dokumenten
   derive.py    Abgeleitete Werte und EBITDA-Bereinigungen nachrechnen
+  consistency.py Widersprüche im Bericht, Erfolgsrechnungen nachrechnen
+  swiss.py     Handelsregister, Zeichnungsberechtigung, Art. 725/727 OR, Vorsorge, WEKO, Lex Koller, gesetzliche Sätze
+  clauses.py   Vertragsregister: Klauseln mit Seite und Satz
+  terms.py     Laufzeiten, Kündigungsfristen, Volumen, Closing-Liste
+  netdebt.py   Nettoverschuldung, schuldenähnliche Posten, Covenant
+  minutes.py   Themen aus VR-Protokollen, die der Bericht nicht erwähnt
+  versions.py  Versionsvergleich zweier Entwürfe, Entscheide übernehmen
+  summary.py   Das Wichtigste fürs IC, Markdown fürs Memo
   gaps.py      Lückenliste der üblichen DD-Unterlagen
   llm.py       OpenAI-kompatibler Client für das Prüfmodell
   render.py    Prüfbericht als HTML, JSON, CSV und Offenlegungskarte
@@ -208,6 +279,10 @@ beispiele/alpenblick/  Fiktiver Datenraum mit DD-Bericht und absichtlich eingeba
   in derselben Anzahl nennt wie die Zeile Werte hat. Sonst bleibt es bei der Prüfung „Wert steht auf der Seite“.
 - Widersprüche werden nur für Tabellenzeilen mit bekannter Grösse und Periode gefunden, nicht in Fliesstext.
 - Die Lückenliste erkennt Unterlagen am Dateinamen, nicht am Inhalt.
+- Klauseln, Laufzeiten und Protokoll-Themen werden mit Wortmustern erkannt. Eine ungewöhnlich formulierte Klausel
+  fehlt im Register; ein Thema in den Protokollen kann im Bericht mit anderen Worten behandelt sein.
+- Schuldenähnliche Posten sind ein Vorschlag für die Verhandlung, keine abschliessende Liste. Leasing wird aus Rate,
+  Laufzeitende und Restwert geschätzt.
 - In US-Berichten, die jede Zahl auf eine eigene Zeile setzen, fehlen Zeilenbeschriftungen. Kennzahlen wie Margen
   oder Durchschnitte werden dort deshalb noch nicht nachgerechnet.
 - Steht derselbe Wert auf einer anderen Seite, meldet Zitatio „Falsche Fundstelle“ nur, wenn ein Wort der Aussage

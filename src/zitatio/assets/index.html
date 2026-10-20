@@ -305,7 +305,7 @@ footer a { color:var(--ink-2); }
       <div class="card c3">
         <svg class="i" viewBox="0 0 24 24" fill="none" stroke-width="1.5"><path d="M4 12l5 5L20 6"/></svg>
         <h3>Für Committees</h3>
-        <p>Investment Committees sehen auf einen Blick, welche Zahlen im Memo belegt sind und wo noch eine Antwort fehlt.</p>
+        <p>Investment Committees sehen auf einer Seite, was den Preis oder das Closing betrifft und wo noch eine Antwort fehlt.</p>
         <a class="pill" href="#ablauf">So funktioniert es <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 11l6-6M6 5h5v5"/></svg></a>
       </div>
     </div>
@@ -319,7 +319,7 @@ footer a { color:var(--ink-2); }
     <div class="steps">
       <div><b>01</b><h3>Datenraum exportieren</h3><p>Als Ordner oder ZIP aus dem VDR, mit Indexnummer im Dateinamen. PDF, Word und Excel.</p></div>
       <div><b>02</b><h3>Bericht hochladen</h3><p>DD-Report oder IC-Memo mit Fundstellen wie [DR 3.2.1, S. 2].</p></div>
-      <div><b>03</b><h3>Prüfen</h3><p>Jede Zahl, jedes Datum, jede Frist und jedes Zitat wird auf der zitierten Seite gesucht, in der richtigen Zeile und Jahresspalte. Margen, Summen und EBITDA-Bereinigungen werden nachgerechnet.</p></div>
+      <div><b>03</b><h3>Prüfen</h3><p>Jede Zahl, jedes Datum, jede Frist und jedes Zitat wird auf der zitierten Seite gesucht, in der richtigen Zeile und Jahresspalte. Margen, Summen, EBITDA-Bereinigungen, Nettoverschuldung und Covenants werden nachgerechnet, Verträge und Handelsregister geprüft.</p></div>
       <div><b>04</b><h3>Entscheiden</h3><p>Ihr Team stimmt zu oder widerspricht, mit Notiz. Das Protokoll geht als CSV ins Dossier.</p></div>
     </div>
     <div class="legend" id="legend"></div>
@@ -369,9 +369,20 @@ footer a { color:var(--ink-2); }
         („CHF 18.45 Mio.“) oder in einer Tabelle „in TCHF“. Den Sinn einer Aussage bestätigt nur das Prüfmodell, und nur mit einem Zitat,
         das wörtlich in der Quelle steht.</p></details>
       <details><summary>Wie gut ist die Erkennung?</summary>
-        <p>In einem fiktiven Datenraum mit 268 Seiten und 220 Aussagen fand Zitatio ohne Prüfmodell 13 von 14 eingebauten Fehlern,
-        ohne Fehlalarm, und alle 3 Widersprüche im Datenraum. Verpasst wurde eine übersehene Kontrollwechselklausel: Aussagen ohne
-        Zahlen prüft erst das Prüfmodell.</p></details>
+        <p>In einem fiktiven Datenraum mit 268 Seiten und 223 Aussagen fand Zitatio ohne Prüfmodell alle 15 eingebauten Fehler,
+        ohne Fehlalarm, dazu alle 3 Widersprüche im Datenraum und alle 4 Warnsignale nach Schweizer Recht. Auf echten
+        US-Jahresberichten (FinanceBench) erkannte es 12 von 14 falschen Werten und 14 von 14 falschen Seiten.</p></details>
+      <details><summary>Was prüft Zitatio nach Schweizer Recht?</summary>
+        <p>Zeichnungsberechtigung jeder Unterschrift gegen das Handelsregister, Kapitalverlust und Überschuldung (Art. 725a/b OR),
+        Revisionspflicht, Deckungsgrad der Pensionskasse, Aktienbuch, WEKO-Schwelle, gesetzliche Sätze wie MWST und
+        Verrechnungssteuer, den Covenant im Kreditvertrag und Themen aus den VR-Protokollen, die der Bericht nicht erwähnt.
+        Unterlagen auf Französisch und Italienisch werden gelesen.</p></details>
+      <details><summary>Was steht in der Closing-Liste?</summary>
+        <p>Jeder Vertrag mit Kontrollwechselklausel, mit Seite und jährlichem Volumen, und wie viel Umsatz daran hängt. Dazu Verträge,
+        die abgelaufen sind oder bald enden, und die Nettoverschuldung mit schuldenähnlichen Posten für die Preisverhandlung.</p></details>
+      <details><summary>Und beim zweiten Entwurf?</summary>
+        <p>Laden Sie die Vorversion mit. Zitatio zeigt, welche Befunde behoben, offen oder neu sind, und übernimmt Ihre Entscheide
+        für unveränderte Sätze.</p></details>
       <details><summary>Findet Zitatio auch Fehler in den Unterlagen des Verkäufers?</summary>
         <p>Ja, wenn sich die Unterlagen widersprechen. Zitatio vergleicht dieselbe Grösse über alle Dokumente, etwa das EBITDA in
         Jahresrechnung und Management Reporting, die Vorjahresspalte mit dem Vorjahresabschluss oder das Aktienkapital in
