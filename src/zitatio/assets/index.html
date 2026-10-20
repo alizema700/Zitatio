@@ -337,10 +337,12 @@ footer a { color:var(--ink-2); }
         <div class="pick"><label>Ordner wählen<input type="file" name="datenraum" webkitdirectory directory multiple></label>
         <label>ZIP wählen<input type="file" name="datenraum" accept=".zip"></label></div>
         <em class="chosen" aria-live="polite"></em></div>
-      <details class="later"><summary>Zweiter Entwurf? Vorversion und Entscheide mitgeben</summary>
+      <details class="later"><summary>Mehr mitgeben: Vorversion, Entscheide, Kaufvertrag</summary>
         <label>Vorversion des Berichts <input type="file" name="vorher" accept=".md,.txt,.pdf,.docx"></label>
         <label>Entscheide als CSV aus dem letzten Prüfbericht <input type="file" name="entscheide" accept=".csv"></label>
-        <small>Zeigt, welche Befunde behoben, offen oder neu sind, und übernimmt Ihre Entscheide für unveränderte Aussagen.</small>
+        <label>Entwurf des Kaufvertrags (SPA), um die Garantien abzugleichen <input type="file" name="spa" accept=".md,.txt,.pdf,.docx"></label>
+        <small>Zeigt, welche Befunde behoben, offen oder neu sind, und übernimmt Ihre Entscheide für unveränderte Aussagen.
+        Mit dem SPA-Entwurf steht zu jeder Garantie, welche Befunde sie berühren.</small>
       </details>
       <div class="foot"><button class="pill" type="submit">Prüfen <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
         <small>Ergebnis: Prüfbericht als HTML mit Belegstellen, Entscheiden und CSV-Export.</small></div>

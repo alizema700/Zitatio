@@ -248,6 +248,19 @@ def to_xlsx(run) -> bytes:
             closing.add("Anteil am Umsatz", "", "", "", (f"=IF(E{revenue}=0,0,E{total}/E{revenue})", PERCENT))
         sheets.append(closing)
 
+    if run.warranties:
+        sheet = Sheet("Garantien", [10, 30, 70, 50, 30])
+        sheet.add(*[(h, BOLD) for h in ("Ziffer", "Garantie", "Befund", "Massnahme", "Entscheid")])
+        for w in run.warranties:
+            for i in w.issues or [None]:
+                if i is None:
+                    sheet.add(w.number, w.heading, "kein Befund", "", "")
+                    continue
+                covered = w.covered_by.get(id(i))
+                sheet.add(w.number, w.heading, i.title,
+                          f"abgedeckt durch Freistellung Ziff. {covered}" if covered else i.action, "")
+        sheets.append(sheet)
+
     from .questions import request_list
 
     questions = request_list(run)

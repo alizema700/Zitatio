@@ -156,7 +156,8 @@ def index() -> str:
 
 @app.post("/pruefen", response_class=HTMLResponse)
 async def check(bericht: UploadFile = File(...), datenraum: list[UploadFile] = File(...),
-                vorher: UploadFile | None = File(None), entscheide: UploadFile | None = File(None)) -> str:
+                vorher: UploadFile | None = File(None), entscheide: UploadFile | None = File(None),
+                spa: UploadFile | None = File(None)) -> str:
     room = DataRoom()
     for upload in datenraum:
         if upload.filename:  # leeres Feld, wenn nur Ordner oder nur ZIP gewählt wurde
@@ -173,7 +174,12 @@ async def check(bericht: UploadFile = File(...), datenraum: list[UploadFile] = F
         previous = (old, report_text(await vorher.read(), Path(old).suffix.lower()))
     if entscheide is not None and entscheide.filename:
         decisions = parse_decisions((await entscheide.read()).decode("utf-8-sig", errors="replace"))
-    return to_html(run_check(name, text, data, room, model, model_name, previous=previous, decisions=decisions))
+    contract = None
+    if spa is not None and spa.filename:
+        spa_name = Path(spa.filename).name
+        contract = (spa_name, report_text(await spa.read(), Path(spa_name).suffix.lower()))
+    return to_html(run_check(name, text, data, room, model, model_name, previous=previous, decisions=decisions,
+                             spa=contract))
 
 
 @app.get("/beispiel", response_class=HTMLResponse)

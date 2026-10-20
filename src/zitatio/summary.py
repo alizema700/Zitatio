@@ -119,6 +119,14 @@ def key_points(run) -> list[KeyPoint]:
     missing = [g.name for g in run.gaps if not g.present]
     if missing:
         points.append(KeyPoint(INFO, f"{len(missing)} übliche Unterlagen fehlen", ", ".join(missing) + ".", "#unterlagen"))
+    touched = [w for w in run.warranties if w.issues]
+    if touched:
+        names = ", ".join(f"{w.number} {w.heading}".strip() for w in touched[:6])
+        open_risks = sum(1 for w in touched for i in w.issues if i.action.startswith("Spezifische") and id(i) not in w.covered_by)
+        extra = f" {open_risks} Risiken ohne Freistellung im Entwurf." if open_risks else ""
+        points.append(KeyPoint(KLAEREN, f"{len(touched)} von {len(run.warranties)} SPA-Garantien von Befunden berührt",
+                               f"Ziff. {names}.{extra}", "#garantien"))
+
     from .questions import HOCH, request_list
 
     questions = request_list(run)

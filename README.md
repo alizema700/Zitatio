@@ -29,7 +29,8 @@ zitatio pruefen beispiele/alpenblick/dd-bericht.md -d beispiele/alpenblick/daten
 
 # Zweiter Entwurf: behobene, offene und neue Befunde, Entscheide aus dem CSV übernehmen, eine Seite fürs IC-Memo
 zitatio pruefen beispiele/gross/dd-bericht-v2.md -d beispiele/gross/datenraum --vorher beispiele/gross/dd-bericht.md \
-  --entscheide pruefbericht.csv --memo ic-memo.md --excel pruefung.xlsx --fragen fragen.md
+  --entscheide pruefbericht.csv --memo ic-memo.md --excel pruefung.xlsx --fragen fragen.md \
+  --spa beispiele/gross/spa-entwurf.md
 
 # Benchmark mit künstlich eingebauten Fehlern
 zitatio benchmark -d beispiele/alpenblick/datenraum
@@ -145,6 +146,16 @@ Preisbrücke zeigt, was die Befunde kosten: Eine Bereinigung ohne Beleg wirkt ma
 Franken für Franken; Klagen stehen als Risiko daneben. Im grossen Testfall sind das −CHF 1.8 Mio. (−4.4 %) auf den
 Equity Value, plus CHF 1.45 Mio. Streitwert. Die Rechnung steht auch als Blatt „Preisbrücke“ mit Formeln in der
 Excel-Mappe.
+
+### Garantien im Kaufvertrag
+
+Mit `--spa spa-entwurf.md` (oder dem Feld „Kaufvertrag“ beim Hochladen) liest Zitatio die nummerierten Garantien
+des SPA-Entwurfs und ordnet jeder Garantie die Befunde zu, die sie berühren: Kontrollwechselklauseln und
+Zeichnungsberechtigung zu „Wesentliche Verträge“, die angekündigte Steuerprüfung zu „Steuern“, die Klage zu
+„Rechtsstreitigkeiten“, schuldenähnliche Posten zu „Finanzierung“ und „Vorsorge“. Zu jedem Befund steht, was der
+Käufer verlangen kann (Freistellung, Closing-Bedingung, Nachreichen, Abzug im Kaufpreis), und ob eine Freistellung im
+Entwurf ihn schon abdeckt. `beispiele/gross/spa-entwurf.md` ist ein fiktiver Entwurf dazu: 9 von 10 Garantien sind
+berührt, die Steuerprüfung ist durch die Steuerfreistellung Ziff. 6.1 abgedeckt, die Klage nicht.
 
 ### Fragenliste an den Verkäufer
 
@@ -283,6 +294,7 @@ src/zitatio/
   netdebt.py   Nettoverschuldung, schuldenähnliche Posten, Covenant
   valuation.py Preisbrücke: Unternehmenswert, Equity Value, Preiswirkung der Befunde
   questions.py Fragenliste an den Verkäufer
+  spa.py       Garantien im SPA-Entwurf gegen die Befunde
   minutes.py   Themen aus VR-Protokollen, die der Bericht nicht erwähnt
   references.py Erwähnte Nachträge und Side Letters, die im Datenraum fehlen
   versions.py  Versionsvergleich zweier Entwürfe, Entscheide übernehmen

@@ -31,6 +31,7 @@ def main(argv: list[str] | None = None) -> int:
                    "Closing-Liste, Rechnungen als Formeln")
     p.add_argument("--memo", type=Path, help="eine Seite fürs IC-Memo als Markdown: das Wichtigste und offene Befunde")
     p.add_argument("--fragen", type=Path, help="Fragenliste an den Verkäufer als Markdown, für den Q&A-Prozess")
+    p.add_argument("--spa", type=Path, help="Entwurf des Kaufvertrags: Garantien mit den Befunden abgleichen")
     p.add_argument("--vorher", type=Path, help="frühere Version des Berichts: zeigt behobene, offene und neue Befunde")
     p.add_argument("--entscheide", type=Path,
                    help="exportiertes Prüf-CSV der Vorversion: Entscheide für unveränderte Aussagen übernehmen")
@@ -54,8 +55,9 @@ def main(argv: list[str] | None = None) -> int:
     text, data = load_report(args.bericht)
     previous = (args.vorher.name, load_report(args.vorher)[0]) if args.vorher else None
     decisions = read_decisions(args.entscheide) if args.entscheide else None
+    spa = (args.spa.name, load_report(args.spa)[0]) if args.spa else None
     run = run_check(args.bericht.name, text, data, room, model, model.description if model else None,
-                    previous=previous, decisions=decisions)
+                    previous=previous, decisions=decisions, spa=spa)
 
     args.out.write_text(to_html(run), encoding="utf-8")
     if args.json:

@@ -51,6 +51,8 @@ class Run:
     revenue: tuple | None = None  # (Jahr, Umsatz) aus der neuesten Jahresrechnung
     diff: object | None = None  # versions.VersionDiff
     decisions: dict = field(default_factory=dict)  # Aussagenummer -> übernommener Entscheid
+    spa_name: str | None = None
+    warranties: list = field(default_factory=list)  # spa.Warranty
 
     def __post_init__(self):
         self.created = self.created or dt.datetime.now().astimezone()
@@ -199,6 +201,10 @@ def to_json(run: Run) -> str:
                 "risiken": [{"posten": i.label, "betrag": str(i.amount), "grundlage": i.basis}
                             for i in run.valuation.risks],
             },
+            "garantien": [{"ziffer": w.number, "titel": w.heading, "text": w.text,
+                           "befunde": [{"befund": i.title, "massnahme": i.action,
+                                        "freistellung": w.covered_by.get(id(i))} for i in w.issues]}
+                          for w in run.warranties],
             "fragenliste": [{"nr": q.number, "bereich": q.area, "prioritaet": q.priority, "frage": q.text,
                              "bezug": q.reference} for q in _questions(run)],
             "closing_liste": [
@@ -580,6 +586,34 @@ def _closing_html(run: Run) -> str:
             f'<th>Volumen p.a.</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>' + _exit_html(run))
 
 
+def _warranties_html(run: Run) -> str:
+    if not run.warranties:
+        return ""
+    touched = [w for w in run.warranties if w.issues]
+    blocks = []
+    for w in run.warranties:
+        if not w.issues:
+            continue
+        items = []
+        for i in w.issues:
+            covered = w.covered_by.get(id(i))
+            action = f"abgedeckt durch Freistellung Ziff. {covered}" if covered else i.action
+            cls = "geprueft" if covered else "ohne_beleg"
+            items.append(f'<p class="todo"><a href="{i.href}">{html.escape(i.title)}</a> '
+                         f'<span class="pill s-{cls}">{html.escape(action)}</span></p>')
+        text = w.text.removeprefix(w.heading).lstrip(". ") if w.heading else w.text
+        text = text if len(text) <= 260 else text[:259].rsplit(" ", 1)[0] + " …"
+        blocks.append(f'<tr><td class="nw">Ziff. {html.escape(w.number)}</td><td><b>{html.escape(w.heading)}</b> '
+                      f'<span class="where">{html.escape(text)}</span>{"".join(items)}</td></tr>')
+    clean = [f"{w.number} {w.heading}".strip() for w in run.warranties if not w.issues]
+    rest = f" Ohne Befund: {', '.join(clean)}." if clean else ""
+    return (f'<h2 id="garantien">Garantien im Kaufvertrag</h2><p class="lead">{len(touched)} von {len(run.warranties)} '
+            f"Garantien in {html.escape(run.spa_name or 'SPA')} sind von Befunden berührt. Was der Verkäufer offenlegt, "
+            f"deckt die Garantie meist nicht mehr; pro Befund steht, was der Käufer verlangen kann.{html.escape(rest)}</p>"
+            '<div class="tablebox"><table><thead><tr><th>Ziffer</th><th>Garantie und Befunde</th></tr></thead>'
+            f'<tbody>{"".join(blocks)}</tbody></table></div>')
+
+
 def _questions(run: Run):
     from .questions import request_list
 
@@ -751,7 +785,7 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _valuation_html(run) + _netdebt_html(run) + _closing_html(run) + _contracts_html(run) + _questions_html(run)
+    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _valuation_html(run) + _netdebt_html(run) + _closing_html(run) + _contracts_html(run) + _warranties_html(run) + _questions_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""
@@ -841,6 +875,8 @@ h1 {{ font:500 clamp(30px, 4.4vw, 48px)/1.08 var(--display); letter-spacing:-.03
 .review .bar {{ flex:1 1 160px; height:4px; background:var(--gray-bg); border-radius:2px; overflow:hidden; }}
 .review .bar i {{ display:block; height:100%; width:0; background:var(--green); transition:width .2s; }}
 .review a {{ background:var(--ink); color:var(--page); text-decoration:none; border-radius:999px; padding:9px 18px; font-weight:500; }}
+.todo a {{ color:inherit; text-decoration:none; border-bottom:1px solid var(--line-2); }}
+.todo a:hover {{ border-bottom-color:var(--ink-3); }}
 .proto {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:10px 0; overflow:hidden; }}
 .proto .head {{ display:flex; justify-content:space-between; padding:10px 22px 12px; border-bottom:1px solid var(--line); }}
 .proto .head .kicker {{ margin:0; }}

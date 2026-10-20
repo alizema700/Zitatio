@@ -29,8 +29,10 @@ def run_check(
     model_name: str | None = None,
     previous: tuple[str, str] | None = None,
     decisions: dict | None = None,
+    spa: tuple[str, str] | None = None,
 ) -> Run:
-    """previous: Name und Text der Vorversion des Berichts; decisions: Entscheide aus deren CSV."""
+    """previous: Name und Text der Vorversion des Berichts; decisions: Entscheide aus deren CSV;
+    spa: Name und Text des Kaufvertragsentwurfs, dessen Garantien mit den Befunden abgeglichen werden."""
     findings, conflicts, register, addbacks, internal, debt, valuation = _check(report_text, room, model)
     diff = None
     if previous is not None:
@@ -43,10 +45,16 @@ def run_check(
              + missing_amendments(room))
     flags.sort(key=lambda fl: ("warnung", "hinweis", "ok").index(fl.level))
     carried = carry_decisions(findings, decisions, diff) if decisions else {}
-    return Run(report_name, sha256(report_bytes), room, findings, model_name if model else None,
+    run = Run(report_name, sha256(report_bytes), room, findings, model_name if model else None,
                conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room), contracts=register,
                flags=flags, internal=internal,
                netdebt=debt, valuation=valuation, terms=terms, closing=closing, revenue=revenue, diff=diff, decisions=carried)
+    if spa is not None:
+        from .spa import check_warranties
+
+        run.spa_name = spa[0]
+        run.warranties = check_warranties(spa[1], run)
+    return run
 
 
 def _check(report_text: str, room: DataRoom, model: ModelVerifier | None):
