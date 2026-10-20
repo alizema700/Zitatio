@@ -44,6 +44,7 @@ class Run:
     contracts: list = field(default_factory=list)  # clauses.ContractEntry
     flags: list = field(default_factory=list)  # swiss.Flag
     internal: list = field(default_factory=list)  # consistency.ReportConflict
+    netdebt: object | None = None  # netdebt.NetDebt
     terms: list = field(default_factory=list)  # terms.Terms
     closing: list = field(default_factory=list)  # terms.ClosingItem
     revenue: tuple | None = None  # (Jahr, Umsatz) aus der neuesten Jahresrechnung
@@ -176,6 +177,16 @@ def to_json(run: Run) -> str:
                  "belege": [{"dokument": e.doc_label, "seite": e.page, "text": e.match} for e in fl.evidence]}
                 for fl in run.flags
             ],
+            "nettoverschuldung": None if run.netdebt is None else {
+                "jahr": run.netdebt.year, "nettoverschuldung": str(run.netdebt.net_debt),
+                "inkl_schuldenaehnlich": str(run.netdebt.adjusted),
+                "posten": [{"posten": i.label, "betrag": str(i.amount), "art": i.kind, "hinweis": i.note,
+                            "belege": [{"dokument": e.doc_label, "seite": e.page, "text": e.match} for e in i.evidence]}
+                           for i in run.netdebt.items],
+                "covenant": None if run.netdebt.covenant is None else {
+                    "grenze": str(run.netdebt.covenant.limit), "ist": str(run.netdebt.covenant.ratio),
+                    "eingehalten": run.netdebt.covenant.ok},
+            },
             "closing_liste": [
                 {"dokument": i.terms.doc.label, "titel": i.terms.doc.title, "art": i.kind, "text": i.text,
                  "volumen": str(i.terms.volume) if i.terms.volume else None,
@@ -439,6 +450,47 @@ def _terms_json(run: Run, entry) -> dict:
             "kuendigungsfrist": t.notice_text() or None, "volumen": str(t.volume) if t.volume else None}
 
 
+def _netdebt_html(run: Run) -> str:
+    from .netdebt import AEHNLICH, EVENTUAL, FINANZ
+
+    nd = run.netdebt
+    if nd is None or not nd.items:
+        return ""
+
+    def chf(v) -> str:
+        return ("− " if v < 0 else "") + f"CHF {abs(v):,.0f}".replace(",", "'")
+
+    def row(i) -> str:
+        where = ", ".join(f"{e.doc_label}, S. {e.page}" for e in i.evidence)
+        note = f' <span class="where">{html.escape(i.note)}</span>' if i.note else ""
+        return (f"<tr><td>{html.escape(i.label)}{note}</td><td class=\"opt\">{html.escape(where)}</td>"
+                f'<td class="num">{chf(i.amount)}</td></tr>')
+
+    rows = [row(i) for i in nd.items if i.kind == FINANZ]
+    rows.append(f'<tr class="sum"><td>Nettoverschuldung laut Bilanz {nd.year}</td><td class="opt"></td>'
+                f'<td class="num">{chf(nd.net_debt)}</td></tr>')
+    similar = [i for i in nd.items if i.kind == AEHNLICH]
+    if similar:
+        rows += [row(i) for i in similar]
+        rows.append(f'<tr class="sum"><td>Inklusive schuldenähnlicher Posten</td><td class="opt"></td>'
+                    f'<td class="num">{chf(nd.adjusted)}</td></tr>')
+    contingent = [i for i in nd.items if i.kind == EVENTUAL]
+    if contingent:
+        rows.append('<tr><td colspan="3" class="where">Eventualverbindlichkeiten, nicht in der Summe: '
+                    "im SPA mit Freistellung oder Rückbehalt regeln</td></tr>")
+        rows += [row(i) for i in contingent]
+    covenant = ""
+    if nd.covenant:
+        c = nd.covenant
+        covenant = (f" Covenant im Kreditvertrag: höchstens {c.limit}x EBITDA, nachgerechnet {c.ratio}x "
+                    f"({'eingehalten' if c.ok else 'verletzt'}).")
+    return (f'<h2 id="nettoverschuldung">Nettoverschuldung</h2><p class="lead">Vom Unternehmenswert zum Preis der Aktien: '
+            f"Finanzschulden und flüssige Mittel aus der Bilanz, dazu schuldenähnliche Posten aus dem Datenraum, "
+            f"über die im SPA verhandelt wird.{html.escape(covenant)}</p>"
+            f'<div class="tablebox"><table><thead><tr><th>Posten</th><th class="opt">Fundstelle</th><th>Betrag</th>'
+            f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
+
+
 def _closing_html(run: Run) -> str:
     from .terms import _n, revenue_at_risk
 
@@ -601,7 +653,7 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _closing_html(run) + _contracts_html(run)
+    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _netdebt_html(run) + _closing_html(run) + _contracts_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""

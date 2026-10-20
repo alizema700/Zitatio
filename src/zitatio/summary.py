@@ -79,6 +79,21 @@ def key_points(run) -> list[KeyPoint]:
             points.append(KeyPoint(KRITISCH, "Bereinigtes EBITDA rechnet nicht",
                                    f"Nachgerechnet {_chf(c.expected)}, Bericht {_chf(c.stated)}.", "#bereinigungen"))
 
+    nd = run.netdebt
+    if nd is not None:
+        from .netdebt import AEHNLICH, EVENTUAL
+
+        similar = [i for i in nd.items if i.kind == AEHNLICH]
+        if similar:
+            extra = sum((i.amount for i in similar), Decimal(0))
+            points.append(KeyPoint(KLAEREN, f"{_chf(extra)} schuldenähnliche Posten",
+                                   f"Zusätzlich zur Nettoverschuldung von {_chf(nd.net_debt)}: "
+                                   + ", ".join(i.label for i in similar) + ". Im SPA als Schuld verhandeln.",
+                                   "#nettoverschuldung"))
+        for i in (i for i in nd.items if i.kind == EVENTUAL):
+            points.append(KeyPoint(KLAEREN, f"{i.label}: {_chf(i.amount)} Streitwert",
+                                   "Nicht bilanziert. Im SPA mit Freistellung oder Rückbehalt absichern.",
+                                   "#nettoverschuldung"))
     if run.conflicts:
         names = ", ".join(c.title for c in run.conflicts[:4])
         points.append(KeyPoint(KLAEREN, f"{len(run.conflicts)} Widersprüche im Datenraum",

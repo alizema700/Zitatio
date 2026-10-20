@@ -1,5 +1,5 @@
 Datenraum: 41 Dokumente, 268 Seiten · Bericht: 223 Aussagen · Laufzeit 0.9 s
-Status: 159 Geprüft, 46 Ungeprüft, 12 Abweichung, 2 Widerspruch, 2 Falsche Fundstelle, 2 Ohne Beleg
+Status: 160 Geprüft, 45 Ungeprüft, 12 Abweichung, 2 Widerspruch, 2 Falsche Fundstelle, 2 Ohne Beleg
 
 Eingebaute Fehler gefunden: 15 von 15
   gefunden  UID vertippt                         -> Abweichung
@@ -38,5 +38,6 @@ Schweizer Warnsignale gefunden: 3 von 3 eingebauten, 0 weitere gemeldet
   ok       Vorsorge: Deckungsgrad 112.4 %
   ok       Aktienbuch: Aktienbuch vollständig
   ok       Fusionskontrolle: Keine WEKO-Meldung nötig (ein Käufer)
+  ok       Covenant: Covenant eingehalten (0.73x von höchstens 2.5x)
 
-Richtige Aussagen: 159 geprüft, 46 ungeprüft (keine prüfbaren Werte), 2 mit Widerspruch im Datenraum, 1 Folgehinweis, 0 Fehlalarme
+Richtige Aussagen: 160 geprüft, 45 ungeprüft (keine prüfbaren Werte), 2 mit Widerspruch im Datenraum, 1 Folgehinweis, 0 Fehlalarme

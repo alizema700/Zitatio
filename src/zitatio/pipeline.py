@@ -8,6 +8,7 @@ from .crosscheck import apply_conflicts, find_conflicts
 from .dataroom import DataRoom
 from .derive import apply_addbacks, apply_derived, check_addbacks
 from .gaps import check_gaps
+from .netdebt import apply_netdebt, net_debt, netdebt_flags
 from .render import Run, sha256
 from .report import parse_report
 from .swiss import _latest_statement, apply_rates, swiss_flags
@@ -27,7 +28,7 @@ def run_check(
     decisions: dict | None = None,
 ) -> Run:
     """previous: Name und Text der Vorversion des Berichts; decisions: Entscheide aus deren CSV."""
-    findings, conflicts, register, addbacks, internal = _check(report_text, room, model)
+    findings, conflicts, register, addbacks, internal, debt = _check(report_text, room, model)
     diff = None
     if previous is not None:
         old_findings = _check(previous[1], room, model)[0]
@@ -38,8 +39,8 @@ def run_check(
     carried = carry_decisions(findings, decisions, diff) if decisions else {}
     return Run(report_name, sha256(report_bytes), room, findings, model_name if model else None,
                conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room), contracts=register,
-               flags=check_income_statements(room) + swiss_flags(room), internal=internal,
-               terms=terms, closing=closing, revenue=revenue, diff=diff, decisions=carried)
+               flags=check_income_statements(room) + swiss_flags(room) + netdebt_flags(debt), internal=internal,
+               netdebt=debt, terms=terms, closing=closing, revenue=revenue, diff=diff, decisions=carried)
 
 
 def _check(report_text: str, room: DataRoom, model: ModelVerifier | None):
@@ -51,7 +52,9 @@ def _check(report_text: str, room: DataRoom, model: ModelVerifier | None):
     apply_rates(findings)
     register = contract_register(room)
     apply_clauses(findings, room, register)
+    debt = net_debt(room, register)
+    apply_netdebt(findings, debt)
     conflicts = find_conflicts(room)
     apply_conflicts(findings, conflicts)
     internal = report_conflicts(findings)
-    return findings, conflicts, register, addbacks, internal
+    return findings, conflicts, register, addbacks, internal, debt
