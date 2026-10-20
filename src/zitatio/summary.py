@@ -110,6 +110,13 @@ def key_points(run) -> list[KeyPoint]:
     missing = [g.name for g in run.gaps if not g.present]
     if missing:
         points.append(KeyPoint(INFO, f"{len(missing)} übliche Unterlagen fehlen", ", ".join(missing) + ".", "#unterlagen"))
+    from .questions import HOCH, request_list
+
+    questions = request_list(run)
+    if questions:
+        high = sum(1 for q in questions if q.priority == HOCH)
+        points.append(KeyPoint(INFO, f"{len(questions)} Fragen an den Verkäufer",
+                               f"Davon {high} mit hoher Priorität, bereit für den Q&A-Prozess.", "#fragen"))
     if run.diff is not None:
         o = run.diff.outcomes()
         points.append(KeyPoint(INFO, "Gegenüber der Vorversion",

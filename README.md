@@ -29,7 +29,7 @@ zitatio pruefen beispiele/alpenblick/dd-bericht.md -d beispiele/alpenblick/daten
 
 # Zweiter Entwurf: behobene, offene und neue Befunde, Entscheide aus dem CSV übernehmen, eine Seite fürs IC-Memo
 zitatio pruefen beispiele/gross/dd-bericht-v2.md -d beispiele/gross/datenraum --vorher beispiele/gross/dd-bericht.md \
-  --entscheide pruefbericht.csv --memo ic-memo.md --excel pruefung.xlsx
+  --entscheide pruefbericht.csv --memo ic-memo.md --excel pruefung.xlsx --fragen fragen.md
 
 # Benchmark mit künstlich eingebauten Fehlern
 zitatio benchmark -d beispiele/alpenblick/datenraum
@@ -135,7 +135,15 @@ Oben im Prüfbericht stehen die Befunde nach Gewicht: zuerst, was Preis oder Clo
 Warnsignale, Umsatz unter Kontrollwechselklauseln), dann, was vor dem Signing zu klären ist. Jeder Punkt verlinkt
 seinen Abschnitt. `--memo ic-memo.md` schreibt dieselbe Seite mit den offenen Befunden als Markdown fürs IC-Memo.
 `--excel` (und der Link „Excel-Mappe“ im Prüfbericht) liefert die Aussagen, die EBITDA-Brücke, die Nettoverschuldung
-mit Covenant und die Closing-Liste als Excel-Mappe; die Rechnungen stehen dort als Formeln.
+mit Covenant, die Closing-Liste und die Fragenliste als Excel-Mappe; die Rechnungen stehen dort als Formeln.
+
+### Fragenliste an den Verkäufer
+
+Aus den Befunden, die nur der Verkäufer klären kann, macht Zitatio eine nummerierte Fragenliste mit Priorität und
+Fundstelle: fehlende Unterlagen und Nachträge, Widersprüche zwischen Dokumenten, Warnsignale aus Protokollen und
+Handelsregister, Zustimmungen zum Kontrollwechsel, auslaufende Verträge, Bereinigungen ohne Beleg und offene
+Verfahren. Sie steht unten im Prüfbericht, im Blatt „Fragenliste“ der Excel-Mappe (mit Spalte für die Antwort) und
+mit `--fragen fragen.md` als Markdown. Falsche Fundstellen im eigenen Bericht kommen nicht hinein.
 
 ### Prüfungen im Datenraum
 

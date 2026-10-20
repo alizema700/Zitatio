@@ -30,6 +30,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--excel", type=Path, help="Excel-Mappe mit Aussagen, EBITDA-Brücke, Nettoverschuldung und "
                    "Closing-Liste, Rechnungen als Formeln")
     p.add_argument("--memo", type=Path, help="eine Seite fürs IC-Memo als Markdown: das Wichtigste und offene Befunde")
+    p.add_argument("--fragen", type=Path, help="Fragenliste an den Verkäufer als Markdown, für den Q&A-Prozess")
     p.add_argument("--vorher", type=Path, help="frühere Version des Berichts: zeigt behobene, offene und neue Befunde")
     p.add_argument("--entscheide", type=Path,
                    help="exportiertes Prüf-CSV der Vorversion: Entscheide für unveränderte Aussagen übernehmen")
@@ -69,6 +70,11 @@ def main(argv: list[str] | None = None) -> int:
         from .summary import to_markdown
 
         args.memo.write_text(to_markdown(run), encoding="utf-8")
+    if args.fragen:
+        from .questions import request_list
+        from .questions import to_markdown as questions_markdown
+
+        args.fragen.write_text(questions_markdown(request_list(run)), encoding="utf-8")
     if args.offenlegung:
         args.offenlegung.write_text(to_disclosure_csv(run), encoding="utf-8")
 

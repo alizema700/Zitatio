@@ -17,7 +17,8 @@ def test_workbook_has_sheets_and_formulas():
     text, data = load_report(GROSS / "dd-bericht.md")
     run = run_check("dd-bericht.md", text, data, DataRoom.from_folder(GROSS / "datenraum"))
     wb = openpyxl.load_workbook(io.BytesIO(to_xlsx(run)))
-    assert wb.sheetnames == ["Aussagen", "EBITDA-Brücke", "Nettoverschuldung", "Closing-Liste", "Datenraum"]
+    assert wb.sheetnames == ["Aussagen", "EBITDA-Brücke", "Nettoverschuldung", "Closing-Liste", "Fragenliste",
+                             "Datenraum"]
     claims = wb["Aussagen"]
     assert claims.max_row == len(run.findings) + 1 and claims["E1"].value == "Status"
     formulas = [c.value for ws in wb for row in ws.iter_rows() for c in row

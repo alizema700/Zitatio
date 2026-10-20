@@ -187,6 +187,8 @@ def to_json(run: Run) -> str:
                     "grenze": str(run.netdebt.covenant.limit), "ist": str(run.netdebt.covenant.ratio),
                     "eingehalten": run.netdebt.covenant.ok},
             },
+            "fragenliste": [{"nr": q.number, "bereich": q.area, "prioritaet": q.priority, "frage": q.text,
+                             "bezug": q.reference} for q in _questions(run)],
             "closing_liste": [
                 {"dokument": i.terms.doc.label, "titel": i.terms.doc.title, "art": i.kind, "text": i.text,
                  "volumen": str(i.terms.volume) if i.terms.volume else None,
@@ -529,6 +531,27 @@ def _closing_html(run: Run) -> str:
             f'<th>Volumen p.a.</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>' + _exit_html(run))
 
 
+def _questions(run: Run):
+    from .questions import request_list
+
+    return request_list(run)
+
+
+def _questions_html(run: Run) -> str:
+    questions = _questions(run)
+    if not questions:
+        return ""
+    rows = "".join(f'<tr><td class="nw">{q.number}</td><td class="opt">{html.escape(q.area)}</td>'
+                   f'<td><span class="pill s-{"abweichung" if q.priority == "hoch" else "ohne_beleg"}">{q.priority}</span></td>'
+                   f'<td>{html.escape(q.text)}</td><td class="opt">{html.escape(q.reference)}</td></tr>' for q in questions)
+    high = sum(1 for q in questions if q.priority == "hoch")
+    return (f'<h2 id="fragen">Fragenliste an den Verkäufer</h2><p class="lead">{len(questions)} Fragen, davon {high} mit '
+            "hoher Priorität, aus den Befunden oben. Nur was der Verkäufer klären kann; als Tabelle auch in der "
+            "Excel-Mappe und mit <code>--fragen</code> als Markdown.</p>"
+            '<div class="tablebox"><table><thead><tr><th>Nr</th><th class="opt">Bereich</th><th>Priorität</th>'
+            f'<th>Frage</th><th class="opt">Bezug</th></tr></thead><tbody>{rows}</tbody></table></div>')
+
+
 def _exit_html(run: Run) -> str:
     from .terms import _n, exit_profile
 
@@ -679,7 +702,7 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _netdebt_html(run) + _closing_html(run) + _contracts_html(run)
+    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _netdebt_html(run) + _closing_html(run) + _contracts_html(run) + _questions_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""

@@ -222,6 +222,16 @@ def to_xlsx(run) -> bytes:
             closing.add("Anteil am Umsatz", "", "", "", (f"=IF(E{revenue}=0,0,E{total}/E{revenue})", PERCENT))
         sheets.append(closing)
 
+    from .questions import request_list
+
+    questions = request_list(run)
+    if questions:
+        sheet = Sheet("Fragenliste", [6, 22, 10, 90, 40, 40])
+        sheet.add(*[(h, BOLD) for h in ("Nr", "Bereich", "Priorität", "Frage", "Bezug", "Antwort Verkäufer")])
+        for q in questions:
+            sheet.add(q.number, q.area, q.priority, q.text, q.reference, "")
+        sheets.append(sheet)
+
     room = Sheet("Datenraum", [12, 60, 10, 70])
     room.add(*[(h, BOLD) for h in ("Index", "Dokument", "Seiten", "SHA-256")])
     for d in run.room.documents:
