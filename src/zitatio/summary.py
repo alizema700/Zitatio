@@ -117,7 +117,7 @@ def key_points(run) -> list[KeyPoint]:
         points.append(KeyPoint(KLAEREN, f"{len(run.conflicts)} Widersprüche im Datenraum",
                                f"Verschiedene Dokumente nennen verschiedene Werte für {names}.", "#widersprueche"))
     if run.internal:
-        points.append(KeyPoint(KLAEREN, f"{len(run.internal)} Widersprüche im Bericht",
+        points.append(KeyPoint(KLAEREN, f"{len(run.internal)} Widerspr{'uch' if len(run.internal) == 1 else 'üche'} im Bericht",
                                "Der Bericht nennt für " + ", ".join(c.title for c in run.internal[:4])
                                + " an verschiedenen Stellen verschiedene Werte.", "#bericht-widersprueche"))
     places = [f for f in run.findings if f.status in (Status.FALSCHE_FUNDSTELLE, Status.QUELLE_FEHLT)]

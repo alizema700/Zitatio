@@ -29,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
                    help="Prüfmodell aus ZITATIO_LLM_BASE_URL / ZITATIO_LLM_MODEL verwenden")
     p.add_argument("--excel", type=Path, help="Excel-Mappe mit Aussagen, EBITDA-Brücke, Nettoverschuldung und "
                    "Closing-Liste, Rechnungen als Formeln")
-    p.add_argument("--memo", type=Path, help="eine Seite fürs IC-Memo als Markdown: das Wichtigste und offene Befunde")
+    p.add_argument("--memo", type=Path, help="eine Seite fürs IC-Memo als Markdown oder Word (.docx): das Wichtigste und offene Befunde")
     p.add_argument("--fragen", type=Path, help="Fragenliste an den Verkäufer als Markdown, für den Q&A-Prozess")
     p.add_argument("--spa", type=Path, help="Entwurf des Kaufvertrags: Garantien mit den Befunden abgleichen")
     p.add_argument("--klauseln", type=Path, help="Klauselvorschläge für den Kaufvertrag (.md oder .docx)")
@@ -95,7 +95,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.memo:
         from .summary import to_markdown
 
-        args.memo.write_text(to_markdown(run), encoding="utf-8")
+        if args.memo.suffix.lower() == ".docx":
+            from .word import markdown_to_docx
+
+            args.memo.write_bytes(markdown_to_docx(to_markdown(run)))
+        else:
+            args.memo.write_text(to_markdown(run), encoding="utf-8")
     if args.fragen:
         from .questions import request_list
         from .questions import to_markdown as questions_markdown

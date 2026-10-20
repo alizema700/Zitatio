@@ -19,7 +19,7 @@ def test_key_points_of_large_case():
     assert levels == sorted(levels, key=["kritisch", "klären", "info"].index)
     titles = " | ".join(p.title for p in points)
     for expected in ("Aussagen widersprechen dem Datenraum", "Zeichnungsberechtigung", "Kontrollwechselklausel",
-                     "EBITDA-Bereinigung ohne Beleg", "Widersprüche im Datenraum", "Widersprüche im Bericht"):
+                     "EBITDA-Bereinigung ohne Beleg", "Widersprüche im Datenraum", "Widerspruch im Bericht"):
         assert expected in titles, expected
     assert all(p.href.startswith("#") for p in points)
     page = to_html(run)

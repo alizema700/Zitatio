@@ -177,63 +177,6 @@ def to_markdown(items: list[Draft], spa_name: str | None = None) -> str:
 
 def to_docx(items: list[Draft], spa_name: str | None = None) -> bytes:
     """Dieselben Vorschläge als Word-Datei, zum Einfügen in den Vertragsentwurf."""
-    import io
-    import zipfile
-    from xml.sax.saxutils import escape
+    from .word import markdown_to_docx
 
-    def para(text: str, style: str | None = None, bold: bool = False, italic: bool = False) -> str:
-        ppr = f'<w:pPr><w:pStyle w:val="{style}"/></w:pPr>' if style else ""
-        rpr = "<w:rPr>" + ("<w:b/>" if bold else "") + ("<w:i/>" if italic else "") + "</w:rPr>"
-        return f'<w:p>{ppr}<w:r>{rpr}<w:t xml:space="preserve">{escape(text)}</w:t></w:r></w:p>'
-
-    head = f"Klauselvorschläge zu {spa_name}" if spa_name else "Klauselvorschläge für den Kaufvertrag"
-    body = [para(head, "Heading1"),
-            para("Entwurf aus den Befunden von Zitatio. Juristisch zu prüfen, kein fertiger Vertragstext.", italic=True)]
-    group = None
-    for d in items:
-        if d.group != group:
-            group = d.group
-            body.append(para(group, "Heading2"))
-        body.append(para(f"{(d.number + ' ') if d.number else ''}{d.heading}", bold=True))
-        body.append(para(d.text))
-    ns = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
-    document = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document {ns}><w:body>{"".join(body)}'
-                '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1417" w:right="1417" w:bottom="1134" '
-                'w:left="1417" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>')
-
-    def style(sid: str, name: str, size: int, bold: bool) -> str:
-        return (f'<w:style w:type="paragraph" w:styleId="{sid}"><w:name w:val="{name}"/><w:basedOn w:val="Normal"/>'
-                f'<w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/>'
-                f'<w:outlineLvl w:val="{0 if sid == "Heading1" else 1}"/></w:pPr>'
-                f'<w:rPr>{"<w:b/>" if bold else ""}<w:sz w:val="{size}"/></w:rPr></w:style>')
-
-    styles = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles {ns}>'
-              '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/>'
-              '<w:lang w:val="de-CH"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120"/></w:pPr>'
-              '</w:pPrDefault></w:docDefaults>'
-              '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>'
-              + style("Heading1", "heading 1", 32, True) + style("Heading2", "heading 2", 26, True) + "</w:styles>")
-    rel = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-    files = {
-        "[Content_Types].xml": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
-        '<Default Extension="xml" ContentType="application/xml"/>'
-        '<Override PartName="/word/document.xml" '
-        'ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
-        '<Override PartName="/word/styles.xml" '
-        'ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>',
-        "_rels/.rels": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-        f'<Relationship Id="rId1" Type="{rel}/officeDocument" Target="word/document.xml"/></Relationships>',
-        "word/_rels/document.xml.rels": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-        f'<Relationship Id="rId1" Type="{rel}/styles" Target="styles.xml"/></Relationships>',
-        "word/document.xml": document,
-        "word/styles.xml": styles,
-    }
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
-        for name, content in files.items():
-            z.writestr(name, content)
-    return buf.getvalue()
+    return markdown_to_docx(to_markdown(items, spa_name))

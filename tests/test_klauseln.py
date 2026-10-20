@@ -72,3 +72,16 @@ def test_spa_without_findings():
     spa = ("zwischen Alpha Holding AG, Bern (die „Verkäuferin“) und Beta AG (die „Käuferin“). Die Verkäuferin verkauft "
            "1'000 Namenaktien. Vollzugsbedingung ist die Zustimmung des Verwaltungsrats zur Übertragung.")
     assert {f.level for f in check_spa("spa.md", spa, room)} == {"ok"}
+
+
+def test_memo_as_word_keeps_headings_bullets_and_tables():
+    from zitatio.summary import to_markdown as memo
+    from zitatio.word import markdown_to_docx
+
+    word = markdown_to_docx(memo(_run(False)))
+    with zipfile.ZipFile(io.BytesIO(word)) as z:
+        xml = z.read("word/document.xml").decode()
+    assert xml.count("<w:tbl>") == 1 and 'w:val="Heading1"' in xml and "• " in xml
+    assert "<w:b/></w:rPr><w:t xml:space=\"preserve\">Kritisch:" in xml  # **Kritisch:** fett
+    text = docx_to_text(word)
+    assert "Das Wichtigste" in text and "Offene Befunde" in text
