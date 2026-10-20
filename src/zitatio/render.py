@@ -303,7 +303,7 @@ h1 {{ font:200 clamp(30px, 4.4vw, 48px)/1.12 var(--display); letter-spacing:-.01
 .sub {{ color:var(--ink-2); margin:0; }}
 .donut {{ width:132px; height:132px; border-radius:50%; background:conic-gradient({donut}); display:grid; place-items:center; }}
 .donut span {{ width:96px; height:96px; border-radius:50%; background:var(--page); display:grid; place-items:center; text-align:center;
-  font:200 30px/1 var(--display); }}
+  font:200 24px/1 var(--display); }}
 .donut small {{ display:block; font:12px var(--sans); color:var(--ink-3); margin-top:4px; }}
 .chips {{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 18px; }}
 .chip {{ font:500 13px var(--sans); border:0; background:var(--cbg); color:var(--c); border-radius:999px; padding:7px 14px; cursor:pointer; }}
