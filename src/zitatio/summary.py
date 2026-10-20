@@ -134,6 +134,12 @@ def key_points(run) -> list[KeyPoint]:
         high = sum(1 for q in questions if q.priority == HOCH)
         points.append(KeyPoint(INFO, f"{len(questions)} Fragen an den Verkäufer",
                                f"Davon {high} mit hoher Priorität, bereit für den Q&A-Prozess.", "#fragen"))
+    if run.stale:
+        docs = sorted({d for ds in run.stale.values() for d in ds})
+        first = min(run.stale)
+        points.append(KeyPoint(KLAEREN, f"{len(run.stale)} Entscheide neu nötig: Dokumente geändert",
+                               f"Seit dem letzten Prüfbericht haben sich {', '.join(docs)} geändert. Die Entscheide zu "
+                               "Aussagen, die diese Dokumente zitieren, wurden nicht übernommen.", f"#a{first}"))
     if run.diff is not None:
         o = run.diff.outcomes()
         points.append(KeyPoint(INFO, "Gegenüber der Vorversion",

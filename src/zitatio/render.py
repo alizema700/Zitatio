@@ -51,6 +51,7 @@ class Run:
     revenue: tuple | None = None  # (Jahr, Umsatz) aus der neuesten Jahresrechnung
     diff: object | None = None  # versions.VersionDiff
     decisions: dict = field(default_factory=dict)  # Aussagenummer -> übernommener Entscheid
+    stale: dict = field(default_factory=dict)  # Aussagenummer -> geänderte Dokumente, Entscheid nicht übernommen
     spa_name: str | None = None
     warranties: list = field(default_factory=list)  # spa.Warranty
 
@@ -66,7 +67,7 @@ def sha256(data: bytes) -> str:
 
 
 CSV_COLUMNS = ["Nr", "Abschnitt", "Aussage", "Fundstellen", "Status", "Methode", "Begründung", "Belege",
-               "Entscheid", "Notiz", "Prüfer"]
+               "Prüfsummen", "Entscheid", "Notiz", "Prüfer"]
 
 
 def _rows(run: Run) -> list[list]:
@@ -80,10 +81,21 @@ def _rows(run: Run) -> list[list]:
             f.method,
             " ".join(f.reasons),
             " | ".join(f"{e.doc_label}, S. {e.page}: {e.before}{e.match}{e.after}" for e in f.evidence),
+            cited_hashes(run.room, f),
             *_decision(run, f),
         ]
         for f in run.findings
     ]
+
+
+def cited_hashes(room: DataRoom, f: Finding) -> str:
+    """Prüfsummen der zitierten Dokumente: ändert sich ein Dokument, gilt der Entscheid nicht mehr."""
+    out = {}
+    for c in f.claim.citations:
+        doc = room.get(c.index)
+        if doc is not None:
+            out[c.label.split(",")[0]] = doc.sha256[:12]
+    return "; ".join(f"{k}={v}" for k, v in out.items())
 
 
 def _decision(run: Run, f: Finding) -> list[str]:
@@ -324,6 +336,8 @@ def _card(f: Finding, run: Run | None = None) -> str:
     before = ""
     if change is not None and change.kind != "unverändert":
         section += f'<span class="tag">{change.kind}</span>'
+    if run is not None and f.claim.number in run.stale:
+        section += f'<span class="tag">Entscheid neu nötig: {html.escape(", ".join(run.stale[f.claim.number]))} geändert</span>'
     if change is not None and change.kind == "geändert":
         before = f'<p class="cite diff">Vorher ({html.escape(change.old.status.label)}): {_diff_html(change)}</p>'
     return f"""
@@ -370,6 +384,10 @@ def _versions_html(run: Run) -> str:
                     f'<td>{"behoben" if f.status.value not in ("geprueft", "ungeprueft") else ""}</td></tr>')
     kept = len(run.decisions)
     carried = f" {kept} Entscheide aus der Vorversion übernommen." if kept else ""
+    if run.stale:
+        docs = sorted({d for ds in run.stale.values() for d in ds})
+        carried += (f" {len(run.stale)} Entscheide nicht übernommen, weil sich ein zitiertes Dokument seither geändert "
+                    f"hat ({', '.join(docs)}).")
     table = (f'<div class="tablebox"><table><thead><tr><th>Aussage</th><th>Änderung</th><th>Text</th>'
              f'<th>Vorher</th><th>Ergebnis</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>') if rows else ""
     return (f'<h2 id="versionen">Änderungen gegenüber der Vorversion</h2><p class="lead">Vorversion {html.escape(diff.old_name)}. '

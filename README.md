@@ -234,7 +234,9 @@ Eventualverbindlichkeiten. Aussagen zur Nettoverschuldung und zum Covenant werde
 Nennt der Bericht für dieselbe Grösse und Periode an zwei Stellen verschiedene Werte, steht das im Prüfbericht.
 Mit `--vorher` vergleicht Zitatio zwei Entwürfe: welche Befunde behoben, offen oder neu sind, mit wortweisem
 Unterschied. `--entscheide` übernimmt Zustimmen/Widersprechen und Notizen aus dem CSV der Vorversion für
-unveränderte Aussagen. Beides geht auch im Upload-Formular der Weboberfläche.
+unveränderte Aussagen. Das CSV hält die Prüfsumme jedes zitierten Dokuments fest: Hat der Verkäufer ein Dokument
+inzwischen ersetzt, wird der Entscheid nicht übernommen, und die Aussage ist mit „Entscheid neu nötig“ markiert.
+Beides geht auch im Upload-Formular der Weboberfläche.
 
 ## Benchmark
 
@@ -282,7 +284,7 @@ git clone --depth 1 https://github.com/patronus-ai/financebench /tmp/financebenc
 python scripts/financebench_test.py /tmp/financebench --out /tmp/fb-test
 ```
 
-Ergebnis (33 Antworten, 30 Berichte mit 4'850 Seiten, Prüfzeit rund 15 Sekunden):
+Ergebnis (33 Antworten, 30 Berichte mit 4'850 Seiten, Prüfzeit rund 18 Sekunden):
 
 | Art der Antwort | richtig bestätigt | falscher Wert erkannt | falsche Seite erkannt |
 |---|---|---|---|

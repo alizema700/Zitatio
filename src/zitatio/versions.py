@@ -140,18 +140,39 @@ def parse_decisions(text: str) -> dict[str, dict]:
     for row in csv.DictReader(io.StringIO(text), delimiter=";"):
         verdict, note = _LABELS.get((row.get("Entscheid") or "").strip(), ""), (row.get("Notiz") or "").strip()
         if verdict or note:
-            out[_key(row.get("Aussage") or "")] = {"v": verdict, "n": note, "p": (row.get("Prüfer") or "").strip()}
+            hashes = dict(part.split("=", 1) for part in (row.get("Prüfsummen") or "").split("; ") if "=" in part)
+            out[_key(row.get("Aussage") or "")] = {"v": verdict, "n": note, "p": (row.get("Prüfer") or "").strip(),
+                                                   "h": hashes}
     return out
 
 
-def carry_decisions(findings: list[Finding], decisions: dict[str, dict], diff: VersionDiff | None = None) -> dict:
-    """Entscheide für unveränderte Aussagen, nach Aussagenummer. Geänderte Aussagen werden neu entschieden."""
+def carry_decisions(findings: list[Finding], decisions: dict[str, dict], diff: VersionDiff | None = None,
+                    room=None, stale: dict | None = None) -> dict:
+    """Entscheide für unveränderte Aussagen, nach Aussagenummer. Geänderte Aussagen werden neu entschieden.
+
+    Hat sich ein zitiertes Dokument seit dem Entscheid geändert (andere Prüfsumme), wird der Entscheid nicht
+    übernommen; stale sammelt dann Aussagenummer -> geänderte Dokumente."""
     out = {}
     for f in findings:
         change = diff.of(f) if diff else None
         if change is not None and change.kind != UNCHANGED:
             continue
         d = decisions.get(_key(f.claim.clean_text))
-        if d:
-            out[f.claim.number] = d
+        if not d:
+            continue
+        changed = _changed_documents(d.get("h") or {}, room) if room is not None else []
+        if changed:
+            if stale is not None:
+                stale[f.claim.number] = changed
+            continue
+        out[f.claim.number] = d
     return out
+
+
+def _changed_documents(hashes: dict[str, str], room) -> list[str]:
+    changed = []
+    for label, digest in hashes.items():
+        doc = room.get(label.removeprefix("DR ").strip())
+        if doc is None or not doc.sha256.startswith(digest):
+            changed.append(label)
+    return changed

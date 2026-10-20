@@ -36,8 +36,16 @@ def test_decisions_carry_over_only_for_unchanged_sentences(tmp_path):
     path = tmp_path / "v1.csv"
     path.write_text("﻿" + "\r\n".join(lines) + "\r\n", encoding="utf-8")
     run = run_check("v2.md", V2, V2.encode(), _room(), previous=("v1.md", V1), decisions=read_decisions(path))
-    assert run.decisions == {1: {"v": "ok", "n": "passt", "p": "Ali"}}
+    assert {k: (d["v"], d["n"], d["p"]) for k, d in run.decisions.items()} == {1: ("ok", "passt", "Ali")}
     assert "Zugestimmt;passt;Ali" in to_csv(run)
+    assert not run.stale
+
+    # Der Verkäufer lädt eine neue Fassung der Jahresrechnung hoch: der Entscheid gilt nicht mehr
+    room = DataRoom()
+    room.add("2.1 Jahresrechnung 2025.txt", (ROOM["2.1 Jahresrechnung 2025.txt"] + "Korrigierte Fassung\n").encode())
+    run = run_check("v2.md", V2, V2.encode(), room, previous=("v1.md", V1), decisions=read_decisions(path))
+    assert run.decisions == {} and run.stale == {1: ["DR 2.1"]}
+    assert "Entscheid neu nötig: DR 2.1 geändert" in to_html(run)
 
 
 def test_word_diff():

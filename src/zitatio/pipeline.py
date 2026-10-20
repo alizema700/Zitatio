@@ -46,11 +46,12 @@ def run_check(
     flags = (check_income_statements(room) + swiss_flags(room) + netdebt_flags(debt) + check_minutes(room, report_text if findings else None)
              + missing_amendments(room) + check_leakage(room, box_date))
     flags.sort(key=lambda fl: ("warnung", "hinweis", "ok").index(fl.level))
-    carried = carry_decisions(findings, decisions, diff) if decisions else {}
+    stale: dict = {}
+    carried = carry_decisions(findings, decisions, diff, room, stale) if decisions else {}
     run = Run(report_name, sha256(report_bytes), room, findings, model_name if model else None,
                conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room), contracts=register,
                flags=flags, internal=internal,
-               netdebt=debt, valuation=valuation, terms=terms, closing=closing, revenue=revenue, diff=diff, decisions=carried)
+               netdebt=debt, valuation=valuation, terms=terms, closing=closing, revenue=revenue, diff=diff, decisions=carried, stale=stale)
     if spa is not None:
         from .spa import check_warranties
 
