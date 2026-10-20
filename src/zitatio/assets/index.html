@@ -369,7 +369,7 @@ footer a { color:var(--ink-2); }
         („CHF 18.45 Mio.“) oder in einer Tabelle „in TCHF“. Den Sinn einer Aussage bestätigt nur das Prüfmodell, und nur mit einem Zitat,
         das wörtlich in der Quelle steht.</p></details>
       <details><summary>Wie gut ist die Erkennung?</summary>
-        <p>In einem fiktiven Datenraum mit 268 Seiten und 223 Aussagen fand Zitatio ohne Prüfmodell alle 15 eingebauten Fehler,
+        <p>In einem fiktiven Datenraum mit 269 Seiten und 227 Aussagen fand Zitatio ohne Prüfmodell alle 16 eingebauten Fehler,
         ohne Fehlalarm, dazu alle 3 Widersprüche im Datenraum und alle 5 Warnsignale. Auf echten
         US-Jahresberichten (FinanceBench) erkannte es 12 von 14 falschen Werten und 14 von 14 falschen Seiten.</p></details>
       <details><summary>Was prüft Zitatio nach Schweizer Recht?</summary>
@@ -430,7 +430,7 @@ footer a { color:var(--ink-2); }
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* --- Hero: Prüfscan über den ganzen Datenraum ------------------------------
-     Jede Kachel ist eine Seite des grossen Testfalls (268 Seiten, 41 Dokumente).
+     Jede Kachel ist eine Seite des grossen Testfalls (269 Seiten, 42 Dokumente).
      Der Scan liest den Datenraum, dann springt jede Aussage aus dem Bericht auf ihre
      Seite; die Seite hebt sich, die Lupe zeigt die Textstelle, die Kachel behält ihre Farbe. */
   var heroData = JSON.parse(document.getElementById('hero-data').textContent || 'null');

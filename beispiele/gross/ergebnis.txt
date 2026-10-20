@@ -1,7 +1,7 @@
-Datenraum: 41 Dokumente, 268 Seiten · Bericht: 223 Aussagen · Laufzeit 0.9 s
-Status: 160 Geprüft, 45 Ungeprüft, 12 Abweichung, 2 Widerspruch, 2 Falsche Fundstelle, 2 Ohne Beleg
+Datenraum: 42 Dokumente, 269 Seiten · Bericht: 227 Aussagen · Laufzeit 1.0 s
+Status: 163 Geprüft, 45 Ungeprüft, 12 Abweichung, 3 Falsche Fundstelle, 2 Widerspruch, 2 Ohne Beleg
 
-Eingebaute Fehler gefunden: 15 von 15
+Eingebaute Fehler gefunden: 16 von 16
   gefunden  UID vertippt                         -> Abweichung
   gefunden  Vorjahreswert als aktuelles Jahr     -> Abweichung
   gefunden  Einheit TCHF/CHF verwechselt         -> Abweichung
@@ -17,8 +17,9 @@ Eingebaute Fehler gefunden: 15 von 15
   gefunden  falscher Zinssatz                    -> Abweichung
   gefunden  Zitat erfunden                       -> Abweichung
   gefunden  Bereinigung ohne Beleg               -> Ohne Beleg
+  gefunden  falscher Q&A-Eintrag                 -> Falsche Fundstelle
 
-Fehlalarme bei richtigen Aussagen: 0 von 208
+Fehlalarme bei richtigen Aussagen: 0 von 211
   Folgehinweis, kein Fehlalarm (folgt aus Bereinigung ohne Beleg): Ohne Beleg: Das bereinigte EBITDA 2025 beträgt damit CHF 5.96 Mio.
 
 Widersprüche im Datenraum gefunden: 3 von 3 eingebauten, 0 weitere gemeldet
@@ -43,4 +44,4 @@ Schweizer Warnsignale gefunden: 5 von 5 eingebauten, 0 weitere gemeldet
   ok       Fusionskontrolle: Keine WEKO-Meldung nötig (ein Käufer)
   ok       Covenant: Covenant eingehalten (0.73x von höchstens 2.5x)
 
-Richtige Aussagen: 160 geprüft, 45 ungeprüft (keine prüfbaren Werte), 2 mit Widerspruch im Datenraum, 1 Folgehinweis, 0 Fehlalarme
+Richtige Aussagen: 163 geprüft, 45 ungeprüft (keine prüfbaren Werte), 2 mit Widerspruch im Datenraum, 1 Folgehinweis, 0 Fehlalarme

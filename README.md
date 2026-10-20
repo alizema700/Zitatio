@@ -187,8 +187,8 @@ Benchmark mit anonymisierten, von Menschen geschriebenen DD-Berichten.
 
 ### Grosser Testfall
 
-`beispiele/gross` ist näher an einem echten Deal: 41 Dokumente mit 268 Seiten (PDF und Excel) und ein DD-Bericht
-mit 223 Aussagen, von denen nur 15 absichtlich falsch sind. Dazu enthält der Datenraum drei Widersprüche, wie sie bei
+`beispiele/gross` ist näher an einem echten Deal: 42 Dokumente mit 269 Seiten (PDF und Excel) und ein DD-Bericht
+mit 227 Aussagen, von denen nur 16 absichtlich falsch sind. Dazu enthält der Datenraum drei Widersprüche, wie sie bei
 falschen Angaben des Verkäufers vorkommen, und fünf Warnsignale (eine falsch übertragene Zeile der Erfolgsrechnung,
 zwei Unterschriften ohne Zeichnungsberechtigung, eine angekündigte Steuerprüfung im VR-Protokoll, ein fehlender
 Nachtrag zum Mietvertrag).
@@ -200,9 +200,9 @@ python beispiele/gross/erzeugen.py    # Datenraum und Bericht neu erzeugen (fest
 python beispiele/gross/auswerten.py   # Zitatio laufen lassen und gegen die Wahrheit vergleichen
 ```
 
-Ergebnis ohne Prüfmodell (siehe `beispiele/gross/ergebnis.txt`): alle 15 Fehler gefunden, kein Fehlalarm bei 208
+Ergebnis ohne Prüfmodell (siehe `beispiele/gross/ergebnis.txt`): alle 16 Fehler gefunden, kein Fehlalarm bei 211
 richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 5 Warnsignale gefunden, keines zu viel, Laufzeit rund
-1 Sekunde. Gefunden werden auch Vorjahresspalte, EBIT statt Jahresgewinn, ein erfundenes Zitat, eine Bereinigung
+1 Sekunde. Gefunden werden auch Vorjahresspalte, EBIT statt Jahresgewinn, ein erfundenes Zitat, ein falsch zitierter Q&A-Eintrag, eine Bereinigung
 ohne Beleg, ein veralteter MWST-Satz und eine übersehene Kontrollwechselklausel. Wachstum, Marge, zwei Summen und
 der Covenant werden nachgerechnet und sind geprüft. 45 richtige Aussagen ohne Zahlen bleiben „Ungeprüft“ und
 müssen gelesen werden.

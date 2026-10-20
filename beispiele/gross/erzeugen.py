@@ -680,6 +680,22 @@ def build_swiss() -> None:
     assets = sum(int(re.sub(r"\D", "", row.rsplit(" ", 1)[1])) for row in balance[1:5])
     balance += ["Aktienkapital 1'200'000", "Gesetzliche Gewinnreserve 240'000", f"Bilanzsumme {chf(assets)}"]
 
+    # Q&A-Liste: Management-Antworten als eigene Quelle, ein Eintrag falsch zitiert
+    DOCS.append(Doc("12.1", "Q&A-Liste Projekt Säntis", [], kind="xlsx", sheets=[("Q&A", [
+        ["Nr", "Frage", "Antwort", "Datum"],
+        [1, "Wie hoch ist der Auftragsbestand per 30.06.2026?", "Der Auftragsbestand beträgt CHF 15'640'000.", "12.08.2026"],
+        [2, "Welche Kunden machen mehr als 10 % des Umsatzes aus?",
+         "Alpstein Kliniken AG mit 20.1 % und Spitalverbund Ostschweiz mit 15.0 % des Umsatzes 2025.", "12.08.2026"],
+        [3, "Gibt es Garantiefälle über CHF 50'000?",
+         "Nein. Die Garantierückstellung per 31.12.2025 beträgt CHF 210'000.", "19.08.2026"],
+        [4, "Wann läuft die ISO-13485-Zertifizierung ab?", "Das Zertifikat ist gültig bis 14.11.2027.", "19.08.2026"],
+    ])]))
+    QA = "12. Management-Antworten (Q&A)"
+    say(QA, "Der Auftragsbestand per 30.06.2026 beträgt CHF 15.64 Mio. [Q&A 1].")
+    say(QA, "Die Alpstein Kliniken AG steht für 20.1 % des Umsatzes 2025 [Q&A 2].")
+    say(QA, "Die Garantierückstellung per 31.12.2025 beträgt CHF 210'000 [Q&A 3].")
+    say(QA, "Das ISO-13485-Zertifikat ist gültig bis 14.11.2027 [Q&A 2].", correct=False, error="falscher Q&A-Eintrag")
+
     say_after(TAX, "Seit 2024 beträgt der MWST-Normalsatz 8.1 %.")
     say_after(TAX, "Die Gesellschaft rechnet ihre Umsätze zum MWST-Normalsatz von 7.7 % ab.",
               correct=False, error="veralteter MWST-Satz")

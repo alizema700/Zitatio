@@ -1559,5 +1559,33 @@
   "fehler": null,
   "regeln_koennen_es_sehen": true,
   "hinweis": "folgt aus Bereinigung ohne Beleg"
+ },
+ {
+  "aussage": "Der Auftragsbestand per 30.06.2026 beträgt CHF 15.64 Mio. [Q&A 1].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Alpstein Kliniken AG steht für 20.1 % des Umsatzes 2025 [Q&A 2].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Garantierückstellung per 31.12.2025 beträgt CHF 210'000 [Q&A 3].",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Das ISO-13485-Zertifikat ist gültig bis 14.11.2027 [Q&A 2].",
+  "richtig": false,
+  "fehler": "falscher Q&A-Eintrag",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
  }
 ]
