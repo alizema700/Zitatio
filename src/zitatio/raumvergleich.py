@@ -58,11 +58,14 @@ def compare_rooms(old: DataRoom, new: DataRoom) -> list[DocChange]:
 
 def describe(c: DocChange) -> str:
     if c.kind == "neu":
-        return f"Neu: {c.label} {c.title} ({len(c.pages)} Seiten)."
+        return f"Neu: {c.label} {c.title} ({len(c.pages)} Seite{'n' if len(c.pages) != 1 else ''})."
     if c.kind == "entfernt":
         return f"Entfernt: {c.label} {c.title}."
     pages = ", ".join(map(str, c.pages[:10])) + (" …" if len(c.pages) > 10 else "")
-    values = ""
-    if c.removed or c.added:
-        values = (" Werte vorher: " + ", ".join(c.removed[:6]) + "; nachher: " + ", ".join(c.added[:6]) + ".")
+    parts = []
+    if c.removed:
+        parts.append("nicht mehr da: " + ", ".join(c.removed[:6]) + (" …" if len(c.removed) > 6 else ""))
+    if c.added:
+        parts.append("neu: " + ", ".join(c.added[:6]) + (" …" if len(c.added) > 6 else ""))
+    values = (" Werte " + "; ".join(parts) + ".") if parts else ""
     return f"Geändert: {c.label} {c.title}, S. {pages}.{values}"
