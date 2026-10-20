@@ -58,7 +58,11 @@ def run_check(
     if spa is not None:
         from .spa import check_warranties
 
+        from .kaufvertrag import check_spa
+
         run.spa_name, run.spa_text = spa
+        run.flags = sorted(run.flags + check_spa(spa[0], spa[1], room, valuation),
+                           key=lambda fl: ("warnung", "hinweis", "ok").index(fl.level))
         run.warranties = check_warranties(spa[1], run)
     return run
 

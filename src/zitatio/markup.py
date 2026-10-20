@@ -89,15 +89,24 @@ def drafts(run) -> list[Draft]:
     issues = _issues(run)
     out: list[Draft] = []
 
-    coc = [i for i, _ in issues if i.action == BEDINGUNG]
+    cond = _next_number(spa_text, "4")
+    consent = [i for i, _ in issues if i.action == BEDINGUNG and i.title.startswith("Vinkulierung")]
+    coc = [i for i, _ in issues if i.action == BEDINGUNG and not i.title.startswith("Vinkulierung")]
     if coc:
         names = [re.sub(r"^Kontrollwechselklausel ", "", i.title) for i in coc]
         listing = "; ".join(f"({chr(97 + n)}) {name}" for n, name in enumerate(names))
-        out.append(Draft("Vollzugsbedingungen", _next_number(spa_text, "4")(), "Zustimmungen zum Kontrollwechsel",
+        out.append(Draft("Vollzugsbedingungen", cond(), "Zustimmungen zum Kontrollwechsel",
                          "Die Pflicht der Käuferin zum Vollzug steht unter der Bedingung, dass die Gegenparteien der "
                          "folgenden Verträge schriftlich auf ihr Kündigungsrecht aus dem Kontrollwechsel verzichtet "
                          f"oder dem Kontrollwechsel zugestimmt haben: {listing}. Die Käuferin kann auf diese Bedingung "
                          "ganz oder teilweise verzichten.", [i.title for i in coc]))
+
+    if consent:
+        out.append(Draft("Vollzugsbedingungen", cond(), "Zustimmung des Verwaltungsrats",
+                         "Der Verwaltungsrat der Gesellschaft hat der Übertragung der Aktien auf die Käuferin zugestimmt "
+                         "und die Käuferin als Aktionärin mit Stimmrecht ins Aktienbuch eingetragen (Art. 685a ff. OR). "
+                         "Die Verkäuferin stellt sicher, dass der Verwaltungsrat vor dem Vollzug darüber beschliesst.",
+                         [i.title for i in consent]))
 
     number = _next_number(spa_text, "6")
     open_ = [i for i, covered in issues if i.action == FREISTELLUNG and not covered]
@@ -122,7 +131,7 @@ def drafts(run) -> list[Draft]:
         heading = _heading(i)
         out.append(Draft("Spezifische Freistellungen", number(), heading, text, [i.title]))
 
-    debt = [i for i, _ in issues if i.action == PREIS]
+    debt = [i for i, _ in issues if i.action == PREIS and not i.title.startswith("Kaufpreis")]
     if debt:
         listing = "; ".join(i.title for i in debt)
         out.append(Draft("Kaufpreis", "", "Schuldenähnliche Posten",

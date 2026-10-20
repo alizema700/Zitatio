@@ -162,6 +162,14 @@ Käufer verlangen kann (Freistellung, Closing-Bedingung, Nachreichen, Abzug im K
 Entwurf ihn schon abdeckt. `beispiele/gross/spa-entwurf.md` ist ein fiktiver Entwurf dazu: 10 von 11 Garantien sind
 berührt, die Steuerprüfung ist durch die Steuerfreistellung Ziff. 6.1 abgedeckt, die Klage nicht.
 
+### Kaufvertrag gegen Datenraum
+
+Mit `--spa` prüft Zitatio auch den Entwurf selbst: Verkauft die Verkäuferin mehr Aktien, als ihr laut Aktienbuch
+gehören? Vinkulieren die Statuten die Namenaktien, ohne dass der Vertrag die Zustimmung des Verwaltungsrats als
+Vollzugsbedingung vorsieht (Art. 685a ff. OR)? Liegt der Kaufpreis über dem Equity Value, der nach den Befunden
+übrig bleibt? Gibt es eine Bilanz per Locked-Box-Stichtag? Im grossen Testfall verkauft die Rohner Beteiligungen AG
+alle 12'000 Aktien, hält aber nur 7'200.
+
 ### Klauselvorschläge für den Kaufvertrag
 
 Aus den Befunden schreibt Zitatio einen Entwurf in der Sprache eines Schweizer Aktienkaufvertrags: eine
@@ -281,7 +289,7 @@ Benchmark mit anonymisierten, von Menschen geschriebenen DD-Berichten.
 
 `beispiele/gross` ist näher an einem echten Deal: 42 Dokumente mit 269 Seiten (PDF und Excel) und ein DD-Bericht
 mit 229 Aussagen, von denen nur 16 absichtlich falsch sind. Dazu enthält der Datenraum drei Widersprüche, wie sie bei
-falschen Angaben des Verkäufers vorkommen, und acht Warnsignale (eine falsch übertragene Zeile der Erfolgsrechnung,
+falschen Angaben des Verkäufers vorkommen, und acht Warnsignale im Datenraum (eine falsch übertragene Zeile der Erfolgsrechnung,
 zwei Unterschriften ohne Zeichnungsberechtigung, eine angekündigte Steuerprüfung im VR-Protokoll, ein fehlender
 Nachtrag zum Mietvertrag, eine Zahlung an die Aktionärin nach dem Locked-Box-Stichtag, eine Lücke von
 CHF 1.24 Mio. zwischen MWST-Abrechnungen und Jahresrechnung, AHV-Nummer und Gesundheitsdaten im Arbeitsvertrag).
@@ -294,7 +302,7 @@ python beispiele/gross/auswerten.py   # Zitatio laufen lassen und gegen die Wahr
 ```
 
 Ergebnis ohne Prüfmodell (siehe `beispiele/gross/ergebnis.txt`): alle 16 Fehler gefunden, kein Fehlalarm bei 213
-richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 8 Warnsignale gefunden, keines zu viel, Laufzeit rund
+richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 11 Warnsignale gefunden (8 im Datenraum, 3 im SPA-Entwurf), keines zu viel, Laufzeit rund
 1 Sekunde. Gefunden werden auch Vorjahresspalte, EBIT statt Jahresgewinn, ein erfundenes Zitat, ein falsch zitierter Q&A-Eintrag, eine Bereinigung
 ohne Beleg, ein veralteter MWST-Satz und eine übersehene Kontrollwechselklausel. Wachstum, Marge, zwei Summen und
 der Covenant werden nachgerechnet und sind geprüft. 45 richtige Aussagen ohne Zahlen bleiben „Ungeprüft“ und

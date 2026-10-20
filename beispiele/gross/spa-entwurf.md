@@ -1,9 +1,19 @@
 # Aktienkaufvertrag Rheintal Medtech AG (Entwurf, fiktiv)
 
+zwischen Rohner Beteiligungen AG, Altstätten (die „Verkäuferin“), und Säntis Industrie Holding AG, Zürich
+(die „Käuferin“)
+
+## 2. Kaufgegenstand
+
+2.1 Die Verkäuferin verkauft der Käuferin 12'000 Namenaktien der Rheintal Medtech AG mit einem Nennwert von je
+CHF 100, das ganze Aktienkapital der Gesellschaft.
+
 ## 3. Kaufpreis
 
 3.1 Locked Box. Der Kaufpreis beruht auf der Bilanz per Locked-Box-Stichtag 31.12.2025. Zwischen dem Stichtag und
 dem Vollzug darf keine Leakage erfolgen.
+
+3.2 Der Kaufpreis beträgt CHF 40'820'000 und ist am Vollzugstag zahlbar.
 
 ## 5. Garantien der Verkäuferin
 

@@ -50,3 +50,25 @@ def test_without_spa_every_risk_gets_an_indemnity():
     heads = {d.heading for d in items if d.group == "Spezifische Freistellungen"}
     assert {"Steuerprüfung", "Umsatzabstimmung 2025", "Verfahren DR 10.1"} <= heads
     assert all(d.number == "" for d in items)
+
+
+def test_spa_is_checked_against_share_register_statutes_and_price():
+    run = _run(True)
+    titles = {f.title: f for f in run.flags if f.area == "Kaufvertrag"}
+    shares = titles["Verkauft werden 12'000 Aktien, die Verkäuferin hält 7'200"]
+    assert "Luca Fässler (2'400 Aktien)" in shares.text and shares.docs == ["1.3"]
+    assert "Zustimmung des Verwaltungsrats zur Übertragung fehlt im Vertrag" in titles
+    assert any(t.startswith("Kaufpreis CHF 40'820'000 über dem geprüften Equity Value") for t in titles)
+    consent = next(d for d in drafts(run) if d.heading == "Zustimmung des Verwaltungsrats")
+    assert consent.number == "4.2" and "685a" in consent.text
+
+
+def test_spa_without_findings():
+    from zitatio.kaufvertrag import check_spa
+
+    room = DataRoom()
+    room.add("1.2 Statuten.txt", "Art. 5: Die Übertragung von Namenaktien bedarf der Zustimmung des Verwaltungsrats.".encode())
+    room.add("1.3 Aktienbuch.txt", "Aktienbuch\nAlpha Holding AG: 1'000 Namenaktien (100 %)\n".encode())
+    spa = ("zwischen Alpha Holding AG, Bern (die „Verkäuferin“) und Beta AG (die „Käuferin“). Die Verkäuferin verkauft "
+           "1'000 Namenaktien. Vollzugsbedingung ist die Zustimmung des Verwaltungsrats zur Übertragung.")
+    assert {f.level for f in check_spa("spa.md", spa, room)} == {"ok"}

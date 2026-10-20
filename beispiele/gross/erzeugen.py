@@ -694,6 +694,10 @@ def build_swiss() -> None:
     ])]))
     # Leakage: Zahlung an die Aktionärin nach dem Locked-Box-Stichtag im SPA-Entwurf (spa-entwurf.md)
     WARNINGS.append({"art": "Leakage", "dokument": "12.1"})
+    # Im SPA-Entwurf (spa-entwurf.md): Die Verkäuferin verkauft alle 12'000 Aktien, hält aber nur 7'200; die
+    # Vinkulierung der Statuten fehlt als Vollzugsbedingung; der Kaufpreis folgt der Bereinigung ohne Beleg.
+    WARNINGS.extend([{"art": "Kaufvertrag", "dokument": "1.3"}, {"art": "Kaufvertrag", "dokument": "1.2"},
+                     {"art": "Kaufvertrag", "dokument": "SPA"}])
     QA = "12. Management-Antworten (Q&A)"
     say(QA, "Der Auftragsbestand per 30.06.2026 beträgt CHF 15.64 Mio. [Q&A 1].")
     say(QA, "Die Alpstein Kliniken AG steht für 20.1 % des Umsatzes 2025 [Q&A 2].")

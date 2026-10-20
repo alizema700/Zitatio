@@ -100,6 +100,14 @@ def collect_issues(run) -> list[Issue]:
         if fl.area == "Steuern" and "Teilliquidation" in fl.title:
             issues.append(Issue({"steuern"}, fl.title, fl.text, TEILLIQUIDATION, "#pruefungen"))
             continue
+        if fl.area == "Kaufvertrag" and fl.level == "warnung":
+            if "Verwaltungsrats" in fl.title:
+                issues.append(Issue({"gesellschaft"}, f"Vinkulierung: {fl.title}", fl.text, BEDINGUNG, "#pruefungen"))
+            elif "Kaufpreis" in fl.title:
+                issues.append(Issue({"jahresrechnung"}, fl.title, fl.text, PREIS, "#preis"))
+            else:
+                issues.append(Issue({"gesellschaft"}, fl.title, fl.text, KLAEREN, "#pruefungen"))
+            continue
         if fl.area == "Protokolle":
             topics = _topics(fl.title) | ({"recht"} if "Rechtsstreit" in fl.title or "Behörden" in fl.title else set())
             if not topics:
