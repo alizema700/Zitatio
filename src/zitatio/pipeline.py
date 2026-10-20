@@ -10,7 +10,8 @@ from .derive import apply_addbacks, apply_derived, check_addbacks
 from .gaps import check_gaps
 from .render import Run, sha256
 from .report import parse_report
-from .swiss import apply_rates, swiss_flags
+from .swiss import _latest_statement, apply_rates, swiss_flags
+from .terms import closing_list
 from .verify import ModelVerifier, verify
 from .versions import carry_decisions, compare
 
@@ -31,11 +32,14 @@ def run_check(
     if previous is not None:
         old_findings = _check(previous[1], room, model)[0]
         diff = compare(old_findings, findings, previous[0])
+    terms, closing = closing_list(register)
+    latest = _latest_statement(room)
+    revenue = (latest[1], latest[2]["umsatz"][0]) if latest and "umsatz" in latest[2] else None
     carried = carry_decisions(findings, decisions, diff) if decisions else {}
     return Run(report_name, sha256(report_bytes), room, findings, model_name if model else None,
                conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room), contracts=register,
                flags=check_income_statements(room) + swiss_flags(room), internal=internal,
-               diff=diff, decisions=carried)
+               terms=terms, closing=closing, revenue=revenue, diff=diff, decisions=carried)
 
 
 def _check(report_text: str, room: DataRoom, model: ModelVerifier | None):

@@ -71,6 +71,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"≠ Widerspruch im Datenraum: {c.describe()}")
     for c in run.addbacks:
         print(f"{'✓' if c.ok else '✗'} Bereinigtes EBITDA nachgerechnet: {c.summary}, Bericht {_chf(c.stated)}")
+    if run.closing:
+        from .terms import _n, revenue_at_risk
+
+        coc = len({id(i.terms) for i in run.closing if i.kind == "kontrollwechsel"})
+        ending = sum(i.kind == "laufzeit" for i in run.closing)
+        print(f"Closing-Liste: {coc} Verträge mit Kontrollwechselklausel (CHF {_n(revenue_at_risk(run.closing))} "
+              f"Volumen p.a.), {ending} Laufzeiten zu klären")
     if run.diff is not None:
         print(f"Gegenüber {run.diff.old_name}: {run.diff.summary()}")
     if run.decisions:

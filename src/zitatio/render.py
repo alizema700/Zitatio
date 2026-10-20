@@ -44,6 +44,9 @@ class Run:
     contracts: list = field(default_factory=list)  # clauses.ContractEntry
     flags: list = field(default_factory=list)  # swiss.Flag
     internal: list = field(default_factory=list)  # consistency.ReportConflict
+    terms: list = field(default_factory=list)  # terms.Terms
+    closing: list = field(default_factory=list)  # terms.ClosingItem
+    revenue: tuple | None = None  # (Jahr, Umsatz) aus der neuesten Jahresrechnung
     diff: object | None = None  # versions.VersionDiff
     decisions: dict = field(default_factory=dict)  # Aussagenummer -> übernommener Entscheid
 
@@ -173,8 +176,15 @@ def to_json(run: Run) -> str:
                  "belege": [{"dokument": e.doc_label, "seite": e.page, "text": e.match} for e in fl.evidence]}
                 for fl in run.flags
             ],
+            "closing_liste": [
+                {"dokument": i.terms.doc.label, "titel": i.terms.doc.title, "art": i.kind, "text": i.text,
+                 "volumen": str(i.terms.volume) if i.terms.volume else None,
+                 "belege": [{"seite": e.page, "text": e.match} for e in i.evidence]}
+                for i in run.closing
+            ],
             "vertragsregister": [
                 {"dokument": e.doc.label, "titel": e.doc.title,
+                 **_terms_json(run, e),
                  "klauseln": [{"art": c.kind, "vorhanden": c.present, "seite": c.page, "satz": c.sentence}
                               for c in e.clauses]}
                 for e in run.contracts if e.clauses
@@ -407,6 +417,46 @@ def _addbacks_html(run: Run) -> str:
             "und die Summe muss aufgehen.</p>" + "".join(out))
 
 
+def _terms_json(run: Run, entry) -> dict:
+    t = next((t for t in run.terms if t.entry is entry), None)
+    if t is None:
+        return {}
+    return {"beginn": t.start.isoformat() if t.start else None, "ende": t.end.isoformat() if t.end else None,
+            "kuendigungsfrist": t.notice_text() or None, "volumen": str(t.volume) if t.volume else None}
+
+
+def _closing_html(run: Run) -> str:
+    from .terms import _n, revenue_at_risk
+
+    if not run.closing:
+        return ""
+    by_doc: dict[int, list] = {}
+    for i in run.closing:
+        by_doc.setdefault(id(i.terms), []).append(i)
+    rows = []
+    for items in by_doc.values():
+        t = items[0].terms
+        todo = "".join(f'<p class="todo"><span class="pill s-{"abweichung" if i.kind == "kontrollwechsel" else "ohne_beleg"}">'
+                       f'{"Kontrollwechsel" if i.kind == "kontrollwechsel" else "Laufzeit"}</span> {html.escape(i.text)}</p>'
+                       for i in items)
+        volume = f"CHF {_n(t.volume)}" if t.volume else "–"
+        rows.append(f'<tr><td class="nw">{html.escape(t.doc.label)}</td><td class="opt">{html.escape(t.doc.title)}</td>'
+                    f'<td>{todo}</td><td class="num">{volume}</td></tr>')
+    coc = {id(i.terms) for i in run.closing if i.kind == "kontrollwechsel"}
+    risk = revenue_at_risk(run.closing)
+    lead = f"{len(coc)} Verträge mit Kontrollwechselklausel"
+    if risk:
+        lead += f", zusammen CHF {_n(risk)} jährliches Volumen"
+        if run.revenue:
+            lead += f" ({risk / run.revenue[1]:.0%} des Umsatzes {run.revenue[0]})"
+    ending = sum(1 for i in run.closing if i.kind == "laufzeit")
+    lead += f". {ending} Verträge sind abgelaufen oder enden in den nächsten 18 Monaten." if ending else "."
+    return (f'<h2>Closing-Liste</h2><p class="lead">{html.escape(lead)} Was vor Signing und Closing mit den '
+            "Gegenparteien zu klären ist, mit Seite im Vertrag.</p>"
+            '<div class="tablebox"><table><thead><tr><th>Index</th><th class="opt">Vertrag</th><th>Zu klären</th>'
+            f'<th>Volumen p.a.</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
+
+
 def _contracts_html(run: Run) -> str:
     from .clauses import KINDS, LABELS
 
@@ -428,7 +478,11 @@ def _contracts_html(run: Run) -> str:
                 cells.append(f'<td><span class="where" title="{html.escape(found[0].sentence)}">ausgeschlossen</span></td>')
             else:
                 cells.append('<td><span class="where">–</span></td>')
-        rows.append(f"<tr><td>{html.escape(e.doc.label)}</td><td class=\"opt\">{html.escape(e.doc.title)}</td>{''.join(cells)}</tr>")
+        t = next((t for t in run.terms if t.entry is e), None)
+        end = f"{t.end:%d.%m.%Y}" if t and t.end else "–"
+        notice = t.notice_text() if t and t.notice else "–"
+        rows.append(f"<tr><td>{html.escape(e.doc.label)}</td><td class=\"opt\">{html.escape(e.doc.title)}</td>"
+                    f"<td>{end}</td><td>{notice}</td>{''.join(cells)}</tr>")
     coc = [e for e in entries if e.has("kontrollwechsel")]
     lead = (f"{len(coc)} von {len(entries)} Verträgen erlauben der Gegenpartei bei einem Kontrollwechsel die Kündigung "
             "oder verlangen ihre Zustimmung: " + ", ".join(e.doc.label for e in coc) + "." if coc
@@ -436,7 +490,7 @@ def _contracts_html(run: Run) -> str:
     head = "".join(f"<th>{html.escape(LABELS[k])}</th>" for k in kinds)
     return (f'<h2>Vertragsregister</h2><p class="lead">{html.escape(lead)} Gefunden per Wortsuche mit Seite; '
             "der Satz erscheint beim Darüberfahren.</p>"
-            f'<div class="tablebox"><table><thead><tr><th>Index</th><th class="opt">Dokument</th>{head}</tr></thead>'
+            f'<div class="tablebox"><table><thead><tr><th>Index</th><th class="opt">Dokument</th><th>Ende</th><th>Kündigung</th>{head}</tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table></div>')
 
 
@@ -533,7 +587,7 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _contracts_html(run)
+    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _closing_html(run) + _contracts_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""
@@ -639,6 +693,8 @@ h2 {{ font:500 30px/1.2 var(--display); letter-spacing:-.025em; margin:64px 0 18
 .badge {{ font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px; padding:4px 12px; }}
 .method {{ margin-left:auto; }}
 .sec {{ }}
+.todo {{ margin:4px 0; font-size:14px; }}
+td.nw {{ white-space:nowrap; }}
 .tag {{ font-size:12px; font-weight:500; color:var(--ink-2); box-shadow:0 0 0 1px var(--line); border-radius:999px; padding:3px 10px; }}
 .diff del {{ color:var(--red); text-decoration:line-through; }}
 .diff ins {{ color:var(--green); background:var(--green-bg); text-decoration:none; border-radius:4px; padding:0 2px; }}
