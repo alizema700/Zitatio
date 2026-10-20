@@ -378,26 +378,32 @@ def _locate_elsewhere(fact: Fact, room: DataRoom, skip: set[tuple[str, int]], ct
 def _locate_by_search(fact: Fact, room: DataRoom, claim: Claim, k: int = 6):
     """Fundort eines Werts auf den Seiten, die am besten zur Aussage passen (Belegsuche ohne Fundstelle).
 
-    "Die Zahlungsfrist beträgt 30 Tage." sagt nicht, welcher Vertrag gemeint ist; dann hilft der Satz davor."""
+    "Die Zahlungsfrist beträgt 30 Tage." sagt nicht, welcher Vertrag gemeint ist; dann hilft der Satz davor.
+    Nennt die Aussage einen Namen aus einem Dokumenttitel (Gegenpartei, Firma), wird nur dort gesucht."""
     from .locate import page_index
 
     if _COMPUTED_RE.search(claim.clean_text):
         return None
     ctx = _context(claim, fact)
     for query in dict.fromkeys(q for q in (claim.clean_text, f"{claim.before} {claim.clean_text}") if q.strip()):
-        for doc, page, _ in page_index(room).search(query, k):
+        named = {d.name for d in room.documents if d.index and _distinct_title_word(query, d.title)}
+        for doc, page, _ in page_index(room).search(query, 12 if named else k, only=named or None):
             hit = _find(fact, doc, [page], ctx)
             if hit and hit.misfit is None and (_near_words(query, doc.pages[page - 1], hit.fact.start)
-                                               or _distinct_title_word(query, doc.title)):
+                                               or doc.name in named):
                 return hit
     return None
 
 
+_TITLE_COMMON = {"liefervertrag", "rahmenvertrag", "mietvertrag", "jahresrechnung", "vertrag", "protokolle", "liste",
+                 "gmbh", "holding", "kliniken", "medical", "clinic", "annual", "report", "quarterly"}
+
+
 def _distinct_title_word(text: str, title: str) -> bool:
-    """Ein Name aus dem Dokumenttitel (Gegenpartei, Person) steht in der Aussage, nicht nur "Liefervertrag"."""
-    names = re.findall(r"\b[A-ZÄÖÜ][\wäöüé-]{3,}", title)
-    common = {"Liefervertrag", "Rahmenvertrag", "Mietvertrag", "Jahresrechnung", "Vertrag", "Protokolle", "Liste"}
-    return any(n not in common and re.search(rf"\b{re.escape(n)}\b", text) for n in names)
+    """Ein Name aus dem Dokumenttitel (Gegenpartei, Person, Firma) steht in der Aussage, nicht nur "Liefervertrag"."""
+    names = re.findall(r"\b[A-ZÄÖÜ][A-Za-zäöüé-]{3,}", title.replace("_", " "))
+    return any(n.lower() not in _TITLE_COMMON and re.search(rf"\b{re.escape(n)}\b", text, re.IGNORECASE)
+               for n in names)
 
 
 def _contradiction_by_search(fact: Fact, room: DataRoom, claim: Claim, k: int = 4):

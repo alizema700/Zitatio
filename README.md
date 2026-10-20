@@ -280,7 +280,7 @@ git clone --depth 1 https://github.com/patronus-ai/financebench /tmp/financebenc
 python scripts/financebench_test.py /tmp/financebench --out /tmp/fb-test
 ```
 
-Ergebnis (33 Antworten, 30 Berichte mit 4'850 Seiten, Prüfzeit rund 12 Sekunden):
+Ergebnis (33 Antworten, 30 Berichte mit 4'850 Seiten, Prüfzeit rund 15 Sekunden):
 
 | Art der Antwort | richtig bestätigt | falscher Wert erkannt | falsche Seite erkannt |
 |---|---|---|---|
@@ -291,6 +291,11 @@ Direkt abgelesene Werte prüft Zitatio auch in US-Tabellen mit „(in millions)�
 „Ungeprüft“, weil das Wort „total“ sie als abgeleitet markiert. Berechnete Kennzahlen kann Zitatio in diesen Berichten
 noch nicht nachrechnen und meldet sie ehrlich als „Ungeprüft“. Es gibt einen Fehlalarm, weil der generierte Satz eine
 Quote als Abschreibung beschreibt.
+
+Derselbe Bericht ohne Fundstellen (Belegsuche über alle 4'850 Seiten, rund 5 Sekunden): 6 von 14 direkt abgelesenen
+Werten findet Zitatio selbst, kein falscher Wert wird als geprüft durchgelassen. Die generierten Sätze sind hier
+englisch-deutsche Mischformen wie „die gefragte Kennzahl“, die Suche hat also wenig Wörter, an denen sie sich
+orientieren kann.
 
 ## Prüfmodell (optional)
 

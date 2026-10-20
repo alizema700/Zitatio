@@ -164,13 +164,37 @@ def evaluate(report: str, truth: list[dict], room: DataRoom, out: Path) -> str:
     return "\n".join(lines)
 
 
+def evaluate_without_citations(report: str, truth: list[dict], room: DataRoom) -> str:
+    """Derselbe Bericht ohne Fundstellen: Zitatio muss die Seite in allen Berichten selbst finden."""
+    plain = re.sub(r"\s*\[DR [^\]]*\]", "", report)
+    started = time.perf_counter()
+    run = run_check("ohne-fundstellen.md", plain, plain.encode(), room)
+    seconds = time.perf_counter() - started
+    table: dict[tuple[str, str], Counter] = defaultdict(Counter)
+    for f, t in zip(run.findings, truth):
+        if t["variante"] == "falsche Seite":
+            continue  # ohne Fundstelle dieselbe Aussage wie "richtig"
+        group = "direkt abgelesen" if t["direkt"] else "berechnet"
+        table[(group, t["variante"])][f.status.label] += 1
+    good = {"richtig": {Status.GEPRUEFT.label},
+            "falscher Wert": {Status.ABWEICHUNG.label, Status.WIDERSPRUCH.label, Status.OHNE_BELEG.label}}
+    lines = ["", f"Ohne Fundstellen (Belegsuche über alle {sum(len(d.pages) for d in room.documents)} Seiten), "
+             f"Prüfzeit {seconds:.1f} s", ""]
+    for (group, variant), counts in sorted(table.items()):
+        n = sum(counts.values())
+        hit = sum(c for st, c in counts.items() if st in good[variant])
+        spread = ", ".join(f"{st} {c}" for st, c in counts.most_common())
+        lines.append(f"{group:17} {variant:14} {hit:3}/{n:<3} richtig erkannt   ({spread})")
+    return "\n".join(lines)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("financebench", type=Path, help="Klon von github.com/patronus-ai/financebench")
     parser.add_argument("--out", type=Path, default=Path("financebench-test"))
     args = parser.parse_args()
     report, truth, room = build(args.financebench, args.out)
-    summary = evaluate(report, truth, room, args.out)
+    summary = evaluate(report, truth, room, args.out) + evaluate_without_citations(report, truth, room)
     (args.out / "ergebnis.txt").write_text(summary + "\n", encoding="utf-8")
     print(summary)
 

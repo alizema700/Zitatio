@@ -48,10 +48,13 @@ class PageIndex:
         self.avg = (sum(self.lengths) / n) or 1
         self.k1, self.b = k1, b
 
-    def search(self, text: str, k: int = 8) -> list[tuple[Document, int, float]]:
+    def search(self, text: str, k: int = 8, only: set[str] | None = None) -> list[tuple[Document, int, float]]:
+        """Beste Seiten zur Anfrage; only: nur in diesen Dateien suchen."""
         query = set(_terms(text)) & self.idf.keys()
         scored = []
         for i, tf in enumerate(self.tf):
+            if only is not None and self.pages[i][0].name not in only:
+                continue
             score = 0.0
             norm = self.k1 * (1 - self.b + self.b * self.lengths[i] / self.avg)
             for t in query:
