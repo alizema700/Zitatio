@@ -255,3 +255,20 @@ def test_management_accounts_against_annual_accounts():
     room = _room(**{"2.1 Jahresrechnung 2025.txt": statement, "2.5 Management Accounts 2025.txt": "\f".join(pages)})
     flags = {f.title.split(" ")[0]: f for f in check_management_vs_statutory(room)}
     assert flags["Umsatz"].level == "ok" and flags["EBITDA"].level == "hinweis" and "-20.0 %" in flags["EBITDA"].text
+
+
+def test_employment_contracts_against_mandatory_law():
+    from zitatio.arbeitsrecht import check_employment
+
+    room = _room(**{
+        "7.1 Arbeitsvertrag Huber.txt": "Arbeitsvertrag Anna Huber\nFür die Dauer von fünf Jahren nach Beendigung "
+                                        "gilt ein Konkurrenzverbot.\nEs gelten 18 Ferientage pro Jahr.",
+        "7.2 Arbeitsvertrag Meier.txt": "Arbeitsvertrag Beat Meier\nDas Konkurrenzverbot gilt 24 Monate.\n"
+                                        "Es gelten 25 Ferientage pro Jahr.",
+        "7.3 Contrat de travail Dubois.txt": "Contrat de travail\nLa clause de non-concurrence vaut pendant 4 ans.\n"
+                                             "Le collaborateur a droit à 4 semaines de vacances.",
+        "5.1 Liefervertrag.txt": "Liefervertrag\nKonkurrenzverbot während zehn Jahren.",  # kein Arbeitsvertrag
+    })
+    flags = sorted((f.docs[0], f.level, f.title.split(" ")[0]) for f in check_employment(room))
+    assert flags == [("7.1", "hinweis", "Konkurrenzverbot"), ("7.1", "warnung", "Ferienanspruch"),
+                     ("7.3", "hinweis", "Konkurrenzverbot")]

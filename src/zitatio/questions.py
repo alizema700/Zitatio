@@ -50,6 +50,7 @@ _FLAG_QUESTIONS = {
     "Revision": "Bitte erläutern: {title}.",
     "MWST": "Bitte MWST-Umsatzabstimmung zur Jahresrechnung vorlegen und Differenzen erklären: {title}.",
     "Datenschutz": "Bitte Personendaten schwärzen und das Dokument neu in den Datenraum stellen: {title}.",
+    "Arbeitsrecht": "Bitte betroffene Mitarbeitende und den geschätzten Betrag nennen: {title}.",
     "Aktienbuch": "Bitte vollständiges, nachgeführtes Aktienbuch vorlegen: {title}.",
 }
 

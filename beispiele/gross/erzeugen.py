@@ -736,6 +736,9 @@ def build_swiss() -> None:
                                      "Herr Keller war vom 02.02.2026 bis 13.03.2026 krankheitsbedingt abwesend; "
                                      "das Arztzeugnis liegt der Personalabteilung vor."]
     WARNINGS.append({"art": "Datenschutz", "dokument": "7.1"})
+    # Konkurrenzverbot über drei Jahre (Art. 340a OR): ein Hinweis, kein Warnsignal
+    doc_by_index("7.1").pages[11].append("Für die Dauer von fünf Jahren nach Beendigung des Arbeitsverhältnisses "
+                                         "gilt ein Konkurrenzverbot für die ganze Schweiz.")
 
     say_after(TAX, "Seit 2024 beträgt der MWST-Normalsatz 8.1 %.")
     say_after(TAX, "Die Gesellschaft rechnet ihre Umsätze zum MWST-Normalsatz von 7.7 % ab.",

@@ -25,6 +25,7 @@ TOPICS = {
     "immobilien": r"mietvertr|grundstück|immobilie|\bbail\b|locazione",
     "datenraum": r"datenraum|data room|salle de données",
     "leakage": r"leakage|locked[- ]?box",
+    "personal": r"arbeitsvertr|arbeitsrecht|arbeitnehmer|mitarbeitende|contrat de travail|droit du travail|contratto di lavoro",
 }
 _TOPIC_RX = {k: re.compile(v, re.IGNORECASE) for k, v in TOPICS.items()}
 _CLAUSE = re.compile(r"^\s*(?:§\s*|ziff(?:er|\.)\s*)?(\d+(?:\.\d+)+)\.?\s+(.+)$", re.IGNORECASE)
@@ -91,11 +92,12 @@ def collect_issues(run) -> list[Issue]:
         "Kapitalschutz": {"jahresrechnung", "gesellschaft"}, "Revision": {"jahresrechnung"},
         "Covenant": {"finanzierung"}, "Vorsorge": {"vorsorge"}, "Aktienbuch": {"gesellschaft"},
         "Verweise": {"vertraege", "datenraum"}, "Leakage": {"leakage"}, "MWST": {"steuern"},
+        "Arbeitsrecht": {"personal"},
     }
     actions = {"Zeichnungsberechtigung": "Genehmigung der Gesellschaft vor dem Closing verlangen",
                "Nachgerechnet": KLAEREN, "Kapitalschutz": KLAEREN, "Revision": KLAEREN, "Covenant": FREISTELLUNG,
                "Vorsorge": FREISTELLUNG, "Aktienbuch": NACHREICHEN, "Verweise": NACHREICHEN,
-               "Leakage": FREISTELLUNG, "MWST": FREISTELLUNG}
+               "Leakage": FREISTELLUNG, "MWST": FREISTELLUNG, "Arbeitsrecht": FREISTELLUNG}
     for fl in run.flags:
         if fl.area == "Steuern" and "Teilliquidation" in fl.title:
             issues.append(Issue({"steuern"}, fl.title, fl.text, TEILLIQUIDATION, "#pruefungen"))
