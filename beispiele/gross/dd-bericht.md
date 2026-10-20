@@ -64,6 +64,9 @@ Für 2024 wurde ein steuerbarer Reingewinn von CHF 3'613'948 veranlagt [DR 3.2, 
 Die Veranlagung 2024 ist rechtskräftig [DR 3.2, S. 2].
 Die MWST-Abrechnungen 2025 wurden für alle vier Quartale eingereicht [DR 3.3, S. 1].
 Steuerliche Risiken aus offenen Veranlagungen bestehen für 2025, da diese noch nicht veranlagt ist [DR 3.2, S. 2].
+Seit 2024 beträgt der MWST-Normalsatz 8.1 %.
+Die Gesellschaft rechnet ihre Umsätze zum MWST-Normalsatz von 7.7 % ab.
+Auf Dividenden an die Aktionäre fällt die Verrechnungssteuer von 35 % an.
 
 ## 4. Immobilien
 

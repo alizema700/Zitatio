@@ -42,6 +42,7 @@ class Run:
     addbacks: list = field(default_factory=list)  # derive.AddbackCheck
     gaps: list = field(default_factory=list)  # gaps.Gap
     contracts: list = field(default_factory=list)  # clauses.ContractEntry
+    flags: list = field(default_factory=list)  # swiss.Flag
 
     def __post_init__(self):
         self.created = self.created or dt.datetime.now().astimezone()
@@ -142,6 +143,11 @@ def to_json(run: Run) -> str:
                     "stimmt": c.ok,
                 }
                 for c in run.addbacks
+            ],
+            "schweiz": [
+                {"stufe": fl.level, "bereich": fl.area, "titel": fl.title, "text": fl.text,
+                 "belege": [{"dokument": e.doc_label, "seite": e.page, "text": e.match} for e in fl.evidence]}
+                for fl in run.flags
             ],
             "vertragsregister": [
                 {"dokument": e.doc.label, "titel": e.doc.title,
@@ -371,6 +377,28 @@ def _contracts_html(run: Run) -> str:
             f'<tbody>{"".join(rows)}</tbody></table></div>')
 
 
+def _flags_html(run: Run) -> str:
+    if not run.flags:
+        return ""
+    style = {"warnung": ("abweichung", "!"), "hinweis": ("ohne_beleg", "i"), "ok": ("geprueft", "✓")}
+    cards = []
+    for fl in run.flags:
+        cls, sym = style[fl.level]
+        quotes = "".join(
+            f'<blockquote><span class="where">{html.escape(e.doc_label)}, S. {e.page}</span> '
+            f'{html.escape(e.before)}<mark>{html.escape(e.match)}</mark>{html.escape(e.after)}</blockquote>'
+            for e in fl.evidence[:2]
+        ) if fl.level != "ok" else ""
+        cards.append(f'<article class="card s-{cls}"><header><span class="badge">{sym} {html.escape(fl.area)}</span>'
+                     f'<span class="num">{html.escape(fl.title)}</span></header>'
+                     f'<p class="cite">{html.escape(fl.text)}</p>{quotes}</article>')
+    n = sum(f.level == "warnung" for f in run.flags)
+    lead = (f"{n} Warnsignal{'e' if n != 1 else ''} nach Schweizer Recht. " if n else "Keine Warnsignale nach Schweizer Recht. ")
+    return (f'<h2>Schweizer Prüfungen</h2><p class="lead">{lead}Zeichnungsberechtigung gegen das Handelsregister, '
+            "Kapitalschutz (Art. 725a OR), Revisionspflicht (Art. 727 OR), Vorsorge, Aktienbuch und Fusionskontrolle "
+            "(Art. 9 KG).</p>" + "".join(cards))
+
+
 def _gaps_html(run: Run) -> str:
     if not run.gaps:
         return ""
@@ -425,7 +453,7 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _conflicts_html(run) + _addbacks_html(run) + _contracts_html(run)
+    extra = _flags_html(run) + _conflicts_html(run) + _addbacks_html(run) + _contracts_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""

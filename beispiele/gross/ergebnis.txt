@@ -1,30 +1,41 @@
-Datenraum: 41 Dokumente, 268 Seiten · Bericht: 220 Aussagen · Laufzeit 0.8 s
-Status: 144 Geprüft, 60 Ungeprüft, 9 Abweichung, 3 Falsche Fundstelle, 2 Widerspruch, 2 Ohne Beleg
+Datenraum: 41 Dokumente, 268 Seiten · Bericht: 223 Aussagen · Laufzeit 0.9 s
+Status: 159 Geprüft, 46 Ungeprüft, 12 Abweichung, 2 Widerspruch, 2 Falsche Fundstelle, 2 Ohne Beleg
 
-Eingebaute Fehler gefunden: 13 von 14
+Eingebaute Fehler gefunden: 15 von 15
   gefunden  UID vertippt                         -> Abweichung
   gefunden  Vorjahreswert als aktuelles Jahr     -> Abweichung
   gefunden  Einheit TCHF/CHF verwechselt         -> Abweichung
   gefunden  EBIT als Jahresgewinn ausgewiesen    -> Abweichung
   gefunden  falsch gerundet                      -> Abweichung
+  gefunden  veralteter MWST-Satz                 -> Abweichung
   gefunden  falsches Jahr                        -> Abweichung
   gefunden  falsche Seite                        -> Falsche Fundstelle
-  gefunden  falsche Kündigungsfrist              -> Falsche Fundstelle
+  gefunden  falsche Kündigungsfrist              -> Abweichung
   gefunden  Zahlendreher                         -> Abweichung
   gefunden  falsches Dokument                    -> Falsche Fundstelle
-  verpasst  Kontrollwechselklausel übersehen     -> Ungeprüft
+  gefunden  Kontrollwechselklausel übersehen     -> Abweichung
   gefunden  falscher Zinssatz                    -> Abweichung
   gefunden  Zitat erfunden                       -> Abweichung
   gefunden  Bereinigung ohne Beleg               -> Ohne Beleg
 
-Fehlalarme bei richtigen Aussagen: 0 von 206
+Fehlalarme bei richtigen Aussagen: 0 von 208
   Folgehinweis, kein Fehlalarm (folgt aus Bereinigung ohne Beleg): Ohne Beleg: Das bereinigte EBITDA 2025 beträgt damit CHF 5.96 Mio.
 
 Widersprüche im Datenraum gefunden: 3 von 3 eingebauten, 0 weitere gemeldet
-  eingebaut  Aktienkapital: DR 1.1, S. 1: CHF 1'200'000; DR 1.2, S. 1: CHF 1'000'000.
+  eingebaut  Aktienkapital: DR 1.1, S. 1, DR 2.3, S. 5: CHF 1'200'000; DR 1.2, S. 1: CHF 1'000'000.
   eingebaut  Personalaufwand 2024: DR 2.2, S. 3: CHF 11'176'900; DR 2.3, S. 4: CHF 11'318'900.
   eingebaut  Umsatz 2025: DR 2.3, S. 4: CHF 31'862'415; DR 2.5, S. 13: CHF 32'317'000.
   betrifft Aussage 3: Das Aktienkapital von CHF 1.2 Mio. ist voll liberiert.
   betrifft Aussage 15: Der Nettoerlös 2025 beträgt CHF 31.86 Mio.
 
-Richtige Aussagen: 144 geprüft, 59 ungeprüft (keine prüfbaren Werte), 2 mit Widerspruch im Datenraum, 1 Folgehinweis, 0 Fehlalarme
+Schweizer Warnsignale gefunden: 2 von 2 eingebauten, 0 weitere gemeldet
+  warnung  Zeichnungsberechtigung: DR 6.1 Kreditvertrag Bodensee Kantonalbank
+  warnung  Zeichnungsberechtigung: DR 6.2 Leasingvertrag Spritzgussmaschinen
+  hinweis  Zeichnungsberechtigung: Geprüfte Unterschriften
+  ok       Kapitalschutz: Kein Kapitalverlust per 2025
+  ok       Revision: Revisionspflicht 2025: eingeschränkte Revision genügt
+  ok       Vorsorge: Deckungsgrad 112.4 %
+  ok       Aktienbuch: Aktienbuch vollständig
+  ok       Fusionskontrolle: Keine WEKO-Meldung nötig (ein Käufer)
+
+Richtige Aussagen: 159 geprüft, 46 ungeprüft (keine prüfbaren Werte), 2 mit Widerspruch im Datenraum, 1 Folgehinweis, 0 Fehlalarme

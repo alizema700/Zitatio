@@ -70,6 +70,15 @@ def main(details: bool) -> None:
         if f.status is Status.WIDERSPRUCH:
             print(f"  betrifft Aussage {f.claim.number}: {f.claim.clean_text}")
 
+    expected = json.loads((HERE / "warnsignale.json").read_text(encoding="utf-8"))
+    warnings = [w for w in run.flags if w.level == "warnung"]
+    seen = {(w.area, d) for w in warnings for d in w.docs}
+    hit = [e for e in expected if (e["art"], e["dokument"]) in seen]
+    extra = [w for w in warnings if not any((w.area, d) in {(e["art"], e["dokument"]) for e in expected} for d in w.docs)]
+    print(f"\nSchweizer Warnsignale gefunden: {len(hit)} von {len(expected)} eingebauten, {len(extra)} weitere gemeldet")
+    for w in run.flags:
+        print(f"  {w.level:<8} {w.area}: {w.title}")
+
     ok = sum(f.status is Status.GEPRUEFT for f, _ in correct)
     open_ = sum(f.status is Status.UNGEPRUEFT for f, _ in correct)
     other = len(correct) - ok - open_ - len(false_alarms) - len(follow_ups)

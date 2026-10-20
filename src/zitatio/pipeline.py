@@ -9,6 +9,7 @@ from .derive import apply_addbacks, apply_derived, check_addbacks
 from .gaps import check_gaps
 from .render import Run, sha256
 from .report import parse_report
+from .swiss import apply_rates, swiss_flags
 from .verify import ModelVerifier, verify
 
 
@@ -25,9 +26,11 @@ def run_check(
     addbacks = check_addbacks(findings)
     apply_addbacks(addbacks)
     apply_derived(findings, room, skip={c.total.claim.number for c in addbacks})
+    apply_rates(findings)
     register = contract_register(room)
     apply_clauses(findings, room, register)
     conflicts = find_conflicts(room)
     apply_conflicts(findings, conflicts)
     return Run(report_name, sha256(report_bytes), room, findings, model_name if model else None,
-               conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room), contracts=register)
+               conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room), contracts=register,
+               flags=swiss_flags(room))

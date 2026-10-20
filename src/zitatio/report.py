@@ -93,7 +93,7 @@ def split_sentences(text: str) -> list[str]:
         nxt = re.match(r"\s+(\S+)", text[m.end() :])
         next_word = nxt.group(1).lower().strip(",") if nxt else ""
         scale_end = prev in _SCALE_WORDS and next_word.upper() not in _CURRENCY_WORDS
-        if (prev in _ABBREVIATIONS and not scale_end) or len(prev) == 1:
+        if (prev in _ABBREVIATIONS and not scale_end) or (len(prev) == 1 and prev.isalpha()):
             continue
         if prev.isdigit() and next_word in MONTHS:
             continue

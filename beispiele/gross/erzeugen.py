@@ -15,6 +15,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import random
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -635,6 +636,47 @@ def build_quality_of_earnings() -> None:
                    f"ausgeschlossen“ {cite('10.1', 4)}.", correct=False, error="Zitat erfunden")
 
 
+# --- Schweizer Prüfungen: Zeichnungsberechtigung, Bilanzzeilen, gesetzliche Sätze -----
+# Läuft ohne Zufall, damit die übrigen Dokumente gleich bleiben.
+
+WARNINGS = []
+
+
+def doc_by_index(index: str) -> Doc:
+    return next(d for d in DOCS if d.index == index)
+
+
+def build_swiss() -> None:
+    doc_by_index("1.1").pages[1] += [
+        "Zeichnungsberechtigte Personen:",
+        "Rohner, Dr. Beatrice, von Altstätten, in St. Gallen, Präsidentin des Verwaltungsrates, mit Einzelunterschrift",
+        "Fässler, Luca, von Appenzell, in Oberriet, Mitglied des Verwaltungsrates, ohne Zeichnungsberechtigung",
+        "Keller, Dr. Martin, deutscher Staatsangehöriger, in Widnau, Vorsitzender der Geschäftsleitung, mit Kollektivunterschrift zu zweien",
+        "Brunner, Nadia, von Balgach, in Heerbrugg, Mitglied der Geschäftsleitung, mit Kollektivunterschrift zu zweien",
+        "Signer, Reto, von Altstätten, in Altstätten, mit Kollektivprokura zu zweien",
+    ]
+    both = f"Für die {NAME}: Dr. Martin Keller, CEO; Nadia Brunner, CFO"
+    signed = {idx: both for idx, *_ in CUSTOMERS + SUPPLIERS + LEASES}
+    signed["5.1"] = f"Für die {NAME}: Dr. Beatrice Rohner, Präsidentin des Verwaltungsrates"
+    signed["4.1.3"] = f"Für die {NAME}: Reto Signer, COO; Nadia Brunner, CFO"
+    # Zwei Unterschriften, die die Gesellschaft nicht binden:
+    signed["6.1"] = f"Für die {NAME}: Nadia Brunner, CFO"
+    signed["6.2"] = f"Für die {NAME}: Thomas Brunner, Leiter Produktion"
+    WARNINGS.extend([{"art": "Zeichnungsberechtigung", "dokument": "6.1"},
+                     {"art": "Zeichnungsberechtigung", "dokument": "6.2"}])
+    for idx, line in signed.items():
+        doc_by_index(idx).pages[-1].append(line)
+
+    balance = next(p for p in doc_by_index("2.3").pages if p and p[0].startswith("Bilanz per"))
+    assets = sum(int(re.sub(r"\D", "", row.rsplit(" ", 1)[1])) for row in balance[1:5])
+    balance += ["Aktienkapital 1'200'000", "Gesetzliche Gewinnreserve 240'000", f"Bilanzsumme {chf(assets)}"]
+
+    say_after(TAX, "Seit 2024 beträgt der MWST-Normalsatz 8.1 %.")
+    say_after(TAX, "Die Gesellschaft rechnet ihre Umsätze zum MWST-Normalsatz von 7.7 % ab.",
+              correct=False, error="veralteter MWST-Satz")
+    say_after(TAX, "Auf Dividenden an die Aktionäre fällt die Verrechnungssteuer von 35 % an.")
+
+
 # --- Fehler einbauen --------------------------------------------------------------
 
 def plant(where: str, new: str, error: str, detectable: bool = True) -> None:
@@ -742,6 +784,7 @@ def main() -> None:
     build_rest()
     plant_errors()
     build_quality_of_earnings()
+    build_swiss()
     OUT.mkdir(parents=True, exist_ok=True)
     for old in OUT.iterdir():
         old.unlink()
@@ -755,6 +798,7 @@ def main() -> None:
     ]
     (HERE / "wahrheit.json").write_text(json.dumps(truth, ensure_ascii=False, indent=1), encoding="utf-8")
     (HERE / "widersprueche.json").write_text(json.dumps(CONFLICTS, ensure_ascii=False, indent=1), encoding="utf-8")
+    (HERE / "warnsignale.json").write_text(json.dumps(WARNINGS, ensure_ascii=False, indent=1), encoding="utf-8")
     pages = sum(len(d.pages) or len(d.sheets) for d in DOCS)
     print(f"{len(DOCS)} Dokumente, {pages} Seiten, {len(REPORT)} Aussagen, "
           f"{sum(not s.correct for s in REPORT)} Fehler, {len(CONFLICTS)} Widersprüche im Datenraum")

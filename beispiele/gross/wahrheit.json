@@ -371,6 +371,27 @@
   "hinweis": ""
  },
  {
+  "aussage": "Seit 2024 beträgt der MWST-Normalsatz 8.1 %.",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Die Gesellschaft rechnet ihre Umsätze zum MWST-Normalsatz von 7.7 % ab.",
+  "richtig": false,
+  "fehler": "veralteter MWST-Satz",
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
+  "aussage": "Auf Dividenden an die Aktionäre fällt die Verrechnungssteuer von 35 % an.",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": ""
+ },
+ {
   "aussage": "Die Produktion ist in Altstätten eingemietet; der Vertrag ist fest bis 31. Dezember 2032 [DR 4.1.1, S. 2].",
   "richtig": false,
   "fehler": "falsches Jahr",
