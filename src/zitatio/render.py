@@ -341,9 +341,23 @@ def _versions_html(run: Run) -> str:
     carried = f" {kept} Entscheide aus der Vorversion übernommen." if kept else ""
     table = (f'<div class="tablebox"><table><thead><tr><th>Aussage</th><th>Änderung</th><th>Text</th>'
              f'<th>Vorher</th><th>Ergebnis</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>') if rows else ""
-    return (f'<h2>Änderungen gegenüber der Vorversion</h2><p class="lead">Vorversion {html.escape(diff.old_name)}. '
+    return (f'<h2 id="versionen">Änderungen gegenüber der Vorversion</h2><p class="lead">Vorversion {html.escape(diff.old_name)}. '
             f"{html.escape(diff.summary())}{carried} Unveränderte Aussagen ohne offenen Befund sind ausgeblendet.</p>"
             + table)
+
+
+def _keypoints_html(run: Run) -> str:
+    from .summary import key_points
+
+    points = key_points(run)
+    if not points:
+        return ""
+    cls = {"kritisch": "abweichung", "klären": "ohne_beleg", "info": "ungeprueft"}
+    items = "".join(
+        f'<li class="s-{cls[p.level]}"><a href="{p.href}"><span class="badge">{p.level.capitalize()}</span>'
+        f'<b>{html.escape(p.title)}</b></a><p>{html.escape(p.text)}</p></li>'
+        for p in points[:10])
+    return f'<section class="keys"><p class="kicker">Das Wichtigste für das Investment Committee</p><ul>{items}</ul></section>'
 
 
 def _pill(f: Finding) -> str:
@@ -375,7 +389,7 @@ def _conflicts_html(run: Run) -> str:
             + "</article>"
         )
     n = len(run.conflicts)
-    return (f'<h2>Widersprüche im Datenraum</h2><p class="lead">Bei {n} {"Grössen" if n > 1 else "Grösse"} nennen '
+    return (f'<h2 id="widersprueche">Widersprüche im Datenraum</h2><p class="lead">Bei {n} {"Grössen" if n > 1 else "Grösse"} nennen '
             "die Dokumente unterschiedliche Werte. Das betrifft die Unterlagen des Verkäufers selbst: "
             "Welcher Wert stimmt, muss geklärt werden, bevor der Bericht ihn übernimmt.</p>" + "".join(cards))
 
@@ -413,7 +427,7 @@ def _addbacks_html(run: Run) -> str:
                    f'{html.escape(verdict.split(".")[0])}</span><span class="num">{html.escape(c.section)}</span></header>'
                    f'<div class="tablebox flat"><table><tbody>{"".join(rows)}</tbody></table></div>'
                    f'<p class="cite">{html.escape(verdict)}</p></article>')
-    return ('<h2>EBITDA-Bereinigungen nachgerechnet</h2><p class="lead">Jede Bereinigung braucht eine Fundstelle, '
+    return ('<h2 id="bereinigungen">EBITDA-Bereinigungen nachgerechnet</h2><p class="lead">Jede Bereinigung braucht eine Fundstelle, '
             "und die Summe muss aufgehen.</p>" + "".join(out))
 
 
@@ -448,10 +462,10 @@ def _closing_html(run: Run) -> str:
     if risk:
         lead += f", zusammen CHF {_n(risk)} jährliches Volumen"
         if run.revenue:
-            lead += f" ({risk / run.revenue[1]:.0%} des Umsatzes {run.revenue[0]})"
+            lead += f" ({risk / run.revenue[1] * 100:.0f} % des Umsatzes {run.revenue[0]})"
     ending = sum(1 for i in run.closing if i.kind == "laufzeit")
     lead += f". {ending} Verträge sind abgelaufen oder enden in den nächsten 18 Monaten." if ending else "."
-    return (f'<h2>Closing-Liste</h2><p class="lead">{html.escape(lead)} Was vor Signing und Closing mit den '
+    return (f'<h2 id="closing">Closing-Liste</h2><p class="lead">{html.escape(lead)} Was vor Signing und Closing mit den '
             "Gegenparteien zu klären ist, mit Seite im Vertrag.</p>"
             '<div class="tablebox"><table><thead><tr><th>Index</th><th class="opt">Vertrag</th><th>Zu klären</th>'
             f'<th>Volumen p.a.</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
@@ -488,7 +502,7 @@ def _contracts_html(run: Run) -> str:
             "oder verlangen ihre Zustimmung: " + ", ".join(e.doc.label for e in coc) + "." if coc
             else f"Keiner der {len(entries)} Verträge enthält eine Kontrollwechselklausel.")
     head = "".join(f"<th>{html.escape(LABELS[k])}</th>" for k in kinds)
-    return (f'<h2>Vertragsregister</h2><p class="lead">{html.escape(lead)} Gefunden per Wortsuche mit Seite; '
+    return (f'<h2 id="vertraege">Vertragsregister</h2><p class="lead">{html.escape(lead)} Gefunden per Wortsuche mit Seite; '
             "der Satz erscheint beim Darüberfahren.</p>"
             f'<div class="tablebox"><table><thead><tr><th>Index</th><th class="opt">Dokument</th><th>Ende</th><th>Kündigung</th>{head}</tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table></div>')
@@ -507,7 +521,7 @@ def _internal_html(run: Run) -> str:
             f'<span class="num">{html.escape(c.title)}: {html.escape(" vs. ".join(c.values))}</span></header>'
             f'<div class="tablebox flat"><table><thead><tr><th>Aussage</th><th>Text</th></tr></thead>'
             f'<tbody>{rows}</tbody></table></div></article>')
-    return ('<h2>Widersprüche im Bericht</h2><p class="lead">Der Bericht nennt für dieselbe Grösse und Periode '
+    return ('<h2 id="bericht-widersprueche">Widersprüche im Bericht</h2><p class="lead">Der Bericht nennt für dieselbe Grösse und Periode '
             "an verschiedenen Stellen verschiedene Werte. Gerundete Schreibweisen zählen als gleich.</p>" + "".join(cards))
 
 
@@ -528,7 +542,7 @@ def _flags_html(run: Run) -> str:
                      f'<p class="cite">{html.escape(fl.text)}</p>{quotes}</article>')
     n = sum(f.level == "warnung" for f in run.flags)
     lead = f"{n} Warnsignal{'e' if n != 1 else ''}. " if n else "Keine Warnsignale. "
-    return (f'<h2>Prüfungen im Datenraum</h2><p class="lead">{lead}Erfolgsrechnungen nachgerechnet, '
+    return (f'<h2 id="pruefungen">Prüfungen im Datenraum</h2><p class="lead">{lead}Erfolgsrechnungen nachgerechnet, '
             "Zeichnungsberechtigung gegen das Handelsregister, Kapitalschutz (Art. 725a OR), Revisionspflicht (Art. 727 OR), Vorsorge, Aktienbuch und Fusionskontrolle "
             "(Art. 9 KG).</p>" + "".join(cards))
 
@@ -549,7 +563,7 @@ def _gaps_html(run: Run) -> str:
     missing = sum(not g.present for g in run.gaps)
     lead = (f"{missing} von {len(run.gaps)} üblichen Unterlagen fehlen im Datenraum." if missing
             else "Alle üblichen Unterlagen sind im Datenraum vorhanden.")
-    return (f'<h2>Erwartete Unterlagen</h2><p class="lead">{lead} Die Liste ist allgemein; '
+    return (f'<h2 id="unterlagen">Erwartete Unterlagen</h2><p class="lead">{lead} Die Liste ist allgemein; '
             "ob eine Unterlage für diesen Deal nötig ist, entscheidet das Team.</p>"
             f'<div class="tablebox"><table><thead><tr><th>Bereich</th><th>Unterlage</th><th>Im Datenraum</th></tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table></div>')
@@ -596,6 +610,7 @@ def to_html(run: Run) -> str:
     return TEMPLATE.format(
         fonts=_font_faces(),
         donut=donut,
+        keypoints=_keypoints_html(run),
         ok_share=ok_share.replace("%", "&nbsp;%"),
         csv=base64.b64encode(to_csv(run).encode("utf-8")).decode(),
         rows=json.dumps({"columns": CSV_COLUMNS, "rows": _rows(run),
@@ -693,6 +708,12 @@ h2 {{ font:500 30px/1.2 var(--display); letter-spacing:-.025em; margin:64px 0 18
 .badge {{ font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px; padding:4px 12px; }}
 .method {{ margin-left:auto; }}
 .sec {{ }}
+.keys {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:20px 24px 8px; margin:18px 0 0; }}
+.keys ul {{ list-style:none; margin:10px 0 0; padding:0; }}
+.keys li {{ padding:12px 0; border-top:1px solid var(--line); }}
+.keys li a {{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; color:inherit; text-decoration:none; }}
+.keys li b {{ font-weight:500; }}
+.keys li p {{ margin:6px 0 0; color:var(--ink-2); font-size:14px; }}
 .todo {{ margin:4px 0; font-size:14px; }}
 td.nw {{ white-space:nowrap; }}
 .tag {{ font-size:12px; font-weight:500; color:var(--ink-2); box-shadow:0 0 0 1px var(--line); border-radius:999px; padding:3px 10px; }}
@@ -761,6 +782,7 @@ td .m {{ display:none; }}
     <div class="donut" aria-hidden="true"><span>{ok_share}<small>geprüft</small></span></div>
   </div>
   <div class="chips">{chips}</div>
+  {keypoints}
   <div class="review" id="review">
     <label>Durchgesehen von <input type="text" id="reviewer" placeholder="Name" autocomplete="name"></label>
     <span id="progress">0 von {total} entschieden</span><span class="bar"><i id="bar"></i></span>

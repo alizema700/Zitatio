@@ -27,6 +27,7 @@ def main(argv: list[str] | None = None) -> int:
                    help="Offenlegungskarte als CSV: jede Aussage mit Dokument, Seite und Prüfsumme (für W&I)")
     p.add_argument("--modell", action="store_true",
                    help="Prüfmodell aus ZITATIO_LLM_BASE_URL / ZITATIO_LLM_MODEL verwenden")
+    p.add_argument("--memo", type=Path, help="eine Seite fürs IC-Memo als Markdown: das Wichtigste und offene Befunde")
     p.add_argument("--vorher", type=Path, help="frühere Version des Berichts: zeigt behobene, offene und neue Befunde")
     p.add_argument("--entscheide", type=Path,
                    help="exportiertes Prüf-CSV der Vorversion: Entscheide für unveränderte Aussagen übernehmen")
@@ -58,6 +59,10 @@ def main(argv: list[str] | None = None) -> int:
         args.json.write_text(to_json(run), encoding="utf-8")
     if args.csv:
         args.csv.write_text(to_csv(run), encoding="utf-8")
+    if args.memo:
+        from .summary import to_markdown
+
+        args.memo.write_text(to_markdown(run), encoding="utf-8")
     if args.offenlegung:
         args.offenlegung.write_text(to_disclosure_csv(run), encoding="utf-8")
 
