@@ -23,7 +23,12 @@ _GROWTH_RE = re.compile(r"\bwachstum\w*|\bgewachsen\b|\bwuchs\b|\bgestiegen\b|\b
                         r"|\brückgang\b|\bgesunken\b|\bsank\b|\babnahme\b|\bveränderung\b", re.I)
 _DECLINE_RE = re.compile(r"\brückgang\b|\bgesunken\b|\bsank\b|\babnahme\b|\bminus\b", re.I)
 _SUM_RE = re.compile(r"\binsgesamt\b|\bzusammen\b|\bgesamt\w*|\btotal\b|\bsumme\b", re.I)
-_DERIVED_RE = re.compile(f"{_SHARE_RE.pattern}|{_GROWTH_RE.pattern}|{_SUM_RE.pattern}|\\bentspricht\\b", re.I)
+# Kennzahlen, die gerechnet und nicht abgelesen werden; DD-Berichte schreiben sie oft englisch.
+_RATIO_RE = re.compile(r"\bdurchschnitt\w*|\bverhältnis\w*|\brendite\b|\bumschlag\w*|\bmargin\b|\bratio\b|\bgrowth\b"
+                       r"|\bchange\b|\baverage\b|\bcagr\b|\bturnover\b|\bless\b|\s\+\s"
+                       r"|free cash flow|working capital|umlaufvermögen", re.I)
+_DERIVED_RE = re.compile(f"{_SHARE_RE.pattern}|{_GROWTH_RE.pattern}|{_SUM_RE.pattern}|{_RATIO_RE.pattern}"
+                         "|\\bentspricht\\b", re.I)
 _ADDBACK_SECTION_RE = re.compile(r"bereinig|add-?back|normalis|adjust|quality of earnings|\bqoe\b|sondereffekt", re.I)
 _NEGATIVE_RE = re.compile(r"\b(?:abzüglich|abzug|minus|reduziert|vermindert|negativ\w*|abgezogen)\b|[−–-]\s*CHF", re.I)
 

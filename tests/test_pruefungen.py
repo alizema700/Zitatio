@@ -198,3 +198,38 @@ def test_report_shows_new_sections():
                     "Offenlegungskarte"):
         assert heading in page
     assert '"widersprueche"' in to_json(run)
+
+
+US_CASH_FLOW = """Consolidated Statement of Cash Flows
+(In millions, except per share amounts)
+2018
+2017
+Net income
+$
+5,363
+$
+4,869
+Purchases of property, plant and equipment
+(1,577)
+(1,373)
+"""
+
+
+def test_us_report_in_millions_is_read_with_its_unit():
+    room = DataRoom()
+    room.add("1 Annual Report 2018.txt", US_CASH_FLOW.encode())
+    text = "Die Investitionen 2018 betragen USD 1'577 Mio. und der Gewinn USD 5.36 Mrd. [DR 1, S. 1]."
+    f = run_check("b.md", text, text.encode(), room).findings[0]
+    assert f.status is Status.GEPRUEFT
+
+
+def test_same_number_in_unrelated_document_is_no_wrong_citation():
+    room = _room(**{"6.1 Versicherungspolice Gebäude.txt": "Police\nDie Prämie beträgt CHF 7'500'000.\n"})
+    f = _check("Der Materialaufwand 2025 betrug CHF 7.5 Mio. [DR 2.2, S. 1].", room).findings[0]
+    assert f.status is Status.ABWEICHUNG
+
+
+def test_averages_are_not_relocated_to_a_random_page():
+    room = _room(**{"6.1 Präsentation.txt": "Marktanteil Durchschnitt 12.4 %\n"})
+    f = _check("Die durchschnittliche Marge 2024 bis 2025 beträgt 12.4 % [DR 2.2, S. 1].", room).findings[0]
+    assert f.status is not Status.FALSCHE_FUNDSTELLE

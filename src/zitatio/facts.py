@@ -255,6 +255,12 @@ _UNIT_RES = [
     (re.compile(rf"\bin\s+(?:Mio\.?|Millionen)\s*{_CODE}\b|\b{_CODE}\s+(?:Mio\.|Millionen)(?!\s*\d)", re.I), 10**6),
     (re.compile(rf"\b(?:in|Beträge in|Währung:?)\s+{_CODE}\b(?!\s*[\d'’])", re.I), 1),
 ]
+# US-Berichte (10-K): "(In millions, except per share data)", "(Dollars in thousands)", "(Millions)".
+# Die Währung steht dort nur als "$" in der Tabelle.
+_EN_UNIT_RE = re.compile(
+    r"(?<!shares )(?<!share )\b(?:in|In|IN)\s+(millions|thousands|billions)\b|\((Millions|Thousands|Billions|millions|thousands)\)"
+)
+_EN_FACTORS = {"thousands": 1000, "millions": 10**6, "billions": 10**9}
 _BARE_RE = re.compile(rf"(?<![\w.,'’/-])\(?-?(?P<n>{_NUM})\)?(?![\w%'’]|[.,]\d)")
 
 
@@ -265,13 +271,16 @@ def page_unit(text: str) -> tuple[str, int] | None:
         for m in rx.finditer(text):
             code = next(g for g in reversed(m.groups()) if g and g.upper() in ("CHF", "EUR", "USD"))
             found.add((code.upper(), factor))
+    if not found and re.search(r"\$|U\.S\. dollars|USD", text):
+        for m in _EN_UNIT_RE.finditer(text):
+            found.add(("USD", _EN_FACTORS[(m.group(1) or m.group(2)).lower()]))
     if len(found) == 1:
         return found.pop()
     # "in CHF" und "TCHF" auf derselben Seite: nicht eindeutig
     return None
 
 
-@lru_cache(maxsize=4096)
+@lru_cache(maxsize=65536)
 def page_facts(text: str) -> tuple[Fact, ...]:
     """Fakten einer Datenraum-Seite inklusive Tabellenzahlen in der Einheit des Seitenkopfs."""
     facts = extract_facts(text)
@@ -279,8 +288,16 @@ def page_facts(text: str) -> tuple[Fact, ...]:
     if unit is None:
         return tuple(facts)
     code, factor = unit
-    label = {1: code, 1000: f"T{code}", 10**6: f"Mio. {code}"}[factor]
+    label = {1: code, 1000: f"T{code}", 10**6: f"Mio. {code}", 10**9: f"Mrd. {code}"}[factor]
     extra = []
+    if factor > 1:
+        # "$ 5,363" in einer Tabelle "(in millions)" heisst USD 5'363 Mio.; beide Lesarten behalten
+        for f in facts:
+            if f.kind == AMOUNT and f.value[0] == code and not re.search(_SCALE, f.text) \
+                    and not re.match(r"[TtKk]", f.text):
+                num = re.search(_NUM, f.text).group(0)
+                extra.append(Fact(AMOUNT, (code, _norm_decimal(f.value[1] * factor)), f.text, f.start, f.end,
+                                  _step(num) * factor, label))
     for m in _BARE_RE.finditer(text):
         start, end = m.span("n")
         if any(start < f.end and f.start < end for f in facts):

@@ -143,6 +143,30 @@ gelesen werden.
 Die Aussagen im Bericht sind generiert und lehnen sich eng an die Formulierungen im Datenraum an. Echte Berichte
 umschreiben freier; die Zahlen hier sind deshalb eher eine obere Grenze.
 
+### Echte Jahresberichte: FinanceBench
+
+[FinanceBench](https://github.com/patronus-ai/financebench) (Patronus AI, CC BY-NC 4.0) enthält 150 Fragen zu echten
+US-Jahres- und Quartalsberichten. Zu jeder Antwort steht die Seite, auf der der Beleg steht. Das Skript macht aus jeder
+Antwort mit Betrag oder Prozentwert einen Satz mit Fundstelle, in drei Varianten: richtig, mit um 8 % falschem Wert und
+mit falscher Seite. Die PDFs bleiben wegen der Lizenz ausserhalb des Repos.
+
+```bash
+git clone --depth 1 https://github.com/patronus-ai/financebench /tmp/financebench
+python scripts/financebench_test.py /tmp/financebench --out /tmp/fb-test
+```
+
+Ergebnis (33 Antworten, 30 Berichte mit 4'850 Seiten, Prüfzeit rund 12 Sekunden):
+
+| Art der Antwort | richtig bestätigt | falscher Wert erkannt | falsche Seite erkannt |
+|---|---|---|---|
+| direkt abgelesen (14) | 14 | 12 | 14 |
+| berechnet, z. B. Marge, Durchschnitt, Free Cashflow (19) | 0, davon 18 „Ungeprüft“ | 1 | 1 |
+
+Direkt abgelesene Werte prüft Zitatio auch in US-Tabellen mit „(in millions)“ zuverlässig. Zwei falsche Summen bleiben
+„Ungeprüft“, weil das Wort „total“ sie als abgeleitet markiert. Berechnete Kennzahlen kann Zitatio in diesen Berichten
+noch nicht nachrechnen und meldet sie ehrlich als „Ungeprüft“. Es gibt einen Fehlalarm, weil der generierte Satz eine
+Quote als Abschreibung beschreibt.
+
 ## Prüfmodell (optional)
 
 ```bash
@@ -184,4 +208,8 @@ beispiele/alpenblick/  Fiktiver Datenraum mit DD-Bericht und absichtlich eingeba
   in derselben Anzahl nennt wie die Zeile Werte hat. Sonst bleibt es bei der Prüfung „Wert steht auf der Seite“.
 - Widersprüche werden nur für Tabellenzeilen mit bekannter Grösse und Periode gefunden, nicht in Fliesstext.
 - Die Lückenliste erkennt Unterlagen am Dateinamen, nicht am Inhalt.
+- In US-Berichten, die jede Zahl auf eine eigene Zeile setzen, fehlen Zeilenbeschriftungen. Kennzahlen wie Margen
+  oder Durchschnitte werden dort deshalb noch nicht nachgerechnet.
+- Steht derselbe Wert auf einer anderen Seite, meldet Zitatio „Falsche Fundstelle“ nur, wenn ein Wort der Aussage
+  kurz davor steht und das Dokument zur Aussage passt. Sonst bleibt es bei „Abweichung“.
 - Zefix- und SHAB-Abgleich folgen; dafür braucht es Zugangsdaten zur Zefix-REST-Schnittstelle.

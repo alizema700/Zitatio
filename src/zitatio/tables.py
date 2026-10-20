@@ -121,7 +121,7 @@ def _clean_label(text: str) -> str:
     return text.rstrip("(").strip() if text.count("(") > text.count(")") else text
 
 
-@lru_cache(maxsize=4096)
+@lru_cache(maxsize=65536)
 def page_cells(text: str, default_year: int | None = None, plan_doc: bool = False) -> tuple[Cell, ...]:
     """Jeder Betrag einer Seite mit Zeilenbeschriftung, Grösse und Periode."""
     facts = [f for f in page_facts(text) if f.kind == AMOUNT]

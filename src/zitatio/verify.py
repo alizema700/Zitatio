@@ -148,11 +148,13 @@ def _find(fact: Fact, doc: Document, pages: list[int], ctx: _Context | None = No
     """Fundort eines Werts: passende Zeile und Spalte vor unpassender, exakt vor gerundet."""
     best, best_rank = None, None
     for page in pages:
-        cells = doc_cells(doc, page) if fact.kind == AMOUNT else ()
+        cells = None
         for candidate in page_facts(doc.pages[page - 1]):
             how = fact.match(candidate)
             if not how:
                 continue
+            if cells is None:
+                cells = doc_cells(doc, page) if fact.kind == AMOUNT else ()
             cell = cell_at(cells, candidate)
             misfit = _misfit(ctx, cell)
             rank = (misfit is not None, how != "exakt")
@@ -320,16 +322,51 @@ def _resolve(claim: Claim, room: DataRoom):
     return resolved, problems
 
 
-def _locate_elsewhere(fact: Fact, room: DataRoom, skip: set[tuple[str, int]], ctx: _Context | None = None):
+_GENERIC = {"beträgt", "betrug", "betragen", "beliefen", "belief", "geschäftsjahr", "jahres", "total", "insgesamt",
+            "rund", "damit", "gesamt", "bericht", "gemäss", "laut"}
+
+
+def _near_words(claim_text: str, page_text: str, start: int) -> bool:
+    """Steht ein Wort der Aussage kurz vor dem Wert? Sonst ist der Fund in einem grossen
+    Datenraum oft nur dieselbe Zahl in einem anderen Zusammenhang."""
+    return _shares_word(claim_text, page_text[max(0, start - 300) : start + 60])
+
+
+def _shares_word(claim_text: str, other: str) -> bool:
+    fold = str.maketrans("äöü", "aou")
+    wanted = {w.translate(fold)[:5] for w in _tokens(claim_text) - _GENERIC}
+    found = {w.translate(fold) for w in _tokens(other.replace("_", " "))}
+    return any(w.startswith(stem) for w in found for stem in wanted)
+
+
+# Durchschnitte und Veränderungen stehen selten wörtlich im Datenraum; dieselbe Zahl auf einer
+# anderen Seite ist dann fast immer etwas anderes.
+_COMPUTED_RE = re.compile(r"durchschnitt|\baverage\b|\bcagr\b|\bchange\b|veränderung|wachstum|\bgrowth\b", re.I)
+
+
+def _locate_elsewhere(fact: Fact, room: DataRoom, skip: set[tuple[str, int]], ctx: _Context | None = None,
+                      claim_text: str = ""):
+    if claim_text and _COMPUTED_RE.search(claim_text):
+        return None
+    cited_docs = {name for name, _ in skip}
     fallback = None
     for doc in room.documents:
         if doc.index is None:
             continue
-        pages = [p for p in range(1, len(doc.pages) + 1) if (doc.name, p) not in skip]
-        hit = _find(fact, doc, pages, ctx)
-        if hit and hit.misfit is None:
-            return hit
-        fallback = fallback or hit
+        # Im zitierten, kurzen Dokument ist eine andere Seite fast immer gemeint; in langen
+        # Dokumenten und im übrigen Datenraum muss die Umgebung zur Aussage passen.
+        strict = bool(claim_text) and (doc.name not in cited_docs or len(doc.pages) > 20)
+        if strict and doc.name not in cited_docs and not _shares_word(claim_text, doc.title):
+            continue  # ein anderes Dokument nur, wenn die Aussage davon spricht
+        for p in range(1, len(doc.pages) + 1):
+            if (doc.name, p) in skip:
+                continue
+            hit = _find(fact, doc, [p], ctx)
+            if not hit or (strict and not _near_words(claim_text, doc.pages[p - 1], hit.fact.start)):
+                continue
+            if hit.misfit is None:
+                return hit
+            fallback = fallback or hit
     return None if ctx else fallback
 
 
@@ -406,7 +443,7 @@ def verify_claim(claim: Claim, room: DataRoom, model: ModelVerifier | None = Non
     if not claim.citations:
         finding.status = Status.OHNE_BELEG
         finding.reasons.insert(0, "Keine Fundstelle angegeben.")
-        hits = [_locate_elsewhere(f, room, set(), _context(claim, f)) for f in checkable]
+        hits = [_locate_elsewhere(f, room, set(), _context(claim, f), claim.clean_text) for f in checkable]
         quote_places = [_locate_quote(q, room, set()) for q in quotes(claim.clean_text)]
         if (checkable or quote_places) and all(hits) and all(quote_places):
             places = sorted({f"{h.doc.label}, S. {h.page}" for h in hits} | {f"{d.label}, S. {p}" for d, p in quote_places})
@@ -471,7 +508,7 @@ def verify_claim(claim: Claim, room: DataRoom, model: ModelVerifier | None = Non
         else:
             finding.reasons.append(f"Das Zitat «{_short(quotes(claim.clean_text)[0])}» steht wörtlich an der Fundstelle.")
     elif missing or wrong_quotes:
-        elsewhere = [_locate_elsewhere(f, room, cited, _context(claim, f)) for f in missing]
+        elsewhere = [_locate_elsewhere(f, room, cited, _context(claim, f), claim.clean_text) for f in missing]
         quote_places = [_locate_quote(q, room, cited) for q in wrong_quotes]
         if all(elsewhere) and all(quote_places):
             finding.status = Status.FALSCHE_FUNDSTELLE
