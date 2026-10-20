@@ -32,18 +32,20 @@ KINDS: list[tuple[str, str, re.Pattern, str]] = [
          r"konkurrenzverbot\w*|wettbewerbsverbot\w*|non-?compete|abwerbeverbot\w*"
          r"|prohibition de concurrence|interdiction de concurrence|non-concurrence|divieto di concorrenza",
          "schränkt Geschäft oder Personen nach dem Deal ein"),
-        ("konventionalstrafe", "Konventionalstrafe", r"konventionalstrafe\w*|vertragsstrafe\w*|pönale\w*|peine conventionnelle|pena convenzionale",
+        ("konventionalstrafe", "Konventionalstrafe", r"konventionalstrafe\w*|vertragsstrafe\w*|pönale\w*|peine conventionnelle|pena convenzionale|liquidated damages|contractual penalt\w*",
          "Zahlungsrisiko bei Verletzung"),
         ("abtretung", "Abtretung nur mit Zustimmung",
-         r"(?:abtret\w*|übertrag\w*|cédé\w*|céder|cession|transf[ée]r\w*|\bced\w*|cessione|trasfer\w*)[^.]{0,80}"
-         r"(?:zustimmung|einwilligung|genehmigung|consentement|accord préalable|consenso)"
+         r"(?:abtret\w*|übertrag\w*|cédé\w*|céder|cession|transf[ée]r\w*|\bced\w*|cessione|trasfer\w*|\bassign\w*)[^.]{0,80}"
+         r"(?:zustimmung|einwilligung|genehmigung|consentement|accord préalable|consenso|\bconsent\b)"
          r"|(?:zustimmung|einwilligung|consentement|consenso)[^.]{0,80}(?:abtret\w*|übertrag\w*|cession|céd\w*|cessione)",
          "Asset Deal oder Umstrukturierung braucht Zustimmung"),
         ("meistbeguenstigung", "Meistbegünstigung", r"meistbegünstig\w*|most[- ]favou?red|nation la plus favorisée|nazione più favorita", "begrenzt Preisgestaltung"),
         ("haftungsbegrenzung", "Haftungsbegrenzung", r"haftung\w*[^.]{0,60}(?:begrenzt|beschränkt|ausgeschlossen)"
-         r"|responsabilité[^.]{0,60}(?:limitée|exclue)|responsabilità[^.]{0,60}(?:limitata|esclusa)",
+         r"|responsabilité[^.]{0,60}(?:limitée|exclue)|responsabilità[^.]{0,60}(?:limitata|esclusa)"
+         r"|liability[^.]{0,60}(?:limited|capped|excluded)",
          "Höhe des Risikos bei Schäden"),
         ("garantie", "Bürgschaft oder Garantie", r"\bbürgschaft\w*|\bgarantieerklärung\w*|patronatserklärung\w*|\bcautionnement\w*|lettre de patronage"
+         r"|\bparent company guarantee|\bcomfort letter"
          r"|\bfideiussion\w*|lettera di patronage",
          "Eventualverbindlichkeit"),
     ]
@@ -55,15 +57,15 @@ _ANCHORS = {
     "kontrollwechsel": ("kontrollwechsel", "control", "wechsel", "übernahme der", "contrôle", "controllo"),
     "exklusivitaet": ("exklusiv", "allein", "ausschliesslich", "exclusiv", "exclusif", "esclusiv"),
     "konkurrenzverbot": ("verbot", "compete", "concurrence", "concorrenza"),
-    "konventionalstrafe": ("strafe", "pönale", "peine conventionnelle", "pena convenzionale"),
-    "abtretung": ("zustimmung", "einwilligung", "genehmigung", "consentement", "accord préalable", "consenso"),
+    "konventionalstrafe": ("strafe", "pönale", "peine conventionnelle", "pena convenzionale", "liquidated", "penalt"),
+    "abtretung": ("zustimmung", "einwilligung", "genehmigung", "consentement", "accord préalable", "consenso", "consent"),
     "meistbeguenstigung": ("meistbegünstig", "favo", "favorisée", "favorita"),
-    "haftungsbegrenzung": ("haftung", "responsabilit"),
-    "garantie": ("bürgschaft", "garantieerklärung", "patronat", "cautionnement", "patronage", "fideiussion"),
+    "haftungsbegrenzung": ("haftung", "responsabilit", "liability"),
+    "garantie": ("bürgschaft", "garantieerklärung", "patronat", "cautionnement", "patronage", "fideiussion", "guarantee", "comfort letter"),
 }
 WHY = {key: why for key, _, _, why in KINDS}
 
-_NEGATION = re.compile(r"\b(?:nicht|kein\w*|ohne|weder|pas|aucun\w*|sans|ni|non(?!-)|nessun\w*|senza|né)\b"
+_NEGATION = re.compile(r"\b(?:nicht|kein\w*|ohne|weder|pas|aucun\w*|sans|ni|non(?!-)|nessun\w*|senza|né|no|not|neither)\b"
                        r"|berührt\b[^.]*\bnicht", re.IGNORECASE)
 _SENTENCE = re.compile(r"[^.!?]+(?:[.!?]|$)")
 
@@ -148,7 +150,8 @@ def contract_register(room: DataRoom) -> list[ContractEntry]:
 
 # --- Aussagen des Berichts gegen das Register prüfen -------------------------------
 
-_CLAIM_NEGATION = re.compile(r"\b(?:kein\w*|nicht|ohne|weder|pas|aucun\w*|sans|non(?!-)|nessun\w*|senza)\b", re.IGNORECASE)
+_CLAIM_NEGATION = re.compile(r"\b(?:kein\w*|nicht|ohne|weder|pas|aucun\w*|sans|non(?!-)|nessun\w*|senza|no|not|neither|without)\b",
+                             re.IGNORECASE)
 
 
 def clause_claims(text: str) -> list[tuple[str, bool]]:

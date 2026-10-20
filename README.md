@@ -11,7 +11,8 @@ fehlende Standardunterlagen gelistet, und eine Offenlegungskarte hält fest, wel
 Für Schweizer Deals kommen Prüfungen hinzu, die über „steht es auf der Seite?“ hinausgehen: Zeichnungsberechtigung
 gegen das Handelsregister, Kapitalschutz nach Art. 725a/b OR, Revisionspflicht, gesetzliche Steuer- und Beitragssätze,
 WEKO-Schwelle, Vertragsregister mit Closing-Liste, Nettoverschuldung mit Covenant und Themen aus den VR-Protokollen,
-die der Bericht verschweigt. Datenräume aus der Romandie und dem Tessin (Französisch, Italienisch) werden gelesen.
+die der Bericht verschweigt. Datenräume aus der Romandie und dem Tessin (Französisch, Italienisch) und englische
+Berichte und Unterlagen werden gelesen.
 Oben im Prüfbericht steht auf einer Seite, was das Investment Committee wissen muss.
 
 Stand: Prototyp 0.1. Er prüft Werte (Beträge, Daten, Prozente, Fristen, UIDs) deterministisch. Ein Prüfmodell
@@ -57,8 +58,9 @@ pytest
 - **Q&A-Liste:** `[Q&A 17]` zitiert Eintrag 17 einer Q&A-Liste im Datenraum (Dateiname mit „Q&A“, „Fragenkatalog“
   o. ä.; eine Zeile pro Eintrag, die mit der Nummer beginnt). Jeder Eintrag ist eine eigene Quelle: ein Wert aus
   Eintrag 17 belegt nicht Eintrag 19.
-- **Sprachen:** Bericht auf Deutsch, Datenraum auf Deutsch, Französisch oder Italienisch (Daten wie „31 décembre
-  2031“, Beträge wie „1 200 000“ oder „12,4 millions“, Kennzahlen, Klauseln, Handelsregister, Unterschriften).
+- **Sprachen:** Bericht auf Deutsch oder Englisch, Datenraum auf Deutsch, Französisch, Italienisch oder Englisch
+  (Daten wie „31 décembre 2031“ oder „December 31, 2029“, Beträge wie „1 200 000“, „12,4 millions“ oder „CHF 2.31m“,
+  Fristen wie „18 months“, Kennzahlen, Klauseln, Handelsregister, Unterschriften). Der Prüfbericht ist deutsch.
 
 ## So wird geprüft
 

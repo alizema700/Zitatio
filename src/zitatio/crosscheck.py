@@ -83,6 +83,13 @@ def find_conflicts(room: DataRoom) -> list[Conflict]:
 
     conflicts = []
     for (metric, period, plan, _), sightings in buckets.items():
+        # Ein Dokument mit mehreren Werten für dieselbe Grösse und Periode (Segmente, Quartale, Teilsummen in
+        # einem US-Jahresbericht) sagt nicht, welcher Wert "der" Wert ist: es zählt dann nicht mit.
+        per_doc: dict[str, list[Sighting]] = {}
+        for s in sightings:
+            per_doc.setdefault(s.doc.name, []).append(s)
+        sightings = [s for ss in per_doc.values() if all(same_value(ss[0].cell.fact, o.cell.fact) for o in ss)
+                     for s in ss]
         groups: list[list[Sighting]] = []
         for s in sightings:
             group = next((g for g in groups if same_value(g[0].cell.fact, s.cell.fact)), None)

@@ -33,22 +33,28 @@ METRICS: list[tuple[str, str, re.Pattern]] = [
         ("steuerbarer_gewinn", "steuerbarer Reingewinn",
          r"steuerbar\w*\s+(?:rein)?gewinn\w*|bénéfice imposable|utile imponibile"),
         ("ebitda", "EBITDA", r"\bebitda\b(?![-\s]*marge)"),
-        ("ebit", "EBIT", r"\bebit\b(?![-\s]*marge)|\bbetriebsergebnis\w*|résultat d'exploitation|risultato operativo"),
+        ("ebit", "EBIT", r"\bebit\b(?![-\s]*marge)|\bbetriebsergebnis\w*|résultat d'exploitation|risultato operativo"
+         r"|\boperating (?:income|profit|result)\b"),
         ("umsatz", "Umsatz", r"\bnettoerl[öo]s\w*|\b(?:netto)?ums[aä]tz(?!steuer)\w*|\berl[öo]s\w* aus lieferungen"
-         r"|chiffre d'affaires|produits nets|ricavi netti|\bricavi\b|cifra d'affari|fatturato"),
+         r"|chiffre d'affaires|produits nets|ricavi netti|\bricavi\b|cifra d'affari|fatturato"
+         r"|\bnet (?:sales|revenues?)\b|\b(?<!cost of )revenues?\b|\bturnover\b"),
         ("jahresgewinn", "Jahresgewinn", r"\bjahresgewinn\w*|\breingewinn\w*|\bjahresergebnis\w*|gewinn nach steuern"
-         r"|bénéfice (?:net|de l'exercice|annuel)|résultat (?:net|de l'exercice)|utile (?:netto|d'esercizio|dell'esercizio)"),
-        ("materialaufwand", "Materialaufwand", r"\bmaterialaufwand\w*|\bwarenaufwand\w*|charges de matériel|charges de marchandises|costi (?:del|per il) materiale"),
-        ("personalaufwand", "Personalaufwand", r"\bpersonalaufwand\w*|charges de personnel|costi (?:del|per il) personale"),
+         r"|bénéfice (?:net|de l'exercice|annuel)|résultat (?:net|de l'exercice)|utile (?:netto|d'esercizio|dell'esercizio)"
+         r"|\bnet (?:income|profit|earnings)\b|\bprofit for the (?:year|period)\b"),
+        ("materialaufwand", "Materialaufwand", r"\bmaterialaufwand\w*|\bwarenaufwand\w*|charges de matériel|charges de marchandises|costi (?:del|per il) materiale"
+         r"|\bcost of materials\b|\bmaterial expenses?\b"),
+        ("personalaufwand", "Personalaufwand", r"\bpersonalaufwand\w*|charges de personnel|costi (?:del|per il) personale"
+         r"|\bpersonnel (?:expenses?|costs)\b|\bstaff costs\b"),
         ("abschreibungen", "Abschreibungen", r"\babschreibung\w*|\bamortissements?\b|\bammortament\w*"),
         ("finanzaufwand", "Finanzaufwand", r"\bfinanzaufwand\w*|\bzinsaufwand\w*|charges financières|oneri finanziari"),
-        ("fluessige_mittel", "flüssige Mittel", r"\bfl[üu]ssig\w*\s+mittel|liquidités|liquidità"),
-        ("eigenkapital", "Eigenkapital", r"\beigenkapital\w*|fonds propres|capitale proprio"),
-        ("aktienkapital", "Aktienkapital", r"\baktienkapital\w*|\bstammkapital\w*|capital[- ]actions|capital social|capitale azionario"),
+        ("fluessige_mittel", "flüssige Mittel", r"\bfl[üu]ssig\w*\s+mittel|liquidités|liquidità|\bcash and cash equivalents\b"),
+        ("eigenkapital", "Eigenkapital", r"\beigenkapital\w*|fonds propres|capitale proprio|\b(?:total |shareholders'? |stockholders'? )equity\b"),
+        ("aktienkapital", "Aktienkapital", r"\baktienkapital\w*|\bstammkapital\w*|capital[- ]actions|capital social|capitale azionario|\bshare capital\b"),
         ("nettoverschuldung", "Nettoverschuldung", r"\bnettoverschuldung\w*|\bnet debt\b|endettement net|indebitamento netto"),
         ("finanzschulden", "verzinsliche Verbindlichkeiten",
-         r"\bfinanzverbindlichkeit\w*|\bverzinslich\w*\s+verbindlichkeit\w*|\bbankschulden\b"),
-        ("auftragsbestand", "Auftragsbestand", r"\bauftragsbestand\w*"),
+         r"\bfinanzverbindlichkeit\w*|\bverzinslich\w*\s+verbindlichkeit\w*|\bbankschulden\b"
+         r"|\binterest[- ]bearing (?:liabilities|debt)\b|\bfinancial debt\b"),
+        ("auftragsbestand", "Auftragsbestand", r"\bauftragsbestand\w*|\border (?:backlog|book)\b"),
         ("investitionen", "Investitionen", r"\binvestition\w*|\bcapex\b"),
     ]
 ]

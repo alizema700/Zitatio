@@ -73,11 +73,15 @@ _NUM = (
 )
 _SCALE = (r"Mio\.?|Millionen|Millions|Million|Milioni|Mrd\.?|Milliarden|Milliards|Miliardi|Mia\.?|Tsd\.?"
           r"|mio\.?|millions|milioni|milliards|miliardi|mrd\.?"
-          r"|k(?![A-Za-zÄÖÜäöü])")
+          r"|billions|billion|Billion|bn|million|mn|thousands|thousand"
+          r"|m(?![A-Za-zÄÖÜäöü0-9²³])|k(?![A-Za-zÄÖÜäöü])")
 _CUR = r"CHF|SFr\.?|Fr\.|EUR|€|USD|US\$|\$|TCHF|TEUR|kCHF"
 
 _SCALE_FACTORS = {"mio": 10**6, "million": 10**6, "millionen": 10**6, "millions": 10**6, "milioni": 10**6,
-                  "mrd": 10**9, "milliarden": 10**9, "milliards": 10**9, "miliardi": 10**9, "mia": 10**9, "tsd": 10**3, "k": 10**3}
+                  "mrd": 10**9, "milliarden": 10**9, "milliards": 10**9, "miliardi": 10**9, "mia": 10**9, "tsd": 10**3, "k": 10**3,
+                  # Englisch: Berichte von Schweizer Deal-Teams sind oft englisch
+                  "billion": 10**9, "billions": 10**9, "bn": 10**9, "mn": 10**6, "m": 10**6,
+                  "thousand": 10**3, "thousands": 10**3}
 _CURRENCIES = {"chf": ("CHF", 1), "sfr": ("CHF", 1), "fr": ("CHF", 1), "eur": ("EUR", 1),
                "€": ("EUR", 1), "usd": ("USD", 1), "us$": ("USD", 1), "$": ("USD", 1),
                "tchf": ("CHF", 1000), "teur": ("EUR", 1000), "kchf": ("CHF", 1000)}
@@ -153,13 +157,15 @@ MONTHS = {"januar": 1, "februar": 2, "märz": 3, "maerz": 3, "april": 4, "mai": 
           "janvier": 1, "février": 2, "fevrier": 2, "mars": 3, "avril": 4, "juin": 6, "juillet": 7, "août": 8,
           "aout": 8, "septembre": 9, "octobre": 10, "novembre": 11, "décembre": 12, "decembre": 12,
           "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5, "giugno": 6, "luglio": 7,
-          "agosto": 8, "settembre": 9, "ottobre": 10, "dicembre": 12}
+          "agosto": 8, "settembre": 9, "ottobre": 10, "dicembre": 12,
+          "january": 1, "february": 2, "march": 3, "may": 5, "june": 6, "july": 7, "october": 10, "december": 12}
 _MONTH_RE = "|".join(MONTHS)
 
 _DATE_RES = [
     (re.compile(r"\b(\d{1,2})\.\s?(\d{1,2})\.\s?(\d{4})\b"), "dmy"),
     (re.compile(rf"\b(\d{{1,2}})(?:\.|er|°|º)?\s*({_MONTH_RE})\s+(\d{{4}})\b", re.IGNORECASE), "dMy"),
     (re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b"), "ymd"),
+    (re.compile(rf"\b({_MONTH_RE})\s+(\d{{1,2}}),?\s+(\d{{4}})\b", re.IGNORECASE), "Mdy"),  # December 31, 2029
 ]
 
 
@@ -172,6 +178,8 @@ def _dates(text: str):
                     d = dt.date(int(c), int(b), int(a))
                 elif order == "dMy":
                     d = dt.date(int(c), MONTHS[b.lower()], int(a))
+                elif order == "Mdy":
+                    d = dt.date(int(c), MONTHS[a.lower()], int(b))
                 else:
                     d = dt.date(int(a), int(b), int(c))
             except ValueError:
@@ -181,7 +189,7 @@ def _dates(text: str):
 
 # --- Prozente ---------------------------------------------------------------
 
-_PERCENT_RE = re.compile(r"(?<![\d.,])(\d+(?:[.,]\d+)?)\s?(?:%|Prozent\b|pct\.?)")
+_PERCENT_RE = re.compile(r"(?<![\d.,])(\d+(?:[.,]\d+)?)\s?(?:%|Prozent\b|pct\.?|percent\b|per cent\b)")
 
 
 def _percents(text: str):
@@ -200,14 +208,18 @@ NUMBER_WORDS = {"ein": 1, "eine": 1, "einem": 1, "einen": 1, "einer": 1, "zwei":
                 "elf": 11, "zwölf": 12, "achtzehn": 18, "vierundzwanzig": 24, "dreissig": 30,
                 "dreißig": 30, "sechzig": 60, "neunzig": 90,
                 "un": 1, "une": 1, "deux": 2, "trois": 3, "quatre": 4, "six": 6, "douze": 12,
-                "uno": 1, "due": 2, "tre": 3, "quattro": 4, "sei": 6, "dodici": 12}
+                "uno": 1, "due": 2, "tre": 3, "quattro": 4, "sei": 6, "dodici": 12,
+                "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "seven": 7, "eight": 8,
+                "nine": 9, "ten": 10, "twelve": 12, "eighteen": 18, "thirty": 30, "sixty": 60, "ninety": 90}
 _UNITS = {"tag": "Tage", "woche": "Wochen", "monat": "Monate", "jahr": "Jahre",
           "jour": "Tage", "semaine": "Wochen", "mois": "Monate", "an": "Jahre", "année": "Jahre",
-          "giorn": "Tage", "settiman": "Wochen", "mes": "Monate", "ann": "Jahre"}
+          "giorn": "Tage", "settiman": "Wochen", "mes": "Monate", "ann": "Jahre",
+          "day": "Tage", "week": "Wochen", "month": "Monate", "year": "Jahre"}
 _DURATION_RE = re.compile(
     r"\b(?:(Tag|Woche|Monat|Jahr)(?:e|en|es|s|n)?"
     r"|(jour|semaine|année|an)s?|(mois)"
-    r"|(giorn(?=[io])|settiman(?=[ae])|mes(?=[ie])|ann(?=[io]))[aeio])\b",
+    r"|(giorn(?=[io])|settiman(?=[ae])|mes(?=[ie])|ann(?=[io]))[aeio]"
+    r"|(day|week|month|year)s?)\b",
     re.IGNORECASE,
 )
 # Zahl vor der Einheit: zuerst die (seltenen) Einheiten finden, dann rückwärts die Zahl lesen

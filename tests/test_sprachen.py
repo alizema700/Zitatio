@@ -80,3 +80,33 @@ def test_german_report_against_french_documents():
               "Der Vertrag endet am 31. Dezember 2026 [DR 5.1, S. 1].")
     run = run_check("bericht.md", report, report.encode(), _room())
     assert [f.status for f in run.findings] == [Status.GEPRUEFT, Status.ABWEICHUNG, Status.ABWEICHUNG, Status.GEPRUEFT]
+
+
+def test_english_report_against_german_data_room():
+    """Berichte von Schweizer Deal-Teams sind oft englisch, der Datenraum deutsch."""
+    room = DataRoom()
+    room.add("2.1 Jahresrechnung 2025.txt", ("Jahresrechnung 2025\nErfolgsrechnung 2025 (in CHF)\n"
+                                              "Nettoerlös 18'540'000\nEBITDA 2'310'000\n").encode())
+    room.add("3.1 Mietvertrag Werk.txt", ("Mietvertrag\nDer Vertrag ist fest abgeschlossen bis 31.12.2029.\n"
+                                          "Danach gilt eine Kündigungsfrist von 12 Monaten.\n"
+                                          "Bei einem Kontrollwechsel kann die Vermieterin den Vertrag kündigen.\n").encode())
+    report = ("Net revenue for 2025 amounts to CHF 18.54 million [DR 2.1, p. 1].\n\n"
+              "EBITDA in 2025 was CHF 2.31m [DR 2.1, p. 1].\n\n"
+              "EBITDA in 2025 was CHF 2.6 million [DR 2.1, p. 1].\n\n"
+              "The lease has a fixed term until 31 December 2029 [DR 3.1, p. 1].\n\n"
+              "Thereafter a notice period of 18 months applies [DR 3.1, p. 1].\n\n"
+              "The lease contains no change of control clause [DR 3.1, p. 1].")
+    run = run_check("report.md", report, report.encode(), room)
+    assert [f.status for f in run.findings] == [Status.GEPRUEFT, Status.GEPRUEFT, Status.ABWEICHUNG,
+                                                Status.GEPRUEFT, Status.ABWEICHUNG, Status.ABWEICHUNG]
+
+
+def test_english_data_room_metrics_and_dates():
+    from zitatio.facts import extract_facts
+    from zitatio.tables import metrics_in
+
+    assert [m[0] for m in metrics_in("Net revenues; Cost of revenues; Net income; Cash and cash equivalents")] == [
+        "umsatz", "jahresgewinn", "fluessige_mittel"]
+    facts = extract_facts("Signed on March 3, 2025 for USD 1.2bn with a term of five years.")
+    assert [(f.kind, f.value) for f in facts] == [("datum", dt.date(2025, 3, 3)), ("betrag", ("USD", 1200000000)),
+                                                   ("frist", (5, "Jahre"))]
