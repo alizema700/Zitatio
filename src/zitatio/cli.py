@@ -35,6 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--klauseln", type=Path, help="Klauselvorschläge für den Kaufvertrag (.md oder .docx)")
     p.add_argument("--kaeuferfragen", type=Path, help="Fragen der Käufer (.xlsx/.md): Antwortentwürfe im Bericht")
     p.add_argument("--datenraum-vorher", type=Path, help="früherer Export des Datenraums: was ist neu oder geändert")
+    p.add_argument("--sanktionen", type=Path, help="Sanktionsliste (SECO-XML, CSV oder Text): Namen im Datenraum abgleichen")
     p.add_argument("--kalender", type=Path, help="Fristen (Vertragsenden, Kündigungstage, Ablaufdaten) als .ics")
     p.add_argument("--vorher", type=Path, help="frühere Version des Berichts: zeigt behobene, offene und neue Befunde")
     p.add_argument("--entscheide", type=Path,
@@ -48,6 +49,7 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--klauseln", type=Path, help="Klauselvorschläge für den Kaufvertrag (.md oder .docx)")
     r.add_argument("--kaeuferfragen", type=Path, help="Fragen der Käufer (.xlsx/.md): Antwortentwürfe im Bericht")
     r.add_argument("--datenraum-vorher", type=Path, help="früherer Export des Datenraums: was ist neu oder geändert")
+    r.add_argument("--sanktionen", type=Path, help="Sanktionsliste (SECO-XML, CSV oder Text): Namen im Datenraum abgleichen")
     r.add_argument("--kalender", type=Path, help="Fristen als Kalenderdatei (.ics)")
     r.add_argument("--json", type=Path, help="zusätzlich als JSON speichern")
     b = sub.add_parser("benchmark", help="Trefferquote mit künstlich eingebauten Fehlern messen")
@@ -191,6 +193,10 @@ def _redflags(args) -> int:
 
 
 def _attach_extras(args, run) -> None:
+    if args.sanktionen:
+        from .sanktionen import attach
+
+        attach(run, args.sanktionen.read_bytes(), args.sanktionen.name)
     if args.datenraum_vorher:
         from .raumvergleich import compare_rooms
 

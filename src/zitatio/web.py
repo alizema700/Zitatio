@@ -157,7 +157,8 @@ def index() -> str:
 @app.post("/pruefen", response_class=HTMLResponse)
 async def check(bericht: UploadFile | None = File(None), datenraum: list[UploadFile] = File(...),
                 vorher: UploadFile | None = File(None), entscheide: UploadFile | None = File(None),
-                spa: UploadFile | None = File(None), kaeuferfragen: UploadFile | None = File(None)) -> str:
+                spa: UploadFile | None = File(None), kaeuferfragen: UploadFile | None = File(None),
+                sanktionen: UploadFile | None = File(None)) -> str:
     room = DataRoom()
     for upload in datenraum:
         if upload.filename:  # leeres Feld, wenn nur Ordner oder nur ZIP gewählt wurde
@@ -187,6 +188,10 @@ async def check(bericht: UploadFile | None = File(None), datenraum: list[UploadF
 
         questions = read_questions(await kaeuferfragen.read(), Path(kaeuferfragen.filename).suffix.lower())
         run.answers = answer(questions, room)
+    if sanktionen is not None and sanktionen.filename:
+        from .sanktionen import attach
+
+        attach(run, await sanktionen.read(), sanktionen.filename)
     return to_html(run)
 
 

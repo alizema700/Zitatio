@@ -58,7 +58,7 @@ def request_list(run) -> list[Question]:
     items: list[tuple[str, str, str, str]] = []  # Bereich, Priorität, Frage, Fundstelle
 
     for fl in run.flags:
-        if fl.level != "warnung":
+        if fl.level != "warnung" or fl.area == "Sanktionen":  # Compliance klärt das Team selbst, nicht mit dem Verkäufer
             continue
         template = _FLAG_QUESTIONS.get(fl.area, "Bitte erläutern: {title}.")
         area = "Finanzen" if fl.area == "Nachgerechnet" else fl.area

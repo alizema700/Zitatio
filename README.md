@@ -255,6 +255,7 @@ oder Google Kalender, mit Erinnerung 14 Tage vorher. Jeder Termin nennt die Fund
 | Datenschutz im Datenraum | AHV-Nummern (mit Prüfziffer) und Gesundheitsdaten zu einzelnen Personen (Art. 5 lit. c DSG) pro Dokument; vor der Weitergabe schwärzen oder in einen Clean Room verschieben. |
 | Steuerbarer Gewinn | Steuerbarer Reingewinn der Veranlagung gegen den Jahresgewinn (Massgeblichkeit, Art. 58 DBG; Steuern sind abziehbar, Art. 59 DBG). Über 10 % höher: Aufrechnungen, Aufstellung verlangen; tiefer: Verlustvorträge prüfen. |
 | Datenraum-Index | Liegt ein Index oder eine Dokumentenliste im Datenraum, meldet Zitatio jede aufgeführte Nummer ohne Dokument. |
+| Sanktionen | Mit `--sanktionen liste.xml` (Gesamtliste des SECO, CSV oder ein Name pro Zeile) gleicht Zitatio Aktionäre, Zeichnungsberechtigte und Firmen im Datenraum ab, unabhängig von der Reihenfolge von Vor- und Nachname. Nichts wird aus dem Internet geladen. |
 | Erfolgsrechnung nachgerechnet | Jede Spalte: EBITDA = Umsatz − Material − Personal − übriger Aufwand, EBIT, Jahresgewinn. Findet falsch übertragene Zeilen. |
 | Covenant | „Nettoverschuldung höchstens x-mal EBITDA“ aus dem Kreditvertrag, nachgerechnet aus der Bilanz. |
 | Nachträge | Erwähnt ein Vertrag einen Nachtrag, eine Zusatzvereinbarung oder einen Side Letter, der nicht im Datenraum liegt, ist das ein Warnsignal: Werte aus dem Grundvertrag können überholt sein. |
