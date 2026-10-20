@@ -192,6 +192,8 @@ mit `--fragen fragen.md` als Markdown. Falsche Fundstellen im eigenen Bericht ko
 | Vorsorge | Deckungsgrad der Pensionskasse unter 100 %. |
 | Aktienbuch | Verbuchte Aktien gegen Handelsregister. |
 | Fusionskontrolle | Umsatzschwelle Art. 9 KG; Lex Koller bei Grundeigentum. |
+| Indirekte Teilliquidation | Halten natürliche Personen laut Aktienbuch zusammen mindestens 20 %, Hinweis auf Art. 20a Abs. 1 lit. a DBG mit den handelsrechtlich ausschüttbaren Reserven; im SPA-Abgleich als fehlende Steuerklausel. |
+| Leakage und Verrechnungssteuer | Zahlungen an die Aktionärin nach dem Locked-Box-Stichtag, mit Hinweis auf 35 % Verrechnungssteuer bei geldwerten Leistungen. |
 | Erfolgsrechnung nachgerechnet | Jede Spalte: EBITDA = Umsatz − Material − Personal − übriger Aufwand, EBIT, Jahresgewinn. Findet falsch übertragene Zeilen. |
 | Covenant | „Nettoverschuldung höchstens x-mal EBITDA“ aus dem Kreditvertrag, nachgerechnet aus der Bilanz. |
 | Nachträge | Erwähnt ein Vertrag einen Nachtrag, eine Zusatzvereinbarung oder einen Side Letter, der nicht im Datenraum liegt, ist das ein Warnsignal: Werte aus dem Grundvertrag können überholt sein. |

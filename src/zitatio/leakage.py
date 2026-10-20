@@ -63,11 +63,14 @@ def check_leakage(room: DataRoom, box_date: dt.date | None) -> list[Flag]:
                 if not dates:
                     continue
                 amounts = [f for f in facts if f.kind == AMOUNT]
+                tax = ("" if kind in ("Dividende", "Bonus für den Verkauf") else
+                       " Ohne gleichwertige Gegenleistung ist das eine geldwerte Leistung an die Aktionärin: "
+                       "35 % Verrechnungssteuer (Art. 4 Abs. 1 lit. b VStG).")
                 amount = f" über {amounts[0].display()}" if amounts else ""
                 flags.append(Flag(
                     WARNUNG, "Leakage", f"{kind}{amount} nach dem Locked-Box-Stichtag ({doc.label}, S. {page_no})",
                     f"«{_trim(sentence)}» Der Stichtag ist der {box_date:%d.%m.%Y}. Im SPA als erlaubte Leakage "
-                    "aufführen oder vom Verkäufer franken-genau zurückverlangen.",
+                    "aufführen oder vom Verkäufer franken-genau zurückverlangen." + tax,
                     [_evidence(doc, page_no, m.start() + hit.start(), m.start() + hit.end())], [doc.index]))
     return flags
 

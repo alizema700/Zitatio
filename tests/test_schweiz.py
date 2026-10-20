@@ -114,3 +114,16 @@ def test_missing_amendment_is_flagged():
     assert flag.level == "warnung" and "Nachtrag Nr. 2" in flag.title
     room.add("4.1.1 Nachtrag Nr. 2 Mietvertrag Halle.txt", b"Nachtrag")
     assert missing_amendments(room) == []
+
+
+def test_indirect_partial_liquidation_needs_twenty_percent_private_holders():
+    from zitatio.swiss import check_partial_liquidation
+
+    def flags(book: str):
+        room = DataRoom()
+        room.add("1.3 Aktienbuch.txt", book.encode())
+        return check_partial_liquidation(room)
+
+    hit = flags("Aktienbuch\nAnna Muster: 600 Namenaktien (60 %)\nBeta Holding AG: 400 Namenaktien (40 %)\n")
+    assert len(hit) == 1 and "60 %" in hit[0].title and "Art. 20a" in hit[0].text
+    assert flags("Aktienbuch\nAnna Muster: 100 Namenaktien\nBeta Holding AG: 900 Namenaktien\n") == []

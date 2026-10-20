@@ -39,6 +39,7 @@ Schweizer Warnsignale gefunden: 6 von 6 eingebauten, 0 weitere gemeldet
   warnung  Verweise: DR 4.1.2: Nachtrag Nr. 1 fehlt im Datenraum
   warnung  Leakage: Management Fee über CHF 60'000 nach dem Locked-Box-Stichtag (DR 12.1, S. 1)
   hinweis  Zeichnungsberechtigung: Geprüfte Unterschriften
+  hinweis  Steuern: Indirekte Teilliquidation: 30 % in Händen natürlicher Personen
   hinweis  Protokolle: Rechtsstreit (DR 1.4, S. 9)
   ok       Kapitalschutz: Kein Kapitalverlust per 2025
   ok       Revision: Revisionspflicht 2025: eingeschränkte Revision genügt

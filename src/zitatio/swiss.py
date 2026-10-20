@@ -329,6 +329,59 @@ def check_share_register(room: DataRoom) -> list[Flag]:
                  [], [book.index])]
 
 
+_LEGAL_FORM = re.compile(r"\b(?:AG|SA|GmbH|Sàrl|Sagl|S\.?A\.?|Ltd|Inc|KG|Holding|Stiftung|Genossenschaft|"
+                         r"Beteiligungen|Fonds?|LP|Trust|Pensionskasse|Fondation|Fondazione)\b")
+_HOLDER = re.compile(r"^\s*([^:\n]{3,80}):\s*([\d'’]+) (?:Namen|Inhaber)aktien(?:[^(\n]*\((\d+(?:[.,]\d+)?)\s?%\))?",
+                     re.MULTILINE)
+
+
+def check_partial_liquidation(room: DataRoom) -> list[Flag]:
+    """Indirekte Teilliquidation (Art. 20a Abs. 1 lit. a DBG).
+
+    Verkaufen natürliche Personen aus dem Privatvermögen zusammen mindestens 20 % an eine Gesellschaft (die
+    Käuferin ist bei PE-Deals fast immer eine Erwerbsgesellschaft), wird der steuerfreie Kapitalgewinn rückwirkend
+    zu steuerbarem Einkommen, wenn innerhalb von fünf Jahren Substanz ausgeschüttet wird, die schon beim Verkauf
+    vorhanden und nicht betriebsnotwendig war. Das betrifft die Finanzierung des Kaufs (Debt Push-down,
+    Dividenden an die Erwerbsgesellschaft) und gehört als Klausel in den SPA.
+    """
+    book = next((d for d in room.documents if d.index and re.search(r"aktienbuch|aktionärsverzeichnis", d.title, re.I)), None)
+    if not book:
+        return []
+    holders = []
+    for p, text in enumerate(book.pages, 1):
+        for m in _HOLDER.finditer(text):
+            name = m.group(1).strip()
+            shares = int(re.sub(r"['’]", "", m.group(2)))
+            holders.append((name, shares, m.group(3), p, m.start(1), m.end(1)))
+    if not holders:
+        return []
+    total = sum(h[1] for h in holders)
+    private = [h for h in holders if not _LEGAL_FORM.search(h[0])]
+    share = Decimal(sum(h[1] for h in private)) / total * 100 if total else Decimal(0)
+    if share < 20:
+        return []
+    names = ", ".join(f"{h[0]} ({h[1] / total * 100:.0f} %)" for h in private)
+    found = _latest_statement(room)
+    substance = ""
+    if found:
+        doc, year, values = found
+        equity = values.get("eigenkapital", (None,))[0]
+        bound = sum((values[k][0] for k in ("aktienkapital", "kapitalreserve", "gewinnreserve") if k in values), Decimal(0))
+        if equity is not None and bound:
+            substance = (f" Handelsrechtlich ausschüttbar sind per {year} rund {_chf(equity - bound)} "
+                         f"(Eigenkapital {_chf(equity)} abzüglich Aktienkapital und gesetzlicher Reserven, {doc.label}).")
+    evidence = [_evidence(book, h[3], h[4], h[5]) for h in private]
+    return [Flag(HINWEIS, "Steuern", f"Indirekte Teilliquidation: {share:.0f} % in Händen natürlicher Personen",
+                 f"Natürliche Personen halten {share:.0f} % der Aktien: {names}. Verkaufen sie an eine "
+                 "Erwerbsgesellschaft, wird ihr Kapitalgewinn steuerbar, wenn innerhalb von fünf Jahren nicht "
+                 "betriebsnotwendige Substanz ausgeschüttet wird (Art. 20a Abs. 1 lit. a DBG)." + substance
+                 + " Im SPA Ausschüttungen regeln und einen Steuerruling-Antrag prüfen.", evidence, [book.index])]
+
+
+def _chf(value) -> str:
+    return f"CHF {value:,.0f}".replace(",", "'")
+
+
 def check_merger_control(room: DataRoom) -> list[Flag]:
     found = _latest_statement(room)
     if not found or "umsatz" not in found[2]:
@@ -368,7 +421,7 @@ def check_real_estate(room: DataRoom) -> list[Flag]:
 def swiss_flags(room: DataRoom) -> list[Flag]:
     flags = []
     for check in (check_signatures, check_capital, check_audit, check_pension, check_share_register,
-                  check_merger_control, check_real_estate):
+                  check_merger_control, check_real_estate, check_partial_liquidation):
         flags += check(room)
     order = {WARNUNG: 0, HINWEIS: 1, OK: 2}
     return sorted(flags, key=lambda f: order[f.level])

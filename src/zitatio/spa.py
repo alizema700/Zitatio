@@ -37,6 +37,7 @@ BEDINGUNG = "Als Closing-Bedingung aufnehmen"
 NACHREICHEN = "Vor dem Signing nachreichen lassen"
 KLAEREN = "Klären und Garantie präzisieren"
 PREIS = "In der Kaufpreisformel als Schuld abziehen"
+TEILLIQUIDATION = "Klausel zur indirekten Teilliquidation aufnehmen"
 
 
 @dataclass
@@ -96,6 +97,9 @@ def collect_issues(run) -> list[Issue]:
                "Vorsorge": FREISTELLUNG, "Aktienbuch": NACHREICHEN, "Verweise": NACHREICHEN,
                "Leakage": FREISTELLUNG}
     for fl in run.flags:
+        if fl.area == "Steuern" and "Teilliquidation" in fl.title:
+            issues.append(Issue({"steuern"}, fl.title, fl.text, TEILLIQUIDATION, "#pruefungen"))
+            continue
         if fl.area == "Protokolle":
             topics = _topics(fl.title) | ({"recht"} if "Rechtsstreit" in fl.title or "Behörden" in fl.title else set())
             if not topics:
@@ -146,6 +150,8 @@ def collect_issues(run) -> list[Issue]:
 def check_warranties(spa_text: str, run) -> list[Warranty]:
     clauses = _clauses_with_sections(spa_text)
     issues = collect_issues(run)
+    if re.search(r"teilliquidation|liquidation partielle indirecte|liquidazione parziale indiretta", spa_text, re.I):
+        issues = [i for i in issues if i.action != TEILLIQUIDATION]  # der Entwurf regelt sie schon
     indemnities = [(n, _topics(t)) for n, t, _ in clauses if _INDEMNITY.search(t)]
     # Gibt es einen Abschnitt "Garantien", zählen nur dessen Ziffern; sonst alle ausser den Freistellungen
     in_section = [c for c in clauses if _WARRANTY_SECTION.search(c[2])]

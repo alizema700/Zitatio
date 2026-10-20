@@ -38,7 +38,9 @@ def test_warranties_of_large_case():
     assert [i.title.split(":")[0] for i in leak.issues] == ["Leakage"]
     assert [leak.covered_by.get(id(i)) for i in leak.issues] == ["6.2"]
     tax = by_number["5.5"]
-    assert [tax.covered_by.get(id(i)) for i in tax.issues] == ["6.1"]
+    covered = {i.title.split(" (")[0]: tax.covered_by.get(id(i)) for i in tax.issues}
+    assert covered == {"Steuerprüfung": "6.1",
+                       "Indirekte Teilliquidation: 30 % in Händen natürlicher Personen": None}
     lawsuit = next(i for i in by_number["5.6"].issues if i.title.startswith("Klage"))
     assert lawsuit.action == FREISTELLUNG and id(lawsuit) not in by_number["5.6"].covered_by
     assert all(i.action == BEDINGUNG for i in by_number["5.3"].issues if i.title.startswith("Kontrollwechsel"))
