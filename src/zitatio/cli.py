@@ -49,12 +49,18 @@ def main(argv: list[str] | None = None) -> int:
     b = sub.add_parser("benchmark", help="Trefferquote mit künstlich eingebauten Fehlern messen")
     b.add_argument("--datenraum", "-d", type=Path, required=True, help="Ordner mit den Datenraum-Dokumenten")
     b.add_argument("--fehler", action="store_true", help="jeden falsch erkannten Fall ausgeben")
+    a = sub.add_parser("antworten", help="Antwortentwürfe mit Fundstelle für eine Fragenliste der Käufer")
+    a.add_argument("fragen", type=Path, help="Fragen als .txt, .md oder .xlsx (Spalte \"Frage\")")
+    a.add_argument("-d", "--datenraum", type=Path, required=True, help="Ordner mit den Datenraum-Dokumenten")
+    a.add_argument("-o", "--out", type=Path, default=Path("antworten.md"), help="Antwortentwürfe als Markdown")
     args = parser.parse_args(argv)
 
     if args.command == "benchmark":
         return _benchmark(args)
     if args.command == "redflags":
         return _redflags(args)
+    if args.command == "antworten":
+        return _answers(args)
 
     model = None
     if args.modell:
@@ -170,6 +176,18 @@ def _redflags(args) -> int:
             print(f"! {fl.area}: {fl.title}")
     print(f"\n{sum(fl.level == 'warnung' for fl in run.flags)} Warnsignale, {len(questions)} Fragen an den Verkäufer")
     print(f"Red-Flag-Bericht: {args.out}")
+    return 0
+
+
+def _answers(args) -> int:
+    from .antworten import answer, read_questions
+    from .antworten import to_markdown as answers_markdown
+
+    questions = read_questions(args.fragen.read_bytes(), args.fragen.suffix.lower())
+    answers = answer(questions, DataRoom.from_folder(args.datenraum))
+    args.out.write_text(answers_markdown(answers), encoding="utf-8")
+    found = sum(1 for a in answers if a.text)
+    print(f"{found} von {len(answers)} Fragen mit Antwortentwurf aus dem Datenraum: {args.out}")
     return 0
 
 

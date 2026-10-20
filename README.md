@@ -206,6 +206,14 @@ Verfahren. Sie steht unten im Prüfbericht, im Blatt „Fragenliste“ der Excel
 mit `--fragen fragen.md` als Markdown. Falsche Fundstellen im eigenen Bericht kommen nicht hinein.
 Steht in der Q&A-Liste des Datenraums schon ein Eintrag zum Thema, nennt die Frage ihn („Q&A 5“).
 
+### Antwortentwürfe für Käuferfragen
+
+Für die Verkäuferseite: `zitatio antworten fragen.xlsx -d datenraum -o antworten.md` nimmt die Fragenliste der
+Käufer (Excel mit Spalte „Frage“, Text oder Markdown) und sucht zu jeder Frage den Satz im Datenraum, der sie
+beantwortet, mit Dokument und Seite. Gefragt wird nach einem Wert („wie hoch“, „wann“, „wie lange“), zählen nur
+Sätze mit einem Wert dieser Art. Nennt der Datenraum für diesen Wert verschiedene Zahlen, steht das bei der Antwort.
+Findet Zitatio nichts Tragfähiges, steht „Im Datenraum nicht gefunden“ statt einer erfundenen Antwort.
+
 ### Fristenkalender
 
 Vertragsenden, der letzte Tag für eine Kündigung auf das Vertragsende und Ablaufdaten von Zertifikaten und
