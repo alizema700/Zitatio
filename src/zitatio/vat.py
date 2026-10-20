@@ -30,7 +30,7 @@ def _amount(text: str) -> Decimal:
 
 
 def _chf(value: Decimal) -> str:
-    return format_value("betrag", ("CHF", value))
+    return format_value("betrag", ("CHF", value.quantize(Decimal(1))))
 
 
 def _vat_docs(room: DataRoom) -> list[Document]:
@@ -38,11 +38,14 @@ def _vat_docs(room: DataRoom) -> list[Document]:
 
 
 def check_vat(room: DataRoom) -> list[Flag]:
+    """Pro Jahr über alle MWST-Dokumente: Quartale können je ein eigenes Dokument sein."""
     flags: list[Flag] = []
     statement = _latest_statement(room)
+    by_year: dict[int, tuple[list, list, list]] = {}
     for doc in _vat_docs(room):
         year = years_in(doc.title)[0]
-        totals, ev = [], []
+        totals, ev, docs = by_year.setdefault(year, ([], [], []))
+        docs.append(doc)
         for p, text in enumerate(doc.pages, 1):
             for m in _TOTAL.finditer(text):
                 totals.append(_amount(m.group(1)))
@@ -54,40 +57,49 @@ def check_vat(room: DataRoom) -> list[Flag]:
                     flags.append(Flag(WARNUNG, "MWST", f"Steuer nicht nachvollziehbar ({doc.label}, S. {p})",
                                       f"{rate} % von {_chf(base)} ergibt {_chf(expected)}, deklariert sind {_chf(tax)}.",
                                       [_evidence(doc, p, m.start(3), m.end(3))], [doc.index]))
+    for year, (totals, ev, docs) in sorted(by_year.items()):
         if not totals:
             continue
+        labels = ", ".join(d.label for d in docs)
         declared = sum(totals, Decimal(0))
         if not statement or statement[1] != year or "umsatz" not in statement[2]:
             flags.append(Flag(HINWEIS, "MWST", f"Deklarierter Umsatz {year}: {_chf(declared)}",
-                              f"Summe der Ziffer 200 aus {len(totals)} Abrechnungen ({doc.label}). Keine Jahresrechnung "
+                              f"Summe der Ziffer 200 aus {len(totals)} Abrechnungen ({labels}). Keine Jahresrechnung "
                               f"{year} zum Abgleich gefunden.", ev))
             continue
         revenue, rdoc, rpage, cell = statement[2]["umsatz"]
-        ev.append(_evidence(rdoc, rpage, cell.fact.start, cell.fact.end))
+        ev = ev + [_evidence(rdoc, rpage, cell.fact.start, cell.fact.end)]
         gap = revenue - declared
-        basis = (f"Ziffer 200 der {len(totals)} Abrechnungen {year} ergibt {_chf(declared)} ({doc.label}), die "
+        basis = (f"Ziffer 200 der {len(totals)} Abrechnungen {year} ergibt {_chf(declared)} ({labels}), die "
                  f"Jahresrechnung zeigt Nettoerlöse von {_chf(revenue)} ({rdoc.label}).")
-        if len(totals) < 4:
-            flags.append(Flag(WARNUNG, "MWST", f"Nur {len(totals)} von 4 MWST-Abrechnungen {year} im Datenraum",
-                              basis + " Die fehlenden Quartale nachreichen lassen.", ev, [doc.index]))
-        elif revenue and abs(gap) / revenue > TOLERANCE:
-            share = abs(gap) / revenue * 100
-            if gap > 0:
-                text = (f"{basis} Es fehlen {_chf(gap)} ({share:.1f} %). Sind sie nicht durch Abgrenzungen, "
-                        "Erlösminderungen oder Umsätze ohne Steuer (Ziffer 200 umfasst auch diese) erklärt, droht eine "
-                        f"Nachsteuer von bis zu {_chf((gap * Decimal('0.081')).quantize(Decimal(1)))} (8.1 %) "
-                        "plus Verzugszins (Art. 87 MWSTG). Die ESTV kann fünf Jahre zurück nachfordern (Art. 42 "
-                        "MWSTG). Umsatzabstimmung vom Verkäufer verlangen; Mängel sind nach Art. 72 MWSTG zu korrigieren.")
-                title = f"Umsatzabstimmung {year}: {_chf(gap)} weniger deklariert als verbucht"
-            else:
-                text = (f"{basis} Deklariert sind {_chf(-gap)} ({share:.1f} %) mehr als verbucht. Das kann an "
-                        "Anzahlungen oder Umsätzen ausserhalb der Nettoerlöse liegen, oder an zu tief ausgewiesenen "
-                        "Erlösen in der Jahresrechnung. Abstimmung verlangen.")
-                title = f"Umsatzabstimmung {year}: {_chf(-gap)} mehr deklariert als verbucht"
-            flags.append(Flag(WARNUNG, "MWST", title, text, ev, [doc.index, rdoc.index]))
-        else:
+        quarterly = any(re.search(r"quartal|trimestre|\bQ[1-4]\b", t, re.I) for d in docs for t in [d.title] + d.pages)
+        share = abs(gap) / revenue * 100 if revenue else Decimal(0)
+        if not revenue or abs(gap) / revenue <= TOLERANCE:
             flags.append(Flag(OK, "MWST", f"Umsatzabstimmung {year} stimmt",
                               f"{basis} Differenz {_chf(abs(gap))}, unter 1 %.", ev))
+        elif quarterly and len(totals) < 4:
+            # Bei der Saldosteuersatzmethode sind es Semester (Art. 35 MWSTG); hier nennen die Abrechnungen Quartale
+            flags.append(Flag(WARNUNG, "MWST", f"Nur {len(totals)} von 4 MWST-Abrechnungen {year} im Datenraum",
+                              basis + " Die fehlenden Quartale nachreichen lassen, dann neu abstimmen.", ev,
+                              [d.index for d in docs]))
+        elif gap < 0 and abs(declared - revenue * Decimal("1.081")) / revenue <= TOLERANCE:
+            flags.append(Flag(HINWEIS, "MWST", f"Umsatzabstimmung {year}: Ziffer 200 offenbar inklusive MWST",
+                              f"{basis} Die Differenz entspricht der Steuer von 8.1 %; Ziffer 200 wurde inklusive "
+                              "MWST deklariert. Das ist zulässig, die Abstimmung stimmt dann.", ev))
+        elif gap > 0:
+            flags.append(Flag(
+                WARNUNG, "MWST", f"Umsatzabstimmung {year}: {_chf(gap)} weniger deklariert als verbucht",
+                f"{basis} Es fehlen {_chf(gap)} ({share:.1f} %). Sind sie nicht durch Abgrenzungen, Erlösminderungen "
+                "oder Umsätze ohne Steuer (Ziffer 200 umfasst auch diese) erklärt, droht eine Nachsteuer von bis zu "
+                f"{_chf(gap * Decimal('0.081'))} (8.1 % auf dem Nettobetrag) plus Verzugszins (Art. 87 MWSTG). Die ESTV "
+                "kann fünf Jahre zurück nachfordern (Art. 42 MWSTG). Umsatzabstimmung vom Verkäufer verlangen; Mängel "
+                "sind nach Art. 72 MWSTG zu korrigieren.", ev, [d.index for d in docs] + [rdoc.index]))
+        else:
+            flags.append(Flag(
+                WARNUNG, "MWST", f"Umsatzabstimmung {year}: {_chf(-gap)} mehr deklariert als verbucht",
+                f"{basis} Deklariert sind {_chf(-gap)} ({share:.1f} %) mehr als verbucht. Das kann an Anzahlungen oder "
+                "Umsätzen ausserhalb der Nettoerlöse liegen, oder an zu tief ausgewiesenen Erlösen in der "
+                "Jahresrechnung. Abstimmung verlangen.", ev, [d.index for d in docs] + [rdoc.index]))
     return flags
 
 
@@ -141,8 +153,8 @@ def check_taxable_profit(room: DataRoom) -> list[Flag]:
                                   "Leistungen an Aktionäre, fällt auch Verrechnungssteuer an.", ev, [doc.index]))
             elif share < -10:
                 flags.append(Flag(HINWEIS, "Steuern", f"Steuerbarer Gewinn {year} {abs(share):.0f} % unter Jahresgewinn",
-                                  basis + " Abzüge wie Verlustvorträge (Art. 67 DBG) oder Beteiligungsabzug erklären das "
-                                  "oft. Verlustvorträge sind beim Kauf ein Wert und gehen bei Mantelhandel verloren.", ev))
+                                  basis + " Meist erklären das Verlustvorträge (Art. 67 DBG) oder steuerlich gebildete "
+                                  "Reserven. Verlustvorträge sind beim Kauf ein Wert und gehen bei Mantelhandel verloren.", ev))
             else:
                 flags.append(Flag(OK, "Steuern", f"Steuerbarer Gewinn {year} passt zum Jahresgewinn", basis, ev))
             break

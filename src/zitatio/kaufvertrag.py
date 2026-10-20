@@ -19,7 +19,9 @@ from .verify import _evidence
 
 _SOLD = re.compile(r"(?:verk(?:auft|äuft)|vend)\w*[^.]{0,120}?([\d'’]+)\s+(?:(?:Namen|Inhaber)?aktien|actions)",
                    re.IGNORECASE)
-_SELLER = re.compile(r"(?:zwischen\s+|und\s+)?([A-ZÄÖÜ][^;()\n]{2,100}?)\s*\((?:nachfolgend\s+)?(?:die\s+|der\s+|le\s+|la\s+|l')?[„\"«]?\s?(?:Verkäufer(?:in)?|Vendeu(?:r|se)|Venderesse)",
+# Name direkt vor "(die „Verkäuferin“)": beginnt gross, ohne Komma-Teile davor ("Hans Keller, Zürich, als Käufer, und …")
+_SELLER = re.compile(r"((?-i:[A-ZÄÖÜ])[^,;()\n]{1,80}?)(?:,\s*[^,;()\n]{2,40})?\s*\((?:nachfolgend\s+)?"
+                     r"(?:die\s+|der\s+|le\s+|la\s+|l')?[„\"«]?\s?(?:Verkäufer(?:in)?|Vendeu(?:r|se)|Venderesse)",
                      re.IGNORECASE)
 _SELLER_LABEL = re.compile(r"(?:Verkäufer(?:in)?|Vendeur):\s*([^,;\n(]{3,80})", re.IGNORECASE)
 _PRICE = re.compile(r"(?:kaufpreis|prix d'achat|prix de vente)[^.]{0,60}?(?:beträgt|von|in höhe von|s'élève à|est de)\s+(CHF\s*[\d'’.]+(?:\s*(?:Mio\.?|Millionen))?)",
@@ -58,7 +60,8 @@ def check_spa(spa_name: str, spa_text: str, room: DataRoom, valuation=None) -> l
             for m in _HOLDER.finditer(text):
                 holdings[_norm(m.group(1))] = (int(re.sub(r"['’]", "", m.group(2))), m.group(1).strip(), p, m)
         # "Rohner Beteiligungen AG, Altstätten" ist im Aktienbuch "Rohner Beteiligungen AG"
-        mine = {k for k in holdings if any(k in _norm(s) for s in sellers)}
+        # Exakt oder als Anfang: "Rohner Beteiligungen AG" im Aktienbuch, "Rohner Beteiligungen AG" im Vertrag
+        mine = {k for k in holdings if any(_norm(s) == k or _norm(s).startswith(k) for s in sellers)}
         own = [holdings[k] for k in mine]
         held = sum(h[0] for h in own)
         ev = [_evidence(book, p, m.start(), m.end()) for _, _, p, m in own]

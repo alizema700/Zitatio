@@ -8,6 +8,7 @@ und Bewilligungen mit Ablaufdatum. Alles geht als iCalendar-Datei (.ics) in Outl
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import re
 from dataclasses import dataclass
 
@@ -106,8 +107,10 @@ def to_ics(items: list[Deadline], name: str, stamp: dt.datetime | None = None) -
     stamp = (stamp or dt.datetime.now(dt.timezone.utc)).strftime("%Y%m%dT%H%M%SZ")
     lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Zitatio//Fristen//DE", "CALSCALE:GREGORIAN",
              f"X-WR-CALNAME:{_escape('Fristen ' + name)}"]
-    for n, d in enumerate(items, 1):
-        lines += ["BEGIN:VEVENT", f"UID:zitatio-{d.date:%Y%m%d}-{n}@zitatio", f"DTSTAMP:{stamp}",
+    for d in items:
+        # Gleiche Frist, gleiche UID: ein neuer Export aktualisiert die Termine in Outlook, statt sie zu verdoppeln
+        uid = hashlib.sha1(f"{d.reference}|{d.date}|{d.title}".encode()).hexdigest()[:20]
+        lines += ["BEGIN:VEVENT", f"UID:zitatio-{uid}@zitatio", f"DTSTAMP:{stamp}",
                   f"DTSTART;VALUE=DATE:{d.date:%Y%m%d}",
                   f"DTEND;VALUE=DATE:{d.date + dt.timedelta(days=1):%Y%m%d}",
                   f"SUMMARY:{_escape(d.title)}", f"DESCRIPTION:{_escape(d.detail + ' (' + d.reference + ')')}",

@@ -197,3 +197,36 @@ def test_documents_listed_in_the_index_but_missing():
     assert flag.title.startswith("1 Dokument im Index") and "2.2 Jahresrechnung 2025" in flag.text
     assert "3 Verträge" not in flag.text  # Kapitel mit vorhandenen Dokumenten
     assert check_index(_room(**{"3.1 Mietvertrag.txt": "Indexmiete nach Landesindex"})) == []
+
+
+def test_review_regressions():
+    from zitatio.kaufvertrag import check_spa
+    from zitatio.privacy import check_privacy
+    from zitatio.references import check_index
+    from zitatio.vat import check_vat
+    from zitatio.word import markdown_to_docx
+
+    # Quartale als eigene Dokumente: eine Abstimmung pro Jahr
+    statement = ("Muster AG - Jahresrechnung 2025\nErfolgsrechnung 2025 (in CHF)\nNettoerlöse aus Lieferungen und "
+                 "Leistungen 10'000'000\nBilanz per 31.12.2025 (in CHF)\nAktienkapital 100'000\nEigenkapital 900'000\n")
+    docs = {f"3.{q} MWST-Abrechnung Q{q} 2025.txt": f"Quartal {q}\nZiffer 200 Total: CHF 2'500'000" for q in range(1, 5)}
+    flag, = check_vat(_room(**{"2.1 Jahresrechnung 2025.txt": statement}, **docs))
+    assert flag.level == "ok"
+    # Kapitelüberschrift mit Punkt; "Mietzins-Index" ist kein Datenraum-Index
+    index = "Datenraum-Index\n1.2 Verträge\n1.2.1 Mietvertrag\n"
+    assert check_index(_room(**{"0.1 Datenraum-Index.txt": index, "1.2.1 Mietvertrag.txt": "Miete"})) == []
+    assert check_index(_room(**{"4.9 Mietzins-Index 2024.txt": "2024 Landesindex 107.1"})) == []
+    # Allgemeine Police ist keine Gesundheitsangabe zu einer Person
+    policy = "Leistungen bei Krankheit: Arbeitnehmer Lohnfortzahlung ab Vorlage Arztzeugnis."
+    assert check_privacy(_room(**{"9.1 Krankentaggeld-Police.txt": policy})) == []
+    # Käufer vor der Verkäuferin: seine Aktien zählen nicht
+    room = _room(**{"1.3 Aktienbuch.txt": "Aktienbuch\nBeat Keller: 600 Namenaktien\nHans Keller: 400 Namenaktien\n"})
+    spa = "zwischen Hans Keller, Zürich, als Käufer, und Beat Keller, Bern (Verkäufer). Der Verkäufer verkauft 1'000 Namenaktien."
+    assert any("hält 600" in f.title for f in check_spa("spa.md", spa, room))
+    # Steuerzeichen aus PDF-Text machen das Word-XML nicht kaputt
+    import io
+    import zipfile
+    from xml.etree import ElementTree as ET
+
+    with zipfile.ZipFile(io.BytesIO(markdown_to_docx("Text \x08 mit Steuerzeichen\n\n| a | b |\n|---|---|\n| 1 |"))) as z:
+        ET.fromstring(z.read("word/document.xml"))

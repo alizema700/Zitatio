@@ -116,9 +116,12 @@ def collect_issues(run) -> list[Issue]:
             continue
         if fl.level != "warnung" or fl.area not in flag_topics:
             continue
+        action = actions[fl.area]
+        if fl.area == "MWST" and not ("weniger deklariert" in fl.title or "nicht nachvollziehbar" in fl.title):
+            action = NACHREICHEN if fl.title.startswith("Nur ") else KLAEREN  # fehlende Abrechnung, Mehrdeklaration
         titles = " ".join(d.title for d in run.room.documents if d.index in fl.docs)
         topics = set(flag_topics[fl.area]) | _topics(fl.title) | (_topics(titles) & {"finanzierung", "immobilien"})
-        issues.append(Issue(topics, f"{fl.area}: {fl.title}", fl.text, actions[fl.area], "#pruefungen"))
+        issues.append(Issue(topics, f"{fl.area}: {fl.title}", fl.text, action, "#pruefungen"))
 
     for c in run.conflicts:
         topics = {"gesellschaft"} if c.metric == "aktienkapital" else {"jahresrechnung"}

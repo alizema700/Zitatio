@@ -26,7 +26,8 @@ _HEALTH = re.compile(r"krankheitsbedingt\w*|\bdiagnose\w*|arztzeugnis\w*|ärztli
                      r"|invalidenversicherung|burn-?out|psychiatr\w*|schwangerschaft\w*|certificat médical"
                      r"|arrêt maladie|certificato medico", re.IGNORECASE)
 # Gesundheitsdaten in Verträgen und Policen sind meist allgemein ("bei Krankheit"); gemeldet wird nur mit Person.
-_PERSON = re.compile(r"\b(?:Herr|Frau|Hr\.|Fr\.|Mitarbeite\w+|Arbeitnehme\w+|M\.|Mme)\s+(?:Dr\.\s+)?[A-ZÄÖÜ][a-zäöüé]+")
+# Anrede mit Name ("Herr Keller", "Frau Dr. Huber", "Mme Dubois"); "Arbeitnehmer Lohnfortzahlung" ist keine Person
+_PERSON = re.compile(r"\b(?:Herr|Frau|Hr\.|Fr\.|M\.|Mme|Monsieur|Madame|Sig\.|Sig\.ra)\s+(?:Dr\.\s+)?[A-ZÄÖÜ][a-zäöüé]+")
 
 
 def _ahv_valid(digits: str) -> bool:

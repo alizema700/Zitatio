@@ -16,7 +16,11 @@ _REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 _INLINE = re.compile(r"\*\*(.+?)\*\*|(?<!\w)_(.+?)_(?!\w)")
 
 
+_CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")  # in XML nicht erlaubt; kommt aus PDF-Text
+
+
 def _runs(text: str, bold: bool = False) -> str:
+    text = _CONTROL.sub("", text)
     out, pos = [], 0
     for m in _INLINE.finditer(text):
         if m.start() > pos:
@@ -37,7 +41,10 @@ def _para(text: str, style: str | None = None, bold: bool = False) -> str:
 def _table(rows: list[list[str]]) -> str:
     border = "".join(f'<w:{s} w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>'
                      for s in ("top", "left", "bottom", "right", "insideH", "insideV"))
-    out = [f'<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>{border}</w:tblBorders></w:tblPr>']
+    columns = max(len(r) for r in rows)
+    rows = [r + [""] * (columns - len(r)) for r in rows]
+    grid = "<w:tblGrid>" + '<w:gridCol w:w="{}"/>'.format(9000 // columns) * columns + "</w:tblGrid>"
+    out = [f'<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>{border}</w:tblBorders></w:tblPr>{grid}']
     for n, row in enumerate(rows):
         cells = "".join(f'<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/></w:tcPr>'
                         f'<w:p><w:pPr><w:spacing w:after="0"/></w:pPr>{_runs(c, bold=n == 0)}</w:p></w:tc>' for c in row)

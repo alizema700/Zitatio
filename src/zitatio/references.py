@@ -69,8 +69,9 @@ def _trim(text: str, width: int = 200) -> str:
 
 # --- Datenraum-Index ------------------------------------------------------------------
 
-_INDEX_TITLE = re.compile(r"\b(?:datenraum-?index|index|inhaltsverzeichnis|dokumentenliste|table des matières|indice)\b",
-                          re.IGNORECASE)
+# "Datenraum-Index", "Index des Datenraums", "Dokumentenliste" oder ein Titel, der nur "Index" ist; nicht "Mietzins-Index"
+_INDEX_TITLE = re.compile(r"datenraum-?index|index des datenraums|^\s*index\s*$|inhaltsverzeichnis des datenraums"
+                          r"|dokumentenliste|data ?room index|index de la data ?room|indice della data ?room", re.IGNORECASE)
 _INDEX_LINE = re.compile(r"^\s*(\d+(?:\.\d+)+|\d+)[\s;:.)]+([^\n;]{3,}?)\s*(?:;.*)?$", re.MULTILINE)
 
 
@@ -87,7 +88,7 @@ def check_index(room: DataRoom) -> list[Flag]:
             number, title = m.group(1), m.group(2).strip()
             if number == doc.index or number in present or not re.search(r"[A-Za-zÄÖÜäöü]{3}", title):
                 continue
-            if "." not in number and any(p.startswith(number + ".") for p in present):
+            if any(p.startswith(number + ".") for p in present):
                 continue  # Kapitelüberschrift ("3 Steuern"), deren Dokumente da sind
             missing.append((number, title, _evidence(doc, page_no, m.start(1), m.end(2))))
     if not missing:
