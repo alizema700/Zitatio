@@ -40,6 +40,7 @@ def test_warranties_of_large_case():
     tax = by_number["5.5"]
     covered = {i.title.split(" (")[0]: tax.covered_by.get(id(i)) for i in tax.issues}
     assert covered == {"Steuerprüfung": "6.1",
+                       "MWST: Umsatzabstimmung 2025: CHF 1'240'000 weniger deklariert als verbucht": "6.1",
                        "Indirekte Teilliquidation: 30 % in Händen natürlicher Personen": None}
     lawsuit = next(i for i in by_number["5.6"].issues if i.title.startswith("Klage"))
     assert lawsuit.action == FREISTELLUNG and id(lawsuit) not in by_number["5.6"].covered_by

@@ -127,3 +127,33 @@ def test_indirect_partial_liquidation_needs_twenty_percent_private_holders():
     hit = flags("Aktienbuch\nAnna Muster: 600 Namenaktien (60 %)\nBeta Holding AG: 400 Namenaktien (40 %)\n")
     assert len(hit) == 1 and "60 %" in hit[0].title and "Art. 20a" in hit[0].text
     assert flags("Aktienbuch\nAnna Muster: 100 Namenaktien\nBeta Holding AG: 900 Namenaktien\n") == []
+
+
+def test_vat_turnover_is_reconciled_with_the_annual_accounts():
+    from zitatio.vat import check_vat
+
+    statement = ("Muster AG - Jahresrechnung 2025\nErfolgsrechnung 2025 (in CHF)\nNettoerlöse aus Lieferungen und "
+                 "Leistungen 10'000'000\nBilanz per 31.12.2025 (in CHF)\nAktienkapital 100'000\nEigenkapital 900'000\n")
+
+    def quarters(totals, tax_ok=True):
+        pages = []
+        for q, total in enumerate(totals, 1):
+            tax = round(total * 0.081) + (0 if tax_ok or q != 2 else 900)
+            pages.append(f"Quartal {q}\nZiffer 200 Total der vereinbarten Entgelte: CHF {total:,}\n"
+                         f"Ziffer 302 Leistungen zum Normalsatz 8.1 %: Umsatz CHF {total:,}, Steuer CHF {tax:,}"
+                         .replace(",", "'"))
+        return "\f".join(pages)
+
+    def flags(totals, **kw):
+        room = _room(**{"2.1 Jahresrechnung 2025.txt": statement, "3.1 MWST-Abrechnungen 2025.txt": quarters(totals, **kw)})
+        return check_vat(room)
+
+    ok, = flags([2_500_000, 2_500_000, 2_480_000, 2_510_000])
+    assert ok.level == "ok"
+    gap, = flags([2_400_000, 2_400_000, 2_400_000, 2_400_000])
+    assert gap.level == "warnung" and "400'000 weniger deklariert" in gap.title
+    assert "32'400" in gap.text and "Art. 42 MWSTG" in gap.text  # 8.1 % Nachsteuer, Verjährung
+    missing, = flags([2_500_000, 2_500_000, 2_500_000])
+    assert "Nur 3 von 4" in missing.title
+    wrong_tax = [f for f in flags([2_500_000] * 4, tax_ok=False) if "Steuer nicht" in f.title]
+    assert len(wrong_tax) == 1 and "S. 2" in wrong_tax[0].title

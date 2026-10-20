@@ -707,6 +707,25 @@ def build_swiss() -> None:
     say(VAL, "Nach Abzug der Nettoverschuldung per 31.12.2025 beträgt der Equity Value CHF 40.82 Mio.",
         note="folgt aus Bereinigung ohne Beleg")
 
+    # MWST-Abrechnungen im Format der ESTV; deklariert ist weniger als die Nettoerlöse der Jahresrechnung
+    declared = YEARS[2025] - 1_240_000
+    shares = (24, 25, 26, 25)
+    vat = doc_by_index("3.3")
+    for q, page_lines in enumerate(vat.pages, 1):
+        total = declared * shares[q - 1] // 100 if q < 4 else declared - sum(declared * s // 100 for s in shares[:3])
+        export = total * 7 // 100
+        taxable = total - export
+        tax = round(taxable * 0.081)
+        i = next(n for n, line in enumerate(page_lines) if line.startswith(f"Quartal {q}:"))
+        page_lines[i:i + 1] = [
+            f"Abrechnungsperiode Quartal {q} 2025, effektive Methode",
+            f"Ziffer 200 Total der vereinbarten Entgelte: CHF {chf(total)}",
+            f"Ziffer 220 Leistungen ins Ausland: CHF {chf(export)}",
+            f"Ziffer 302 Leistungen zum Normalsatz 8.1 %: Umsatz CHF {chf(taxable)}, Steuer CHF {chf(tax)}",
+            f"Ziffer 405 Vorsteuer auf Material- und Dienstleistungsaufwand: CHF {chf(tax * 6 // 10)}",
+        ]
+    WARNINGS.append({"art": "MWST", "dokument": "3.3"})
+
     say_after(TAX, "Seit 2024 beträgt der MWST-Normalsatz 8.1 %.")
     say_after(TAX, "Die Gesellschaft rechnet ihre Umsätze zum MWST-Normalsatz von 7.7 % ab.",
               correct=False, error="veralteter MWST-Satz")

@@ -48,6 +48,7 @@ _FLAG_QUESTIONS = {
                "und belegen: {title}.",
     "Nachgerechnet": "Bitte Abweichung erklären und korrigierte Zahlen vorlegen: {title}.",
     "Revision": "Bitte erläutern: {title}.",
+    "MWST": "Bitte MWST-Umsatzabstimmung zur Jahresrechnung vorlegen und Differenzen erklären: {title}.",
     "Aktienbuch": "Bitte vollständiges, nachgeführtes Aktienbuch vorlegen: {title}.",
 }
 
