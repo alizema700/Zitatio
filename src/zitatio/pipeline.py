@@ -15,6 +15,7 @@ from .references import missing_amendments
 from .render import Run, sha256
 from .report import parse_report
 from .swiss import _latest_statement, apply_rates, swiss_flags
+from .privacy import check_privacy
 from .vat import check_vat
 from .terms import closing_list
 from .valuation import apply_valuation, value_bridge
@@ -45,7 +46,8 @@ def run_check(
     revenue = (latest[1], latest[2]["umsatz"][0]) if latest and "umsatz" in latest[2] else None
     box_date = locked_box_date(spa[1] if spa else "", report_text)
     flags = (check_income_statements(room) + swiss_flags(room) + netdebt_flags(debt) + check_minutes(room, report_text if findings else None)
-             + missing_amendments(room) + check_leakage(room, box_date) + check_vat(room))
+             + missing_amendments(room) + check_leakage(room, box_date) + check_vat(room)
+             + check_privacy(room))
     flags.sort(key=lambda fl: ("warnung", "hinweis", "ok").index(fl.level))
     stale: dict = {}
     carried = carry_decisions(findings, decisions, diff, room, stale) if decisions else {}

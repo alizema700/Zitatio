@@ -208,6 +208,7 @@ mit `--fragen fragen.md` als Markdown. Falsche Fundstellen im eigenen Bericht ko
 | Indirekte Teilliquidation | Halten natürliche Personen laut Aktienbuch zusammen mindestens 20 %, Hinweis auf Art. 20a Abs. 1 lit. a DBG mit den handelsrechtlich ausschüttbaren Reserven; im SPA-Abgleich als fehlende Steuerklausel. |
 | Leakage und Verrechnungssteuer | Zahlungen an die Aktionärin nach dem Locked-Box-Stichtag, mit Hinweis auf 35 % Verrechnungssteuer bei geldwerten Leistungen. |
 | MWST-Umsatzabstimmung | Summe der Ziffer 200 aller Quartalsabrechnungen gegen die Nettoerlöse der Jahresrechnung; Lücke über 1 % mit möglicher Nachsteuer (8.1 %), Verzugszins (Art. 87 MWSTG) und Verjährung (Art. 42 MWSTG). Steuer pro Quartal nachgerechnet, fehlende Quartale gemeldet. |
+| Datenschutz im Datenraum | AHV-Nummern (mit Prüfziffer) und Gesundheitsdaten zu einzelnen Personen (Art. 5 lit. c DSG) pro Dokument; vor der Weitergabe schwärzen oder in einen Clean Room verschieben. |
 | Erfolgsrechnung nachgerechnet | Jede Spalte: EBITDA = Umsatz − Material − Personal − übriger Aufwand, EBIT, Jahresgewinn. Findet falsch übertragene Zeilen. |
 | Covenant | „Nettoverschuldung höchstens x-mal EBITDA“ aus dem Kreditvertrag, nachgerechnet aus der Bilanz. |
 | Nachträge | Erwähnt ein Vertrag einen Nachtrag, eine Zusatzvereinbarung oder einen Side Letter, der nicht im Datenraum liegt, ist das ein Warnsignal: Werte aus dem Grundvertrag können überholt sein. |
@@ -252,10 +253,10 @@ Benchmark mit anonymisierten, von Menschen geschriebenen DD-Berichten.
 
 `beispiele/gross` ist näher an einem echten Deal: 42 Dokumente mit 269 Seiten (PDF und Excel) und ein DD-Bericht
 mit 229 Aussagen, von denen nur 16 absichtlich falsch sind. Dazu enthält der Datenraum drei Widersprüche, wie sie bei
-falschen Angaben des Verkäufers vorkommen, und sieben Warnsignale (eine falsch übertragene Zeile der Erfolgsrechnung,
+falschen Angaben des Verkäufers vorkommen, und acht Warnsignale (eine falsch übertragene Zeile der Erfolgsrechnung,
 zwei Unterschriften ohne Zeichnungsberechtigung, eine angekündigte Steuerprüfung im VR-Protokoll, ein fehlender
 Nachtrag zum Mietvertrag, eine Zahlung an die Aktionärin nach dem Locked-Box-Stichtag, eine Lücke von
-CHF 1.24 Mio. zwischen MWST-Abrechnungen und Jahresrechnung).
+CHF 1.24 Mio. zwischen MWST-Abrechnungen und Jahresrechnung, AHV-Nummer und Gesundheitsdaten im Arbeitsvertrag).
 `wahrheit.json` hält fest, welche Aussage richtig ist, `widersprueche.json` und `warnsignale.json`, was im Datenraum
 eingebaut ist. `dd-bericht-v2.md` (aus `entwurf2.py`) ist ein zweiter Entwurf für den Versionsvergleich.
 
@@ -265,7 +266,7 @@ python beispiele/gross/auswerten.py   # Zitatio laufen lassen und gegen die Wahr
 ```
 
 Ergebnis ohne Prüfmodell (siehe `beispiele/gross/ergebnis.txt`): alle 16 Fehler gefunden, kein Fehlalarm bei 213
-richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 7 Warnsignale gefunden, keines zu viel, Laufzeit rund
+richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 8 Warnsignale gefunden, keines zu viel, Laufzeit rund
 1 Sekunde. Gefunden werden auch Vorjahresspalte, EBIT statt Jahresgewinn, ein erfundenes Zitat, ein falsch zitierter Q&A-Eintrag, eine Bereinigung
 ohne Beleg, ein veralteter MWST-Satz und eine übersehene Kontrollwechselklausel. Wachstum, Marge, zwei Summen und
 der Covenant werden nachgerechnet und sind geprüft. 45 richtige Aussagen ohne Zahlen bleiben „Ungeprüft“ und

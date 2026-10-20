@@ -725,6 +725,11 @@ def build_swiss() -> None:
             f"Ziffer 405 Vorsteuer auf Material- und Dienstleistungsaufwand: CHF {chf(tax * 6 // 10)}",
         ]
     WARNINGS.append({"art": "MWST", "dokument": "3.3"})
+    # Personendaten, die nicht in den Datenraum gehören: AHV-Nummer und Gesundheitsdaten des CEO
+    doc_by_index("7.1").pages[0] += ["AHV-Nr. 756.4821.0937.17",
+                                     "Herr Keller war vom 02.02.2026 bis 13.03.2026 krankheitsbedingt abwesend; "
+                                     "das Arztzeugnis liegt der Personalabteilung vor."]
+    WARNINGS.append({"art": "Datenschutz", "dokument": "7.1"})
 
     say_after(TAX, "Seit 2024 beträgt der MWST-Normalsatz 8.1 %.")
     say_after(TAX, "Die Gesellschaft rechnet ihre Umsätze zum MWST-Normalsatz von 7.7 % ab.",

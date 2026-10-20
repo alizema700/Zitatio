@@ -157,3 +157,17 @@ def test_vat_turnover_is_reconciled_with_the_annual_accounts():
     assert "Nur 3 von 4" in missing.title
     wrong_tax = [f for f in flags([2_500_000] * 4, tax_ok=False) if "Steuer nicht" in f.title]
     assert len(wrong_tax) == 1 and "S. 2" in wrong_tax[0].title
+
+
+def test_personal_data_in_the_data_room_is_flagged():
+    from zitatio.privacy import check_privacy
+
+    room = _room(**{
+        "7.1 Arbeitsvertrag.txt": "Arbeitsvertrag Anna Huber\nAHV-Nr. 756.4821.0937.17\nLohn CHF 120'000",
+        "7.2 Personal.txt": "Frau Huber ist seit März krankheitsbedingt abwesend; ein Arztzeugnis liegt vor.",
+        "7.3 Reglement.txt": "Bei Krankheit ist ab dem dritten Tag ein Arztzeugnis vorzulegen.",  # allgemein
+        "7.4 Liste.txt": "Referenz 756.4821.0937.18",  # Prüfziffer falsch: keine AHV-Nummer
+    })
+    flags = {f.docs[0]: f for f in check_privacy(room)}
+    assert set(flags) == {"7.1", "7.2"}
+    assert "AHV-Nummer" in flags["7.1"].text and "Art. 5 lit. c DSG" in flags["7.2"].text
