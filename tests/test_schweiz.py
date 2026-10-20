@@ -230,3 +230,16 @@ def test_review_regressions():
 
     with zipfile.ZipFile(io.BytesIO(markdown_to_docx("Text \x08 mit Steuerzeichen\n\n| a | b |\n|---|---|\n| 1 |"))) as z:
         ET.fromstring(z.read("word/document.xml"))
+
+
+def test_monthly_sheets_add_up_to_the_overview():
+    from zitatio.monatswerte import check_monthly_totals
+
+    months = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+    pages = [f"Blatt: {m} 2025\nUmsatz; 1'000\nEBITDA; 100" for m in months]
+    for overview, expected in (("Umsatz kumuliert; 12'000\nEBITDA kumuliert; 1'200", 0),
+                               ("Umsatz kumuliert; 12'500\nEBITDA kumuliert; 1'200", 1)):
+        room = _room(**{"2.5 Management Accounts 2025.txt": "\f".join(pages + ["Blatt: Übersicht\n" + overview])})
+        flags = check_monthly_totals(room)
+        assert len(flags) == expected
+    assert "Summe der Monate 12'000" in flags[0].title

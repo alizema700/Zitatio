@@ -257,6 +257,7 @@ oder Google Kalender, mit Erinnerung 14 Tage vorher. Jeder Termin nennt die Fund
 | Datenraum-Index | Liegt ein Index oder eine Dokumentenliste im Datenraum, meldet Zitatio jede aufgeführte Nummer ohne Dokument. |
 | Sanktionen | Mit `--sanktionen liste.xml` (Gesamtliste des SECO, CSV oder ein Name pro Zeile) gleicht Zitatio Aktionäre, Zeichnungsberechtigte und Firmen im Datenraum ab, unabhängig von der Reihenfolge von Vor- und Nachname. Nichts wird aus dem Internet geladen. |
 | Erfolgsrechnung nachgerechnet | Jede Spalte: EBITDA = Umsatz − Material − Personal − übriger Aufwand, EBIT, Jahresgewinn. Findet falsch übertragene Zeilen. |
+| Monatsabschlüsse nachgerechnet | Summe der Monatsblätter gegen „kumuliert“ oder „Total“ in der Übersicht der Management Accounts. |
 | Covenant | „Nettoverschuldung höchstens x-mal EBITDA“ aus dem Kreditvertrag, nachgerechnet aus der Bilanz. |
 | Nachträge | Erwähnt ein Vertrag einen Nachtrag, eine Zusatzvereinbarung oder einen Side Letter, der nicht im Datenraum liegt, ist das ein Warnsignal: Werte aus dem Grundvertrag können überholt sein. |
 | Protokolle | Steuerprüfung, Klage, Rückruf, Sanierung, Abgänge und weitere Themen aus VR- und GV-Protokollen; Warnung, wenn der Bericht das Thema nirgends anspricht. |
@@ -300,7 +301,8 @@ Benchmark mit anonymisierten, von Menschen geschriebenen DD-Berichten.
 
 `beispiele/gross` ist näher an einem echten Deal: 42 Dokumente mit 269 Seiten (PDF und Excel) und ein DD-Bericht
 mit 229 Aussagen, von denen nur 16 absichtlich falsch sind. Dazu enthält der Datenraum drei Widersprüche, wie sie bei
-falschen Angaben des Verkäufers vorkommen, und acht Warnsignale im Datenraum (eine falsch übertragene Zeile der Erfolgsrechnung,
+falschen Angaben des Verkäufers vorkommen, und neun Warnsignale im Datenraum (eine falsch übertragene Zeile der Erfolgsrechnung, eine Übersicht der
+Management Accounts, die nicht zur Summe der Monate passt,
 zwei Unterschriften ohne Zeichnungsberechtigung, eine angekündigte Steuerprüfung im VR-Protokoll, ein fehlender
 Nachtrag zum Mietvertrag, eine Zahlung an die Aktionärin nach dem Locked-Box-Stichtag, eine Lücke von
 CHF 1.24 Mio. zwischen MWST-Abrechnungen und Jahresrechnung, AHV-Nummer und Gesundheitsdaten im Arbeitsvertrag).
@@ -313,7 +315,7 @@ python beispiele/gross/auswerten.py   # Zitatio laufen lassen und gegen die Wahr
 ```
 
 Ergebnis ohne Prüfmodell (siehe `beispiele/gross/ergebnis.txt`): alle 16 Fehler gefunden, kein Fehlalarm bei 213
-richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 11 Warnsignale gefunden (8 im Datenraum, 3 im SPA-Entwurf), keines zu viel, Laufzeit rund
+richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 12 Warnsignale gefunden (9 im Datenraum, 3 im SPA-Entwurf), keines zu viel, Laufzeit rund
 1 Sekunde. Gefunden werden auch Vorjahresspalte, EBIT statt Jahresgewinn, ein erfundenes Zitat, ein falsch zitierter Q&A-Eintrag, eine Bereinigung
 ohne Beleg, ein veralteter MWST-Satz und eine übersehene Kontrollwechselklausel. Wachstum, Marge, zwei Summen und
 der Covenant werden nachgerechnet und sind geprüft. 45 richtige Aussagen ohne Zahlen bleiben „Ungeprüft“ und
