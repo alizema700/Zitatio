@@ -104,3 +104,13 @@ def test_minutes_topics_missing_in_report():
         "Die Parteien bemühen sich, Streitigkeiten einvernehmlich beizulegen.")})
     flags = check_minutes(room, "Gegen die Gesellschaft ist eine Klage der Kunde AG hängig.")
     assert [(f.level, f.title.split(" (")[0]) for f in flags] == [("warnung", "Steuerprüfung"), ("hinweis", "Rechtsstreit")]
+
+
+def test_missing_amendment_is_flagged():
+    from zitatio.references import missing_amendments
+    room = _room(**{"4.1 Mietvertrag Halle.txt": ("Mietvertrag\nDie Mietfläche wurde mit Nachtrag Nr. 2 vom 01.03.2025 erweitert.\n"
+                                                  "Änderungen dieses Vertrags bedürfen der Schriftform.")})
+    flag, = missing_amendments(room)
+    assert flag.level == "warnung" and "Nachtrag Nr. 2" in flag.title
+    room.add("4.1.1 Nachtrag Nr. 2 Mietvertrag Halle.txt", b"Nachtrag")
+    assert missing_amendments(room) == []

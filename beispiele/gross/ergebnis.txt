@@ -1,4 +1,4 @@
-Datenraum: 41 Dokumente, 268 Seiten · Bericht: 223 Aussagen · Laufzeit 1.0 s
+Datenraum: 41 Dokumente, 268 Seiten · Bericht: 223 Aussagen · Laufzeit 0.9 s
 Status: 160 Geprüft, 45 Ungeprüft, 12 Abweichung, 2 Widerspruch, 2 Falsche Fundstelle, 2 Ohne Beleg
 
 Eingebaute Fehler gefunden: 15 von 15
@@ -28,11 +28,12 @@ Widersprüche im Datenraum gefunden: 3 von 3 eingebauten, 0 weitere gemeldet
   betrifft Aussage 3: Das Aktienkapital von CHF 1.2 Mio. ist voll liberiert.
   betrifft Aussage 15: Der Nettoerlös 2025 beträgt CHF 31.86 Mio.
 
-Schweizer Warnsignale gefunden: 4 von 4 eingebauten, 0 weitere gemeldet
+Schweizer Warnsignale gefunden: 5 von 5 eingebauten, 0 weitere gemeldet
   warnung  Nachgerechnet: DR 2.3, S. 4: EBITDA 2024 rechnet nicht
   warnung  Zeichnungsberechtigung: DR 6.1 Kreditvertrag Bodensee Kantonalbank
   warnung  Zeichnungsberechtigung: DR 6.2 Leasingvertrag Spritzgussmaschinen
   warnung  Protokolle: Steuerprüfung (DR 1.4, S. 10), im Bericht nicht erwähnt
+  warnung  Verweise: DR 4.1.2: Nachtrag Nr. 1 fehlt im Datenraum
   hinweis  Zeichnungsberechtigung: Geprüfte Unterschriften
   hinweis  Protokolle: Rechtsstreit (DR 1.4, S. 9)
   ok       Kapitalschutz: Kein Kapitalverlust per 2025

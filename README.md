@@ -149,6 +149,7 @@ mit Covenant und die Closing-Liste als Excel-Mappe; die Rechnungen stehen dort a
 | Fusionskontrolle | Umsatzschwelle Art. 9 KG; Lex Koller bei Grundeigentum. |
 | Erfolgsrechnung nachgerechnet | Jede Spalte: EBITDA = Umsatz − Material − Personal − übriger Aufwand, EBIT, Jahresgewinn. Findet falsch übertragene Zeilen. |
 | Covenant | „Nettoverschuldung höchstens x-mal EBITDA“ aus dem Kreditvertrag, nachgerechnet aus der Bilanz. |
+| Nachträge | Erwähnt ein Vertrag einen Nachtrag, eine Zusatzvereinbarung oder einen Side Letter, der nicht im Datenraum liegt, ist das ein Warnsignal: Werte aus dem Grundvertrag können überholt sein. |
 | Protokolle | Steuerprüfung, Klage, Rückruf, Sanierung, Abgänge und weitere Themen aus VR- und GV-Protokollen; Warnung, wenn der Bericht das Thema nirgends anspricht. |
 
 Gesetzliche Sätze im Bericht (MWST je nach Jahr, Verrechnungssteuer, Emissionsabgabe, AHV/IV/EO, BVG-Umwandlungssatz,
@@ -188,8 +189,9 @@ Benchmark mit anonymisierten, von Menschen geschriebenen DD-Berichten.
 
 `beispiele/gross` ist näher an einem echten Deal: 41 Dokumente mit 268 Seiten (PDF und Excel) und ein DD-Bericht
 mit 223 Aussagen, von denen nur 15 absichtlich falsch sind. Dazu enthält der Datenraum drei Widersprüche, wie sie bei
-falschen Angaben des Verkäufers vorkommen, und vier Schweizer Warnsignale (eine falsch übertragene Zeile der
-Erfolgsrechnung, zwei Unterschriften ohne Zeichnungsberechtigung, eine angekündigte Steuerprüfung im VR-Protokoll).
+falschen Angaben des Verkäufers vorkommen, und fünf Warnsignale (eine falsch übertragene Zeile der Erfolgsrechnung,
+zwei Unterschriften ohne Zeichnungsberechtigung, eine angekündigte Steuerprüfung im VR-Protokoll, ein fehlender
+Nachtrag zum Mietvertrag).
 `wahrheit.json` hält fest, welche Aussage richtig ist, `widersprueche.json` und `warnsignale.json`, was im Datenraum
 eingebaut ist. `dd-bericht-v2.md` (aus `entwurf2.py`) ist ein zweiter Entwurf für den Versionsvergleich.
 
@@ -199,7 +201,7 @@ python beispiele/gross/auswerten.py   # Zitatio laufen lassen und gegen die Wahr
 ```
 
 Ergebnis ohne Prüfmodell (siehe `beispiele/gross/ergebnis.txt`): alle 15 Fehler gefunden, kein Fehlalarm bei 208
-richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 4 Warnsignale gefunden, keines zu viel, Laufzeit rund
+richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 5 Warnsignale gefunden, keines zu viel, Laufzeit rund
 1 Sekunde. Gefunden werden auch Vorjahresspalte, EBIT statt Jahresgewinn, ein erfundenes Zitat, eine Bereinigung
 ohne Beleg, ein veralteter MWST-Satz und eine übersehene Kontrollwechselklausel. Wachstum, Marge, zwei Summen und
 der Covenant werden nachgerechnet und sind geprüft. 45 richtige Aussagen ohne Zahlen bleiben „Ungeprüft“ und
@@ -263,6 +265,7 @@ src/zitatio/
   terms.py     Laufzeiten, Kündigungsfristen, Volumen, Closing-Liste
   netdebt.py   Nettoverschuldung, schuldenähnliche Posten, Covenant
   minutes.py   Themen aus VR-Protokollen, die der Bericht nicht erwähnt
+  references.py Erwähnte Nachträge und Side Letters, die im Datenraum fehlen
   versions.py  Versionsvergleich zweier Entwürfe, Entscheide übernehmen
   summary.py   Das Wichtigste fürs IC, Markdown fürs Memo
   excel.py     Excel-Mappe mit Formeln, ohne Zusatzpaket geschrieben

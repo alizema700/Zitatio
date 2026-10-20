@@ -671,6 +671,10 @@ def build_swiss() -> None:
     doc_by_index("1.4").pages[9].append("Der Verwaltungsrat nimmt Kenntnis von der angekündigten Steuerprüfung der ESTV "
                                         "zur Verrechnungssteuer der Jahre 2022 bis 2024.")
     WARNINGS.append({"art": "Protokolle", "dokument": "1.4"})
+    # Ein Nachtrag, der im Datenraum fehlt:
+    doc_by_index("4.1.2").pages[-1].append("Die Parteien haben die Mietfläche mit Nachtrag Nr. 1 vom 15.03.2025 "
+                                           "um 400 m2 erweitert.")
+    WARNINGS.append({"art": "Verweise", "dokument": "4.1.2"})
 
     balance = next(p for p in doc_by_index("2.3").pages if p and p[0].startswith("Bilanz per"))
     assets = sum(int(re.sub(r"\D", "", row.rsplit(" ", 1)[1])) for row in balance[1:5])
