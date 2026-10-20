@@ -331,7 +331,8 @@ def check_share_register(room: DataRoom) -> list[Flag]:
 
 _LEGAL_FORM = re.compile(r"\b(?:AG|SA|GmbH|Sàrl|Sagl|S\.?A\.?|Ltd|Inc|KG|Holding|Stiftung|Genossenschaft|"
                          r"Beteiligungen|Fonds?|LP|Trust|Pensionskasse|Fondation|Fondazione)\b")
-_HOLDER = re.compile(r"^\s*([^:\n]{3,80}):\s*([\d'’]+) (?:Namen|Inhaber)aktien(?:[^(\n]*\((\d+(?:[.,]\d+)?)\s?%\))?",
+_HOLDER = re.compile(r"^\s*([^:\n]{3,80}):\s*([\d'’]+) (?:(?:Namen|Inhaber)aktien|actions(?: nominatives| au porteur)?"
+                     r"|azioni(?: nominative)?)(?:[^(\n]*\((\d+(?:[.,]\d+)?)\s?%\))?",
                      re.MULTILINE)
 
 

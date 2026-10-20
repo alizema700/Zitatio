@@ -85,3 +85,19 @@ def test_memo_as_word_keeps_headings_bullets_and_tables():
     assert "<w:b/></w:rPr><w:t xml:space=\"preserve\">Kritisch:" in xml  # **Kritisch:** fett
     text = docx_to_text(word)
     assert "Das Wichtigste" in text and "Offene Befunde" in text
+
+
+def test_french_spa():
+    from zitatio.kaufvertrag import check_spa
+
+    room = DataRoom()
+    room.add("1.2 Statuts.txt", "Art. 6: Le transfert des actions nominatives requiert l'approbation du conseil "
+                                "d'administration.".encode())
+    room.add("1.3 Registre des actions.txt", "Registre des actions\nLéman Holding SA: 600 actions nominatives (60 %)\n"
+                                             "Marc Dubois: 400 actions nominatives (40 %)\n".encode())
+    spa = ("entre Léman Holding SA, Lausanne (le « Vendeur ») et Alpes SA (l'« Acheteur »). Le Vendeur vend "
+           "1'000 actions nominatives de la société.")
+    flags = {f.title: f for f in check_spa("spa.md", spa, room)}
+    assert "Verkauft werden 1'000 Aktien, die Verkäuferin hält 600" in flags
+    assert "Marc Dubois (400 Aktien)" in flags["Verkauft werden 1'000 Aktien, die Verkäuferin hält 600"].text
+    assert "Zustimmung des Verwaltungsrats zur Übertragung fehlt im Vertrag" in flags

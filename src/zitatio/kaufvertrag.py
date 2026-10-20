@@ -17,15 +17,16 @@ from .facts import AMOUNT, DATE, extract_facts, format_value
 from .swiss import _HOLDER, HINWEIS, OK, WARNUNG, Flag
 from .verify import _evidence
 
-_SOLD = re.compile(r"verk(?:auft|äuft)\w*[^.]{0,120}?([\d'’]+)\s+(?:Namen|Inhaber)?aktien", re.IGNORECASE)
-_SELLER = re.compile(r"(?:zwischen\s+|und\s+)?([A-ZÄÖÜ][^;()\n]{2,100}?)\s*\((?:nachfolgend\s+)?(?:die\s+|der\s+)?[„\"«]?Verkäufer(?:in)?",
+_SOLD = re.compile(r"(?:verk(?:auft|äuft)|vend)\w*[^.]{0,120}?([\d'’]+)\s+(?:(?:Namen|Inhaber)?aktien|actions)",
+                   re.IGNORECASE)
+_SELLER = re.compile(r"(?:zwischen\s+|und\s+)?([A-ZÄÖÜ][^;()\n]{2,100}?)\s*\((?:nachfolgend\s+)?(?:die\s+|der\s+|le\s+|la\s+|l')?[„\"«]?\s?(?:Verkäufer(?:in)?|Vendeu(?:r|se)|Venderesse)",
                      re.IGNORECASE)
-_SELLER_LABEL = re.compile(r"Verkäufer(?:in)?:\s*([^,;\n(]{3,80})", re.IGNORECASE)
-_PRICE = re.compile(r"kaufpreis[^.]{0,60}?(?:beträgt|von|in höhe von)\s+(CHF\s*[\d'’.]+(?:\s*(?:Mio\.?|Millionen))?)",
+_SELLER_LABEL = re.compile(r"(?:Verkäufer(?:in)?|Vendeur):\s*([^,;\n(]{3,80})", re.IGNORECASE)
+_PRICE = re.compile(r"(?:kaufpreis|prix d'achat|prix de vente)[^.]{0,60}?(?:beträgt|von|in höhe von|s'élève à|est de)\s+(CHF\s*[\d'’.]+(?:\s*(?:Mio\.?|Millionen))?)",
                     re.IGNORECASE)
 _VINKULIERUNG = re.compile(r"vinkul|übertragung[^.]{0,60}(?:namenaktien|aktien)[^.]{0,60}zustimmung|"
-                           r"transfert[^.]{0,60}approbation du conseil", re.IGNORECASE)
-_CONSENT_IN_SPA = re.compile(r"zustimmung des verwaltungsrat|vinkul|685[ab]?\s*(?:ff\.?\s*)?OR|eintragung[^.]{0,40}aktienbuch",
+                           r"transfert[^.]{0,80}(?:approbation|agrément) du conseil", re.IGNORECASE)
+_CONSENT_IN_SPA = re.compile(r"zustimmung des verwaltungsrat|(?:approbation|agrément|consentement) du conseil|vinkul|685[ab]?\s*(?:ff\.?\s*)?OR|eintragung[^.]{0,40}aktienbuch",
                              re.IGNORECASE)
 _LOCKED_BOX = re.compile(r"locked[- ]?box", re.IGNORECASE)
 
