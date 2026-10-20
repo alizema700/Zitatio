@@ -23,6 +23,7 @@ class Question:
     priority: str
     text: str
     reference: str  # Fundstelle oder Grund, für den Verkäufer lesbar
+    related: str = ""  # Eintrag der Q&A-Liste, der dazu schon etwas sagt ("Q&A 5")
 
 
 def _chf(value: Decimal) -> str:
@@ -111,12 +112,26 @@ def request_list(run) -> list[Question]:
 
     order = {HOCH: 0, MITTEL: 1}
     items.sort(key=lambda x: order[x[1]])
-    return [Question(n, area, prio, text, ref) for n, (area, prio, text, ref) in enumerate(items, 1)]
+    questions = [Question(n, area, prio, text, ref) for n, (area, prio, text, ref) in enumerate(items, 1)]
+    _link_qa(questions, run.room)
+    return questions
+
+
+def _link_qa(questions: list[Question], room) -> None:
+    """Steht in der Q&A-Liste schon ein Eintrag zum Thema, wird er genannt: vielleicht ist die Frage beantwortet."""
+    from .locate import _terms
+
+    entries = {n: set(_terms(d.pages[0])) for n, d in room.qa_entries().items() if d.pages}
+    for q in questions:
+        wanted = set(_terms(q.text))
+        best = max(((len(wanted & terms), n) for n, terms in entries.items()), default=(0, 0))
+        if best[0] >= 3:
+            q.related = f"Q&A {best[1]}"
 
 
 def to_markdown(questions: list[Question], title: str = "Fragenliste an den Verkäufer") -> str:
-    lines = [f"# {title}", "", "| Nr | Bereich | Priorität | Frage | Bezug |", "|---|---|---|---|---|"]
+    lines = [f"# {title}", "", "| Nr | Bereich | Priorität | Frage | Bezug | Q&A |", "|---|---|---|---|---|---|"]
     cell = lambda t: t.replace("|", "/").replace("\n", " ")  # noqa: E731
     for q in questions:
-        lines.append(f"| {q.number} | {q.area} | {q.priority} | {cell(q.text)} | {cell(q.reference)} |")
+        lines.append(f"| {q.number} | {q.area} | {q.priority} | {cell(q.text)} | {cell(q.reference)} | {q.related} |")
     return "\n".join(lines) + "\n"

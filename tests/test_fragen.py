@@ -52,3 +52,15 @@ def test_red_flag_report_without_dd_report(tmp_path):
     assert "im Bericht nicht erwähnt" not in page
     assert 'id="garantien"' in page and "Leakage" in page
     assert questions.read_text(encoding="utf-8").startswith("# Fragenliste")
+
+
+def test_question_names_matching_qa_entry():
+    text, data = load_report(GROSS / "dd-bericht.md")
+    spa = ("spa-entwurf.md", (GROSS / "spa-entwurf.md").read_text(encoding="utf-8"))
+    run = run_check("dd-bericht.md", text, data, DataRoom.from_folder(GROSS / "datenraum"), spa=spa)
+    questions = request_list(run)
+    leakage = next(q for q in questions if "Locked-Box-Stichtag" in q.text)
+    assert leakage.related == "Q&A 5"
+    # Fragen ohne passenden Eintrag bleiben ohne Verweis
+    assert sum(1 for q in questions if q.related) == 1
+    assert "| Q&A 5 |" in to_markdown(questions)

@@ -218,7 +218,7 @@ def to_json(run: Run) -> str:
                                         "freistellung": w.covered_by.get(id(i))} for i in w.issues]}
                           for w in run.warranties],
             "fragenliste": [{"nr": q.number, "bereich": q.area, "prioritaet": q.priority, "frage": q.text,
-                             "bezug": q.reference} for q in _questions(run)],
+                             "bezug": q.reference, "qa": q.related or None} for q in _questions(run)],
             "closing_liste": [
                 {"dokument": i.terms.doc.label, "titel": i.terms.doc.title, "art": i.kind, "text": i.text,
                  "volumen": str(i.terms.volume) if i.terms.volume else None,
@@ -638,13 +638,20 @@ def _questions(run: Run):
     return request_list(run)
 
 
+def _related(q) -> str:
+    if not q.related:
+        return ""
+    return f' <span class="where">Dazu gibt es schon {html.escape(q.related)}; prüfen, ob die Frage beantwortet ist.</span>'
+
+
 def _questions_html(run: Run) -> str:
     questions = _questions(run)
     if not questions:
         return ""
     rows = "".join(f'<tr><td class="nw">{q.number}</td><td class="opt">{html.escape(q.area)}</td>'
                    f'<td><span class="pill s-{"abweichung" if q.priority == "hoch" else "ohne_beleg"}">{q.priority}</span></td>'
-                   f'<td>{html.escape(q.text)}</td><td class="opt">{html.escape(q.reference)}</td></tr>' for q in questions)
+                   f'<td>{html.escape(q.text)}{_related(q)}</td><td class="opt">{html.escape(q.reference)}</td></tr>'
+                   for q in questions)
     high = sum(1 for q in questions if q.priority == "hoch")
     return (f'<h2 id="fragen">Fragenliste an den Verkäufer</h2><p class="lead">{len(questions)} Fragen, davon {high} mit '
             "hoher Priorität, aus den Befunden oben. Nur was der Verkäufer klären kann; als Tabelle auch in der "
