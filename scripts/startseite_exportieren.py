@@ -6,6 +6,7 @@ Das Hochladeformular braucht den lokalen Server (uvicorn zitatio.web:app).
 """
 
 import base64
+import re
 import sys
 from importlib import resources
 from pathlib import Path
@@ -28,8 +29,7 @@ if (location.protocol === 'file:') document.querySelectorAll('form.upload').forE
 def main(out: Path) -> None:
     assets = resources.files("zitatio").joinpath("assets")
     page = index()
-    for weight in (400, 500, 700):
-        name = f"fonts/familjen-grotesk-latin-{weight}-normal.woff2"
+    for name in set(re.findall(r"url\(/assets/(fonts/[^)]+\.woff2)\)", page)):
         data = base64.b64encode(assets.joinpath(name).read_bytes()).decode()
         page = page.replace(f"url(/assets/{name})", f"url(data:font/woff2;base64,{data})")
     icon = base64.b64encode(assets.joinpath("zitatio-icon.svg").read_bytes()).decode()

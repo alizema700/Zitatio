@@ -9,7 +9,9 @@ client = TestClient(app)
 
 
 def test_index_and_example():
-    assert "Kein Satz ohne Beleg" in client.get("/").text
+    page = client.get("/").text
+    assert "Kein Satz ohne Beleg" in page
+    assert "{graph}" not in page and "\"aussagen\"" in page
     assert "Prüfprotokoll" in client.get("/beispiel").text
 
 

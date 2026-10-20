@@ -7,6 +7,8 @@ Alles läuft lokal; ohne Prüfmodell verlässt kein Dokument den Rechner.
 from __future__ import annotations
 
 import html
+import json
+from functools import lru_cache
 from importlib import resources
 from pathlib import Path
 
@@ -31,6 +33,39 @@ def _model():
     return model, (model.description if model else None)
 
 
+@lru_cache(maxsize=1)
+def example_graph() -> str:
+    """Prüfgraph der Startseite: das mitgelieferte Beispiel, echt geprüft."""
+    report = EXAMPLE / "dd-bericht.md"
+    if not report.exists():
+        return "null"
+    data = report.read_bytes()
+    room = DataRoom.from_folder(EXAMPLE / "datenraum")
+    run = run_check(report.name, data.decode(), data, room)
+    graph = {
+        "bericht": report.name,
+        "dokumente": [{"label": d.label, "titel": d.title, "seiten": len(d.pages)} for d in room.documents],
+        "aussagen": [
+            {
+                "nr": f.claim.number,
+                "text": f.claim.clean_text,
+                "status": f.status.value,
+                "label": f.status.label,
+                "fundstellen": [c.label for c in f.claim.citations],
+                "dokumente": sorted({c.index for c in f.claim.citations}),
+                "grund": f.reasons[0] if f.reasons else "",
+                "beleg": (
+                    {"wo": f"{f.evidence[0].doc_label}, S. {f.evidence[0].page}", "vor": f.evidence[0].before,
+                     "treffer": f.evidence[0].match, "nach": f.evidence[0].after}
+                    if f.evidence else None
+                ),
+            }
+            for f in run.findings
+        ],
+    }
+    return json.dumps(graph, ensure_ascii=False).replace("</", "<\\/")
+
+
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
     model = _model()[1]
@@ -38,7 +73,8 @@ def index() -> str:
         f"Prüfmodell: {html.escape(model)}" if model else "Läuft lokal · Prüfmodell aus, nur Regeln"
     )
     page = resources.files("zitatio").joinpath("assets/index.html").read_text(encoding="utf-8")
-    for key, value in {"logo": logo_svg(), "status": status, "version": __version__}.items():
+    values = {"logo": logo_svg(), "status": status, "version": __version__, "graph": example_graph()}
+    for key, value in values.items():
         page = page.replace("{" + key + "}", value)
     return page
 
