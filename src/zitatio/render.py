@@ -219,6 +219,8 @@ def to_json(run: Run) -> str:
                           for w in run.warranties],
             "fragenliste": [{"nr": q.number, "bereich": q.area, "prioritaet": q.priority, "frage": q.text,
                              "bezug": q.reference, "qa": q.related or None} for q in _questions(run)],
+            "fristen": [{"datum": d.date.isoformat(), "titel": d.title, "text": d.detail, "fundstelle": d.reference}
+                        for d in _deadlines(run)],
             "closing_liste": [
                 {"dokument": i.terms.doc.label, "titel": i.terms.doc.title, "art": i.kind, "text": i.text,
                  "volumen": str(i.terms.volume) if i.terms.volume else None,
@@ -660,6 +662,28 @@ def _questions_html(run: Run) -> str:
             f'<th>Frage</th><th class="opt">Bezug</th></tr></thead><tbody>{rows}</tbody></table></div>')
 
 
+def _deadlines(run: Run) -> list:
+    from .fristen import deadlines
+
+    return deadlines(run) if run.terms else []
+
+
+def _deadlines_html(run: Run) -> str:
+    items = _deadlines(run)
+    if not items:
+        return ""
+    shown = items[:12]
+    rows = "".join(f'<tr><td class="nw">{d.date:%d.%m.%Y}</td><td>{html.escape(d.title)}</td>'
+                   f'<td class="opt">{html.escape(d.detail)}</td><td class="nw">{html.escape(d.reference)}</td></tr>'
+                   for d in shown)
+    more = f" Die nächsten {len(shown)} von {len(items)} stehen hier." if len(items) > len(shown) else ""
+    return (f'<h2 id="fristen">Fristen</h2><p class="lead">{len(items)} Termine aus dem Datenraum: Vertragsenden, '
+            f"letzte Kündigungstage und Ablaufdaten.{more} Alle als Kalenderdatei mit <code>--kalender fristen.ics</code>, "
+            "mit Erinnerung 14 Tage vorher.</p>"
+            '<div class="tablebox"><table><thead><tr><th>Datum</th><th>Frist</th><th class="opt">Grundlage</th>'
+            f'<th>Fundstelle</th></tr></thead><tbody>{rows}</tbody></table></div>')
+
+
 def _exit_html(run: Run) -> str:
     from .terms import _n, exit_profile
 
@@ -825,7 +849,7 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _valuation_html(run) + _netdebt_html(run) + _closing_html(run) + _contracts_html(run) + _warranties_html(run) + _questions_html(run)
+    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _valuation_html(run) + _netdebt_html(run) + _closing_html(run) + _deadlines_html(run) + _contracts_html(run) + _warranties_html(run) + _questions_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""

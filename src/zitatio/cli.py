@@ -32,6 +32,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--memo", type=Path, help="eine Seite fürs IC-Memo als Markdown: das Wichtigste und offene Befunde")
     p.add_argument("--fragen", type=Path, help="Fragenliste an den Verkäufer als Markdown, für den Q&A-Prozess")
     p.add_argument("--spa", type=Path, help="Entwurf des Kaufvertrags: Garantien mit den Befunden abgleichen")
+    p.add_argument("--kalender", type=Path, help="Fristen (Vertragsenden, Kündigungstage, Ablaufdaten) als .ics")
     p.add_argument("--vorher", type=Path, help="frühere Version des Berichts: zeigt behobene, offene und neue Befunde")
     p.add_argument("--entscheide", type=Path,
                    help="exportiertes Prüf-CSV der Vorversion: Entscheide für unveränderte Aussagen übernehmen")
@@ -41,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--excel", type=Path, help="Excel-Mappe mit Nettoverschuldung, Closing-Liste und Fragenliste")
     r.add_argument("--fragen", type=Path, help="Fragenliste an den Verkäufer als Markdown")
     r.add_argument("--spa", type=Path, help="Entwurf des Kaufvertrags: Garantien mit den Befunden abgleichen")
+    r.add_argument("--kalender", type=Path, help="Fristen als Kalenderdatei (.ics)")
     r.add_argument("--json", type=Path, help="zusätzlich als JSON speichern")
     b = sub.add_parser("benchmark", help="Trefferquote mit künstlich eingebauten Fehlern messen")
     b.add_argument("--datenraum", "-d", type=Path, required=True, help="Ordner mit den Datenraum-Dokumenten")
@@ -86,6 +88,8 @@ def main(argv: list[str] | None = None) -> int:
         from .questions import to_markdown as questions_markdown
 
         args.fragen.write_text(questions_markdown(request_list(run)), encoding="utf-8")
+    if args.kalender:
+        _write_calendar(args.kalender, run)
     if args.offenlegung:
         args.offenlegung.write_text(to_disclosure_csv(run), encoding="utf-8")
 
@@ -136,10 +140,6 @@ def _benchmark(args) -> int:
     return 0
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
-
-
 def _redflags(args) -> int:
     from .questions import request_list
     from .questions import to_markdown as questions_markdown
@@ -154,6 +154,8 @@ def _redflags(args) -> int:
         from .excel import to_xlsx
 
         args.excel.write_bytes(to_xlsx(run))
+    if args.kalender:
+        _write_calendar(args.kalender, run)
     questions = request_list(run)
     if args.fragen:
         args.fragen.write_text(questions_markdown(questions), encoding="utf-8")
@@ -163,3 +165,15 @@ def _redflags(args) -> int:
     print(f"\n{sum(fl.level == 'warnung' for fl in run.flags)} Warnsignale, {len(questions)} Fragen an den Verkäufer")
     print(f"Red-Flag-Bericht: {args.out}")
     return 0
+
+
+def _write_calendar(path: Path, run) -> None:
+    from .fristen import deadlines, to_ics
+
+    items = deadlines(run)
+    path.write_text(to_ics(items, run.report_name), encoding="utf-8", newline="")
+    print(f"{len(items)} Fristen im Kalender: {path}")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

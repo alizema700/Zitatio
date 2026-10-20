@@ -194,6 +194,14 @@ Fundstelle: fehlende Unterlagen und Nachträge, Widersprüche zwischen Dokumente
 Handelsregister, Zustimmungen zum Kontrollwechsel, auslaufende Verträge, Bereinigungen ohne Beleg und offene
 Verfahren. Sie steht unten im Prüfbericht, im Blatt „Fragenliste“ der Excel-Mappe (mit Spalte für die Antwort) und
 mit `--fragen fragen.md` als Markdown. Falsche Fundstellen im eigenen Bericht kommen nicht hinein.
+Steht in der Q&A-Liste des Datenraums schon ein Eintrag zum Thema, nennt die Frage ihn („Q&A 5“).
+
+### Fristenkalender
+
+Vertragsenden, der letzte Tag für eine Kündigung auf das Vertragsende und Ablaufdaten von Zertifikaten und
+Bewilligungen stehen im Prüfbericht unter „Fristen“ und mit `--kalender fristen.ics` als Kalenderdatei für Outlook
+oder Google Kalender, mit Erinnerung 14 Tage vorher. Jeder Termin nennt die Fundstelle. Passt ein Kündigungstermin
+(etwa „auf Jahresende“) nicht zum Vertragsende, rechnet Zitatio keinen Termin aus, statt einen zu erfinden.
 
 ### Prüfungen im Datenraum
 
