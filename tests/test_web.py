@@ -52,3 +52,12 @@ def test_upload_without_report_gives_red_flag_report():
     response = client.post("/pruefen", files=files)
     assert response.status_code == 200
     assert "Red-Flag-Bericht" in response.text and 'class="redflag"' in response.text
+
+
+def test_buyer_questions_get_answer_drafts():
+    files = [("datenraum", (pdf.name, pdf.read_bytes(), "application/pdf"))
+             for pdf in sorted((EXAMPLE / "datenraum").glob("*.pdf"))]
+    files.append(("kaeuferfragen", ("fragen.md", "1. Besitzt die Gesellschaft Kryptowährungen?\n".encode())))
+    response = client.post("/pruefen", files=files)
+    assert response.status_code == 200
+    assert 'id="antworten"' in response.text and "Im Datenraum nicht gefunden" in response.text

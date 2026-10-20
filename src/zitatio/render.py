@@ -54,6 +54,7 @@ class Run:
     stale: dict = field(default_factory=dict)  # Aussagenummer -> geänderte Dokumente, Entscheid nicht übernommen
     spa_name: str | None = None
     spa_text: str = ""
+    answers: list = field(default_factory=list)  # antworten.Answer, Entwürfe für Käuferfragen
     warranties: list = field(default_factory=list)  # spa.Warranty
 
     def __post_init__(self):
@@ -676,6 +677,22 @@ def _clauses_html(run: Run) -> str:
             f"<tbody>{blocks}</tbody></table></div>")
 
 
+def _answers_html(run: Run) -> str:
+    if not run.answers:
+        return ""
+    found = sum(1 for a in run.answers if a.text)
+    rows = "".join(
+        f'<tr><td class="nw">{a.number}</td><td>{html.escape(a.question)}</td><td>'
+        + (html.escape(a.text) if a.text else '<span class="where">Im Datenraum nicht gefunden. Antwort beim Management '
+           "einholen.</span>")
+        + (f'<p class="todo"><span class="pill s-widerspruch">Widerspruch</span> {html.escape(a.warning)}</p>' if a.warning else "")
+        + f'</td><td class="nw">{html.escape(a.reference or "–")}</td></tr>' for a in run.answers)
+    return (f'<h2 id="antworten">Antwortentwürfe für die Käuferfragen</h2><p class="lead">{found} von {len(run.answers)} '
+            "Fragen mit einem Satz aus dem Datenraum beantwortet, jeweils mit Fundstelle. Vor der Freigabe lesen.</p>"
+            '<div class="tablebox"><table><thead><tr><th>Nr</th><th>Frage</th><th>Antwortentwurf</th><th>Fundstelle</th>'
+            f"</tr></thead><tbody>{rows}</tbody></table></div>")
+
+
 def _questions(run: Run):
     from .questions import request_list
 
@@ -900,7 +917,7 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _valuation_html(run) + _netdebt_html(run) + _closing_html(run) + _deadlines_html(run) + _contracts_html(run) + _warranties_html(run) + _clauses_html(run) + _questions_html(run)
+    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _valuation_html(run) + _netdebt_html(run) + _closing_html(run) + _deadlines_html(run) + _contracts_html(run) + _warranties_html(run) + _clauses_html(run) + _questions_html(run) + _answers_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""

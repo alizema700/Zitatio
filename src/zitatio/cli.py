@@ -33,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--fragen", type=Path, help="Fragenliste an den Verkäufer als Markdown, für den Q&A-Prozess")
     p.add_argument("--spa", type=Path, help="Entwurf des Kaufvertrags: Garantien mit den Befunden abgleichen")
     p.add_argument("--klauseln", type=Path, help="Klauselvorschläge für den Kaufvertrag (.md oder .docx)")
+    p.add_argument("--kaeuferfragen", type=Path, help="Fragen der Käufer (.xlsx/.md): Antwortentwürfe im Bericht")
     p.add_argument("--kalender", type=Path, help="Fristen (Vertragsenden, Kündigungstage, Ablaufdaten) als .ics")
     p.add_argument("--vorher", type=Path, help="frühere Version des Berichts: zeigt behobene, offene und neue Befunde")
     p.add_argument("--entscheide", type=Path,
@@ -44,6 +45,7 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--fragen", type=Path, help="Fragenliste an den Verkäufer als Markdown")
     r.add_argument("--spa", type=Path, help="Entwurf des Kaufvertrags: Garantien mit den Befunden abgleichen")
     r.add_argument("--klauseln", type=Path, help="Klauselvorschläge für den Kaufvertrag (.md oder .docx)")
+    r.add_argument("--kaeuferfragen", type=Path, help="Fragen der Käufer (.xlsx/.md): Antwortentwürfe im Bericht")
     r.add_argument("--kalender", type=Path, help="Fristen als Kalenderdatei (.ics)")
     r.add_argument("--json", type=Path, help="zusätzlich als JSON speichern")
     b = sub.add_parser("benchmark", help="Trefferquote mit künstlich eingebauten Fehlern messen")
@@ -77,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
     spa = (args.spa.name, load_report(args.spa)[0]) if args.spa else None
     run = run_check(args.bericht.name, text, data, room, model, model.description if model else None,
                     previous=previous, decisions=decisions, spa=spa)
+    _attach_answers(args, run)
 
     args.out.write_text(to_html(run), encoding="utf-8")
     if args.json:
@@ -157,6 +160,7 @@ def _redflags(args) -> int:
     room = DataRoom.from_folder(args.datenraum)
     spa = (args.spa.name, load_report(args.spa)[0]) if args.spa else None
     run = run_check(args.datenraum.resolve().name, "", b"", room, spa=spa)
+    _attach_answers(args, run)
     args.out.write_text(to_html(run), encoding="utf-8")
     if args.json:
         args.json.write_text(to_json(run), encoding="utf-8")
@@ -177,6 +181,14 @@ def _redflags(args) -> int:
     print(f"\n{sum(fl.level == 'warnung' for fl in run.flags)} Warnsignale, {len(questions)} Fragen an den Verkäufer")
     print(f"Red-Flag-Bericht: {args.out}")
     return 0
+
+
+def _attach_answers(args, run) -> None:
+    if args.kaeuferfragen:
+        from .antworten import answer, read_questions
+
+        questions = read_questions(args.kaeuferfragen.read_bytes(), args.kaeuferfragen.suffix.lower())
+        run.answers = answer(questions, run.room)
 
 
 def _answers(args) -> int:
