@@ -41,6 +41,7 @@ class Run:
     conflicts: list = field(default_factory=list)  # crosscheck.Conflict
     addbacks: list = field(default_factory=list)  # derive.AddbackCheck
     gaps: list = field(default_factory=list)  # gaps.Gap
+    contracts: list = field(default_factory=list)  # clauses.ContractEntry
 
     def __post_init__(self):
         self.created = self.created or dt.datetime.now().astimezone()
@@ -141,6 +142,12 @@ def to_json(run: Run) -> str:
                     "stimmt": c.ok,
                 }
                 for c in run.addbacks
+            ],
+            "vertragsregister": [
+                {"dokument": e.doc.label, "titel": e.doc.title,
+                 "klauseln": [{"art": c.kind, "vorhanden": c.present, "seite": c.page, "satz": c.sentence}
+                              for c in e.clauses]}
+                for e in run.contracts if e.clauses
             ],
             "unterlagen": [
                 {"bereich": g.area, "unterlage": g.name, "vorhanden": g.present,
@@ -331,6 +338,39 @@ def _addbacks_html(run: Run) -> str:
             "und die Summe muss aufgehen.</p>" + "".join(out))
 
 
+def _contracts_html(run: Run) -> str:
+    from .clauses import KINDS, LABELS
+
+    entries = [e for e in run.contracts if e.clauses]
+    if not entries:
+        return ""
+    kinds = [k for k, *_ in KINDS if any(c.kind == k for e in entries for c in e.clauses)]
+    rows = []
+    for e in entries:
+        cells = []
+        for k in kinds:
+            state = e.has(k)
+            found = [c for c in e.clauses if c.kind == k and c.present is bool(state)]
+            if state:
+                c = found[0]
+                cells.append(f'<td><span class="pill s-ohne_beleg" title="{html.escape(c.sentence)}">ja</span> '
+                             f'<span class="where">S. {c.page}</span></td>')
+            elif state is False:
+                cells.append(f'<td><span class="where" title="{html.escape(found[0].sentence)}">ausgeschlossen</span></td>')
+            else:
+                cells.append('<td><span class="where">–</span></td>')
+        rows.append(f"<tr><td>{html.escape(e.doc.label)}</td><td class=\"opt\">{html.escape(e.doc.title)}</td>{''.join(cells)}</tr>")
+    coc = [e for e in entries if e.has("kontrollwechsel")]
+    lead = (f"{len(coc)} von {len(entries)} Verträgen erlauben der Gegenpartei bei einem Kontrollwechsel die Kündigung "
+            "oder verlangen ihre Zustimmung: " + ", ".join(e.doc.label for e in coc) + "." if coc
+            else f"Keiner der {len(entries)} Verträge enthält eine Kontrollwechselklausel.")
+    head = "".join(f"<th>{html.escape(LABELS[k])}</th>" for k in kinds)
+    return (f'<h2>Vertragsregister</h2><p class="lead">{html.escape(lead)} Gefunden per Wortsuche mit Seite; '
+            "der Satz erscheint beim Darüberfahren.</p>"
+            f'<div class="tablebox"><table><thead><tr><th>Index</th><th class="opt">Dokument</th>{head}</tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div>')
+
+
 def _gaps_html(run: Run) -> str:
     if not run.gaps:
         return ""
@@ -385,7 +425,7 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _conflicts_html(run) + _addbacks_html(run)
+    extra = _conflicts_html(run) + _addbacks_html(run) + _contracts_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .clauses import apply_clauses, contract_register
 from .crosscheck import apply_conflicts, find_conflicts
 from .dataroom import DataRoom
 from .derive import apply_addbacks, apply_derived, check_addbacks
@@ -24,7 +25,9 @@ def run_check(
     addbacks = check_addbacks(findings)
     apply_addbacks(addbacks)
     apply_derived(findings, room, skip={c.total.claim.number for c in addbacks})
+    register = contract_register(room)
+    apply_clauses(findings, room, register)
     conflicts = find_conflicts(room)
     apply_conflicts(findings, conflicts)
     return Run(report_name, sha256(report_bytes), room, findings, model_name if model else None,
-               conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room))
+               conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room), contracts=register)

@@ -21,7 +21,7 @@ EXPECTED = [
     Status.GEPRUEFT,  # feste Dauer
     Status.ABWEICHUNG,  # Kündigungsfrist 18 statt 12 Monate
     Status.GEPRUEFT,  # Laufzeit Rahmenvertrag
-    Status.UNGEPRUEFT,  # Kontrollwechsel: ohne Modell nicht prüfbar
+    Status.ABWEICHUNG,  # Kontrollwechsel übersehen: Klauselsuche findet ihn
     Status.QUELLE_FEHLT,  # DR 4.2 existiert nicht
     Status.GEPRUEFT,  # Darlehen
     Status.QUELLE_FEHLT,  # S. 4 existiert nicht

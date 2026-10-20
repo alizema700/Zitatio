@@ -233,3 +233,31 @@ def test_averages_are_not_relocated_to_a_random_page():
     room = _room(**{"6.1 Präsentation.txt": "Marktanteil Durchschnitt 12.4 %\n"})
     f = _check("Die durchschnittliche Marge 2024 bis 2025 beträgt 12.4 % [DR 2.2, S. 1].", room).findings[0]
     assert f.status is not Status.FALSCHE_FUNDSTELLE
+
+
+CONTRACT = """Liefervertrag mit der Basler Pharma AG
+Das jährliche Volumen beträgt CHF 900'000.
+Bei einem Kontrollwechsel bei der Lieferantin ist die Kundin berechtigt, diesen Vertrag
+mit einer Frist von drei Monaten zu kündigen.
+Die Lieferantin beliefert die Kundin exklusiv.
+"""
+NO_COC = "Mietvertrag Lager Muttenz\nEin Kontrollwechsel bei einer der Parteien berührt den Bestand dieses Vertrags nicht.\n"
+
+
+def test_overlooked_change_of_control_clause_is_found():
+    room = _room(**{"5.1 Liefervertrag Basler Pharma AG.txt": CONTRACT})
+    run = _check("Der Liefervertrag enthält keine Change-of-Control-Klausel [DR 5.1, S. 1].\n\n"
+                 "Die Basler Pharma AG wird exklusiv beliefert [DR 5.1, S. 1].", room)
+    missed, exclusive = run.findings
+    assert missed.status is Status.ABWEICHUNG and "Kontrollwechsel-Klausel" in missed.reasons[0]
+    assert exclusive.status is Status.GEPRUEFT
+    entry = next(e for e in run.contracts if e.doc.index == "5.1")
+    assert entry.has("kontrollwechsel") and entry.has("exklusivitaet") and entry.has("konkurrenzverbot") is None
+
+
+def test_explicitly_excluded_clause_confirms_a_negative_claim():
+    room = _room(**{"4.1 Mietvertrag Lager Muttenz.txt": NO_COC})
+    f = _check("Der Mietvertrag enthält keine Kontrollwechselklausel [DR 4.1, S. 1].", room).findings[0]
+    assert f.status is Status.GEPRUEFT
+    f = _check("Bei einem Kontrollwechsel kann die Vermieterin kündigen [DR 4.1, S. 1].", room).findings[0]
+    assert f.status is Status.ABWEICHUNG
