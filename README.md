@@ -29,7 +29,7 @@ zitatio pruefen beispiele/alpenblick/dd-bericht.md -d beispiele/alpenblick/daten
 
 # Zweiter Entwurf: behobene, offene und neue Befunde, Entscheide aus dem CSV übernehmen, eine Seite fürs IC-Memo
 zitatio pruefen beispiele/gross/dd-bericht-v2.md -d beispiele/gross/datenraum --vorher beispiele/gross/dd-bericht.md \
-  --entscheide pruefbericht.csv --memo ic-memo.md
+  --entscheide pruefbericht.csv --memo ic-memo.md --excel pruefung.xlsx
 
 # Benchmark mit künstlich eingebauten Fehlern
 zitatio benchmark -d beispiele/alpenblick/datenraum
@@ -134,6 +134,8 @@ ist, was genau geprüft wurde.
 Oben im Prüfbericht stehen die Befunde nach Gewicht: zuerst, was Preis oder Closing betrifft (Abweichungen,
 Warnsignale, Umsatz unter Kontrollwechselklauseln), dann, was vor dem Signing zu klären ist. Jeder Punkt verlinkt
 seinen Abschnitt. `--memo ic-memo.md` schreibt dieselbe Seite mit den offenen Befunden als Markdown fürs IC-Memo.
+`--excel` (und der Link „Excel-Mappe“ im Prüfbericht) liefert die Aussagen, die EBITDA-Brücke, die Nettoverschuldung
+mit Covenant und die Closing-Liste als Excel-Mappe; die Rechnungen stehen dort als Formeln.
 
 ### Prüfungen im Datenraum
 
@@ -263,6 +265,7 @@ src/zitatio/
   minutes.py   Themen aus VR-Protokollen, die der Bericht nicht erwähnt
   versions.py  Versionsvergleich zweier Entwürfe, Entscheide übernehmen
   summary.py   Das Wichtigste fürs IC, Markdown fürs Memo
+  excel.py     Excel-Mappe mit Formeln, ohne Zusatzpaket geschrieben
   gaps.py      Lückenliste der üblichen DD-Unterlagen
   llm.py       OpenAI-kompatibler Client für das Prüfmodell
   render.py    Prüfbericht als HTML, JSON, CSV und Offenlegungskarte

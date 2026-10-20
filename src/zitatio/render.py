@@ -357,6 +357,12 @@ def _versions_html(run: Run) -> str:
             + table)
 
 
+def _xlsx(run: Run) -> bytes:
+    from .excel import to_xlsx
+
+    return to_xlsx(run)
+
+
 def _keypoints_html(run: Run) -> str:
     from .summary import key_points
 
@@ -686,6 +692,8 @@ def to_html(run: Run) -> str:
         gaps=gaps,
         disclosure=base64.b64encode(to_disclosure_csv(run).encode("utf-8")).decode(),
         disclosure_name=html.escape(run.report_name.rsplit(".", 1)[0] + "-offenlegungskarte.csv"),
+        xlsx=base64.b64encode(_xlsx(run)).decode(),
+        xlsx_name=html.escape(run.report_name.rsplit(".", 1)[0] + "-pruefung.xlsx"),
         docs=docs,
         warnings=warnings_html,
         report_hash=run.report_sha256[:16],
@@ -842,6 +850,8 @@ td .m {{ display:none; }}
     <a id="export" href="data:text/csv;charset=utf-8;base64,{csv}" download="{csv_name}">Protokoll exportieren</a>
     <a class="ghost" href="data:text/csv;charset=utf-8;base64,{disclosure}" download="{disclosure_name}"
       title="Welche Aussage auf welcher Seite steht, mit Prüfsumme je Dokument: für W&amp;I-Underwriting">Offenlegungskarte</a>
+    <a class="ghost" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{xlsx}"
+      download="{xlsx_name}" title="Aussagen, EBITDA-Brücke, Nettoverschuldung und Closing-Liste mit Formeln">Excel-Mappe</a>
   </div>
   <section class="proto" aria-label="Prüfprotokoll">
     <div class="head"><p class="kicker">Prüfprotokoll</p><span>{report}</span></div>

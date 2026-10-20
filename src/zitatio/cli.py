@@ -27,6 +27,8 @@ def main(argv: list[str] | None = None) -> int:
                    help="Offenlegungskarte als CSV: jede Aussage mit Dokument, Seite und Prüfsumme (für W&I)")
     p.add_argument("--modell", action="store_true",
                    help="Prüfmodell aus ZITATIO_LLM_BASE_URL / ZITATIO_LLM_MODEL verwenden")
+    p.add_argument("--excel", type=Path, help="Excel-Mappe mit Aussagen, EBITDA-Brücke, Nettoverschuldung und "
+                   "Closing-Liste, Rechnungen als Formeln")
     p.add_argument("--memo", type=Path, help="eine Seite fürs IC-Memo als Markdown: das Wichtigste und offene Befunde")
     p.add_argument("--vorher", type=Path, help="frühere Version des Berichts: zeigt behobene, offene und neue Befunde")
     p.add_argument("--entscheide", type=Path,
@@ -59,6 +61,10 @@ def main(argv: list[str] | None = None) -> int:
         args.json.write_text(to_json(run), encoding="utf-8")
     if args.csv:
         args.csv.write_text(to_csv(run), encoding="utf-8")
+    if args.excel:
+        from .excel import to_xlsx
+
+        args.excel.write_bytes(to_xlsx(run))
     if args.memo:
         from .summary import to_markdown
 
