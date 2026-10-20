@@ -154,8 +154,15 @@ des SPA-Entwurfs und ordnet jeder Garantie die Befunde zu, die sie berühren: Ko
 Zeichnungsberechtigung zu „Wesentliche Verträge“, die angekündigte Steuerprüfung zu „Steuern“, die Klage zu
 „Rechtsstreitigkeiten“, schuldenähnliche Posten zu „Finanzierung“ und „Vorsorge“. Zu jedem Befund steht, was der
 Käufer verlangen kann (Freistellung, Closing-Bedingung, Nachreichen, Abzug im Kaufpreis), und ob eine Freistellung im
-Entwurf ihn schon abdeckt. `beispiele/gross/spa-entwurf.md` ist ein fiktiver Entwurf dazu: 9 von 10 Garantien sind
+Entwurf ihn schon abdeckt. `beispiele/gross/spa-entwurf.md` ist ein fiktiver Entwurf dazu: 10 von 11 Garantien sind
 berührt, die Steuerprüfung ist durch die Steuerfreistellung Ziff. 6.1 abgedeckt, die Klage nicht.
+
+### Leakage nach dem Locked-Box-Stichtag
+
+Nennt der SPA-Entwurf oder der Bericht einen Locked-Box-Stichtag, sucht Zitatio im Datenraum nach Dividenden,
+Management Fees, Darlehen an Nahestehende, Boni für den Verkauf und anderen Zahlungen an die Verkäuferin mit einem
+Datum nach dem Stichtag. Im grossen Testfall steht eine Management Fee von CHF 60'000 an die Holding der Aktionärin
+in der Q&A-Liste; Zitatio meldet sie als Warnsignal und ordnet sie der Garantie „Keine Leakage“ zu.
 
 ### Fragenliste an den Verkäufer
 
@@ -217,9 +224,9 @@ Benchmark mit anonymisierten, von Menschen geschriebenen DD-Berichten.
 
 `beispiele/gross` ist näher an einem echten Deal: 42 Dokumente mit 269 Seiten (PDF und Excel) und ein DD-Bericht
 mit 229 Aussagen, von denen nur 16 absichtlich falsch sind. Dazu enthält der Datenraum drei Widersprüche, wie sie bei
-falschen Angaben des Verkäufers vorkommen, und fünf Warnsignale (eine falsch übertragene Zeile der Erfolgsrechnung,
+falschen Angaben des Verkäufers vorkommen, und sechs Warnsignale (eine falsch übertragene Zeile der Erfolgsrechnung,
 zwei Unterschriften ohne Zeichnungsberechtigung, eine angekündigte Steuerprüfung im VR-Protokoll, ein fehlender
-Nachtrag zum Mietvertrag).
+Nachtrag zum Mietvertrag, eine Zahlung an die Aktionärin nach dem Locked-Box-Stichtag).
 `wahrheit.json` hält fest, welche Aussage richtig ist, `widersprueche.json` und `warnsignale.json`, was im Datenraum
 eingebaut ist. `dd-bericht-v2.md` (aus `entwurf2.py`) ist ein zweiter Entwurf für den Versionsvergleich.
 
@@ -229,7 +236,7 @@ python beispiele/gross/auswerten.py   # Zitatio laufen lassen und gegen die Wahr
 ```
 
 Ergebnis ohne Prüfmodell (siehe `beispiele/gross/ergebnis.txt`): alle 16 Fehler gefunden, kein Fehlalarm bei 213
-richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 5 Warnsignale gefunden, keines zu viel, Laufzeit rund
+richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 6 Warnsignale gefunden, keines zu viel, Laufzeit rund
 1 Sekunde. Gefunden werden auch Vorjahresspalte, EBIT statt Jahresgewinn, ein erfundenes Zitat, ein falsch zitierter Q&A-Eintrag, eine Bereinigung
 ohne Beleg, ein veralteter MWST-Satz und eine übersehene Kontrollwechselklausel. Wachstum, Marge, zwei Summen und
 der Covenant werden nachgerechnet und sind geprüft. 45 richtige Aussagen ohne Zahlen bleiben „Ungeprüft“ und
@@ -295,6 +302,7 @@ src/zitatio/
   valuation.py Preisbrücke: Unternehmenswert, Equity Value, Preiswirkung der Befunde
   questions.py Fragenliste an den Verkäufer
   spa.py       Garantien im SPA-Entwurf gegen die Befunde
+  leakage.py   Zahlungen an die Verkäuferin nach dem Locked-Box-Stichtag
   minutes.py   Themen aus VR-Protokollen, die der Bericht nicht erwähnt
   references.py Erwähnte Nachträge und Side Letters, die im Datenraum fehlen
   versions.py  Versionsvergleich zweier Entwürfe, Entscheide übernehmen

@@ -1,5 +1,10 @@
 # Aktienkaufvertrag Rheintal Medtech AG (Entwurf, fiktiv)
 
+## 3. Kaufpreis
+
+3.1 Locked Box. Der Kaufpreis beruht auf der Bilanz per Locked-Box-Stichtag 31.12.2025. Zwischen dem Stichtag und
+dem Vollzug darf keine Leakage erfolgen.
+
 ## 5. Garantien der Verkäuferin
 
 Die Verkäuferin garantiert der Käuferin, dass die folgenden Aussagen am Tag der Unterzeichnung und am Vollzugstag
@@ -35,6 +40,11 @@ Vorsorgeeinrichtung bestehen keine Verbindlichkeiten.
 
 5.10 Datenraum. Die Informationen im Datenraum sind in allen wesentlichen Punkten richtig und vollständig.
 
+5.11 Keine Leakage. Seit dem Locked-Box-Stichtag hat die Gesellschaft keine Zahlungen an die Verkäuferin oder ihr
+nahestehende Personen geleistet.
+
 ## 6. Freistellungen
 
 6.1 Die Verkäuferin stellt die Käuferin von allen Steuern frei, die die Zeit bis zum Vollzugstag betreffen.
+
+6.2 Die Verkäuferin stellt die Käuferin von jeder Leakage frei, franken-genau.

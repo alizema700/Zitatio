@@ -43,6 +43,8 @@ _FLAG_QUESTIONS = {
     "Covenant": "Bitte Waiver der Bank oder Stellungnahme zur Kreditkündigung vorlegen: {title}.",
     "Vorsorge": "Bitte aktuellen Deckungsgrad und allfällige Sanierungsmassnahmen der Vorsorgeeinrichtung "
                 "vorlegen: {title}.",
+    "Leakage": "Bitte alle Zahlungen an die Verkäuferin und Nahestehende seit dem Locked-Box-Stichtag auflisten "
+               "und belegen: {title}.",
     "Nachgerechnet": "Bitte Abweichung erklären und korrigierte Zahlen vorlegen: {title}.",
     "Revision": "Bitte erläutern: {title}.",
     "Aktienbuch": "Bitte vollständiges, nachgeführtes Aktienbuch vorlegen: {title}.",

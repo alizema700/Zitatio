@@ -31,12 +31,13 @@ Widersprüche im Datenraum gefunden: 3 von 3 eingebauten, 0 weitere gemeldet
   betrifft Aussage 3: Das Aktienkapital von CHF 1.2 Mio. ist voll liberiert.
   betrifft Aussage 15: Der Nettoerlös 2025 beträgt CHF 31.86 Mio.
 
-Schweizer Warnsignale gefunden: 5 von 5 eingebauten, 0 weitere gemeldet
+Schweizer Warnsignale gefunden: 6 von 6 eingebauten, 0 weitere gemeldet
   warnung  Nachgerechnet: DR 2.3, S. 4: EBITDA 2024 rechnet nicht
   warnung  Zeichnungsberechtigung: DR 6.1 Kreditvertrag Bodensee Kantonalbank
   warnung  Zeichnungsberechtigung: DR 6.2 Leasingvertrag Spritzgussmaschinen
   warnung  Protokolle: Steuerprüfung (DR 1.4, S. 10), im Bericht nicht erwähnt
   warnung  Verweise: DR 4.1.2: Nachtrag Nr. 1 fehlt im Datenraum
+  warnung  Leakage: Management Fee über CHF 60'000 nach dem Locked-Box-Stichtag (DR 12.1, S. 1)
   hinweis  Zeichnungsberechtigung: Geprüfte Unterschriften
   hinweis  Protokolle: Rechtsstreit (DR 1.4, S. 9)
   ok       Kapitalschutz: Kein Kapitalverlust per 2025

@@ -24,7 +24,8 @@ def main(details: bool) -> None:
     started = time.perf_counter()
     room = DataRoom.from_folder(HERE / "datenraum")
     text, data = load_report(HERE / "dd-bericht.md")
-    run = run_check("dd-bericht.md", text, data, room)
+    spa = ("spa-entwurf.md", (HERE / "spa-entwurf.md").read_text(encoding="utf-8"))
+    run = run_check("dd-bericht.md", text, data, room, spa=spa)
     seconds = time.perf_counter() - started
 
     truth = {t["aussage"]: t for t in json.loads((HERE / "wahrheit.json").read_text(encoding="utf-8"))}

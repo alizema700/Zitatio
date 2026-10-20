@@ -18,7 +18,8 @@ FLAGGED = {Status.ABWEICHUNG, Status.FALSCHE_FUNDSTELLE, Status.QUELLE_FEHLT, St
 def run():
     room = DataRoom.from_folder(CASE / "datenraum")
     text, data = load_report(CASE / "dd-bericht.md")
-    return run_check("dd-bericht.md", text, data, room)
+    spa = ("spa-entwurf.md", (CASE / "spa-entwurf.md").read_text(encoding="utf-8"))
+    return run_check("dd-bericht.md", text, data, room, spa=spa)
 
 
 def test_large_case_finds_rule_detectable_errors_without_false_alarms(run):

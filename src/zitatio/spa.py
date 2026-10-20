@@ -24,9 +24,11 @@ TOPICS = {
     "vorsorge": r"vorsorge|pensionskasse|prévoyance|previdenza",
     "immobilien": r"mietvertr|grundstück|immobilie|\bbail\b|locazione",
     "datenraum": r"datenraum|data room|salle de données",
+    "leakage": r"leakage|locked[- ]?box",
 }
 _TOPIC_RX = {k: re.compile(v, re.IGNORECASE) for k, v in TOPICS.items()}
 _CLAUSE = re.compile(r"^\s*(?:§\s*|ziff(?:er|\.)\s*)?(\d+(?:\.\d+)+)\.?\s+(.+)$", re.IGNORECASE)
+_WARRANTY_SECTION = re.compile(r"garantie|zusicherung|gewährleistung|representations|warrant|garanzi", re.IGNORECASE)
 _INDEMNITY = re.compile(r"freistell|stellt\b.{0,80}\bfrei\b|schadlos|indemni|tenir indemne|manleva", re.IGNORECASE)
 
 # Was der Käufer tun kann, je nach Art des Befunds
@@ -58,17 +60,23 @@ class Warranty:
 
 def parse_clauses(text: str) -> list[tuple[str, str]]:
     """Nummerierte Ziffern (5.1, § 5.1, Ziff. 5.1) mit ihrem Text bis zur nächsten Ziffer oder Überschrift."""
+    return [(n, t) for n, t, _ in _clauses_with_sections(text)]
+
+
+def _clauses_with_sections(text: str) -> list[tuple[str, str, str]]:
     clauses: list[list[str]] = []
+    section = ""
     for line in text.splitlines():
         m = _CLAUSE.match(line)
         if m:
-            clauses.append([m.group(1), m.group(2).strip()])
+            clauses.append([m.group(1), m.group(2).strip(), section])
         elif line.lstrip().startswith("#"):
+            section = line.strip("# ").strip()
             if clauses:
-                clauses.append(["", ""])  # Abschnitt endet
+                clauses.append(["", "", section])  # Abschnitt endet
         elif clauses and clauses[-1][0] and line.strip():
             clauses[-1][1] += " " + line.strip()
-    return [(n, t) for n, t in clauses if n]
+    return [(n, t, sec) for n, t, sec in clauses if n]
 
 
 def _topics(text: str) -> set[str]:
@@ -81,11 +89,12 @@ def collect_issues(run) -> list[Issue]:
         "Zeichnungsberechtigung": {"vertraege"}, "Nachgerechnet": {"jahresrechnung"},
         "Kapitalschutz": {"jahresrechnung", "gesellschaft"}, "Revision": {"jahresrechnung"},
         "Covenant": {"finanzierung"}, "Vorsorge": {"vorsorge"}, "Aktienbuch": {"gesellschaft"},
-        "Verweise": {"vertraege", "datenraum"},
+        "Verweise": {"vertraege", "datenraum"}, "Leakage": {"leakage"},
     }
     actions = {"Zeichnungsberechtigung": "Genehmigung der Gesellschaft vor dem Closing verlangen",
                "Nachgerechnet": KLAEREN, "Kapitalschutz": KLAEREN, "Revision": KLAEREN, "Covenant": FREISTELLUNG,
-               "Vorsorge": FREISTELLUNG, "Aktienbuch": NACHREICHEN, "Verweise": NACHREICHEN}
+               "Vorsorge": FREISTELLUNG, "Aktienbuch": NACHREICHEN, "Verweise": NACHREICHEN,
+               "Leakage": FREISTELLUNG}
     for fl in run.flags:
         if fl.area == "Protokolle":
             topics = _topics(fl.title) | ({"recht"} if "Rechtsstreit" in fl.title or "Behörden" in fl.title else set())
@@ -135,11 +144,13 @@ def collect_issues(run) -> list[Issue]:
 
 
 def check_warranties(spa_text: str, run) -> list[Warranty]:
-    clauses = parse_clauses(spa_text)
+    clauses = _clauses_with_sections(spa_text)
     issues = collect_issues(run)
-    indemnities = [(n, _topics(t)) for n, t in clauses if _INDEMNITY.search(t)]
+    indemnities = [(n, _topics(t)) for n, t, _ in clauses if _INDEMNITY.search(t)]
+    # Gibt es einen Abschnitt "Garantien", zählen nur dessen Ziffern; sonst alle ausser den Freistellungen
+    in_section = [c for c in clauses if _WARRANTY_SECTION.search(c[2])]
     warranties = []
-    for number, text in clauses:
+    for number, text, _ in in_section or clauses:
         if _INDEMNITY.search(text):
             continue
         heading = text.split(".", 1)[0] if len(text.split(".", 1)[0]) <= 40 else ""

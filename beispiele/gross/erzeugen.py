@@ -689,7 +689,11 @@ def build_swiss() -> None:
         [3, "Gibt es Garantiefälle über CHF 50'000?",
          "Nein. Die Garantierückstellung per 31.12.2025 beträgt CHF 210'000.", "19.08.2026"],
         [4, "Wann läuft die ISO-13485-Zertifizierung ab?", "Das Zertifikat ist gültig bis 14.11.2027.", "19.08.2026"],
+        [5, "Gab es seit dem 31.12.2025 Zahlungen an die Aktionärin?",
+         "Am 15.03.2026 wurde eine Management Fee von CHF 60'000 an die Rohner Holding AG bezahlt.", "26.08.2026"],
     ])]))
+    # Leakage: Zahlung an die Aktionärin nach dem Locked-Box-Stichtag im SPA-Entwurf (spa-entwurf.md)
+    WARNINGS.append({"art": "Leakage", "dokument": "12.1"})
     QA = "12. Management-Antworten (Q&A)"
     say(QA, "Der Auftragsbestand per 30.06.2026 beträgt CHF 15.64 Mio. [Q&A 1].")
     say(QA, "Die Alpstein Kliniken AG steht für 20.1 % des Umsatzes 2025 [Q&A 2].")

@@ -18,5 +18,9 @@
  {
   "art": "Protokolle",
   "dokument": "1.4"
+ },
+ {
+  "art": "Leakage",
+  "dokument": "12.1"
  }
 ]

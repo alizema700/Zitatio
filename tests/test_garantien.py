@@ -33,6 +33,10 @@ def test_warranties_of_large_case():
     assert "Leasing" in titles("5.4") and "Umsatz" not in titles("5.4")
     assert "Klage DR 10.1" in titles("5.6") and "Vorsorge" in titles("5.7") and "Nachtrag" in titles("5.8")
     assert not by_number["5.9"].issues
+    assert "3.1" not in by_number  # Kaufpreisklausel, nicht im Abschnitt Garantien
+    leak = by_number["5.11"]
+    assert [i.title.split(":")[0] for i in leak.issues] == ["Leakage"]
+    assert [leak.covered_by.get(id(i)) for i in leak.issues] == ["6.2"]
     tax = by_number["5.5"]
     assert [tax.covered_by.get(id(i)) for i in tax.issues] == ["6.1"]
     lawsuit = next(i for i in by_number["5.6"].issues if i.title.startswith("Klage"))
@@ -41,3 +45,19 @@ def test_warranties_of_large_case():
     page = to_html(run)
     assert 'id="garantien"' in page and "abgedeckt durch Freistellung Ziff. 6.1" in page
     assert '"garantien"' in to_json(run)
+
+
+def test_leakage_after_locked_box_date():
+    from zitatio.leakage import check_leakage, locked_box_date
+
+    room = DataRoom()
+    room.add("1.4 Protokolle Verwaltungsrat 2026.txt",
+             "Protokoll\nDie Generalversammlung vom 20.04.2026 beschliesst eine Dividende von CHF 500'000.\n"
+             "Am 10.12.2025 wurde eine Dividende von CHF 300'000 ausbezahlt.\n"
+             "Ein Darlehen an den Aktionär über CHF 90'000 wurde am 01.02.2026 gewährt.".encode())
+    box = locked_box_date("Der Locked-Box-Stichtag ist der 31.12.2025.")
+    assert box.isoformat() == "2025-12-31"
+    titles = [f.title for f in check_leakage(room, box)]
+    assert len(titles) == 2
+    assert titles[0].startswith("Dividende über CHF 500'000") and titles[1].startswith("Darlehen an Nahestehende")
+    assert check_leakage(room, None) == []
