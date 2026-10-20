@@ -28,6 +28,10 @@ class ReportConflict:
     values: list[str]
 
 
+_GERMAN_MONTHS = ["januar", "februar", "märz", "april", "mai", "juni", "juli", "august", "september", "oktober",
+                  "november", "dezember"]
+
+
 def report_conflicts(findings: list[Finding]) -> list[ReportConflict]:
     groups: dict[tuple[str, str], list[tuple[Finding, object]]] = defaultdict(list)
     for f in findings:
@@ -36,9 +40,10 @@ def report_conflicts(findings: list[Finding]) -> list[ReportConflict]:
             continue
         ctx = _context(f.claim, amounts[0])
         text = f.claim.clean_text.lower()
-        if re.search(r"quartal|\bq[1-4]\b|halbjahr|\bh[12]\b|monat", text):
+        if re.search(r"quartal|\bq[1-4]\b|halbjahr|\bh[12]\b|monat|trimestre|semestre|\bmois\b|\bmese\b", text):
             continue
         month = next((m for m in MONTHS if re.search(rf"\b{m}\b", text)), "")
+        month = _GERMAN_MONTHS[MONTHS[month] - 1] if month else ""
         if ctx.metric and ctx.year and len(ctx.metrics) == 1:
             groups[(ctx.metric, f"{month.capitalize()} {ctx.year}".strip())].append((f, amounts[0]))
     out = []
@@ -67,16 +72,17 @@ def report_conflicts(findings: list[Finding]) -> list[ReportConflict]:
 # --- Erfolgsrechnung nachrechnen ------------------------------------------------------
 
 _LINES = {
-    "umsatz": r"nettoerl[öo]s|^umsatz|betriebsertrag",
-    "material": r"materialaufwand|warenaufwand",
-    "personal": r"personalaufwand",
-    "uebriger": r"übriger betrieblicher aufwand|sonstiger betrieblicher aufwand|übriger aufwand",
+    "umsatz": r"nettoerl[öo]s|^umsatz|betriebsertrag|chiffre d'affaires|produits nets|ricavi netti|cifra d'affari",
+    "material": r"materialaufwand|warenaufwand|charges de matériel|charges de marchandises|costi (?:del|per il) materiale",
+    "personal": r"personalaufwand|charges de personnel|costi (?:del|per il) personale",
+    "uebriger": r"übriger betrieblicher aufwand|sonstiger betrieblicher aufwand|übriger aufwand"
+                r"|autres charges d'exploitation|altri costi d'esercizio",
     "ebitda": r"^ebitda\b",
-    "abschreibungen": r"^abschreibungen",
-    "ebit": r"^betriebsergebnis|^ebit\b",
-    "finanzaufwand": r"^finanzaufwand",
-    "steuern": r"^steuern|^ertragssteuern|^direkte steuern",
-    "gewinn": r"^jahresgewinn|^jahresergebnis|^reingewinn",
+    "abschreibungen": r"^abschreibungen|^amortissements|^ammortamenti",
+    "ebit": r"^betriebsergebnis|^ebit\b|^résultat d'exploitation|^risultato operativo",
+    "finanzaufwand": r"^finanzaufwand|^charges financières|^oneri finanziari",
+    "steuern": r"^steuern|^ertragssteuern|^direkte steuern|^impôts|^imposte",
+    "gewinn": r"^jahresgewinn|^jahresergebnis|^reingewinn|^bénéfice|^résultat de l'exercice|^utile",
 }
 _RULES = [
     ("EBITDA", "ebitda", ["umsatz"], ["material", "personal", "uebriger"]),

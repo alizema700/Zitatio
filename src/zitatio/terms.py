@@ -20,11 +20,12 @@ from .clauses import ContractEntry
 from .facts import AMOUNT, DATE, DURATION, extract_facts
 from .verify import Evidence, _evidence
 
-_END = re.compile(r"endet am|fest (?:abgeschlossen )?bis|läuft bis|befristet bis|laufzeit bis|gültig bis", re.I)
-_START = re.compile(r"beginnt am|tritt am|in kraft|ab\b", re.I)
-_TERM = re.compile(r"laufzeit", re.I)
-_NOTICE = re.compile(r"künd\w*", re.I)
-_VOLUME = re.compile(r"volumen|umsatz", re.I)
+_END = re.compile(r"endet am|fest (?:abgeschlossen )?bis|läuft bis|befristet bis|laufzeit bis|gültig bis"
+                  r"|prend fin le|expire le|jusqu'au|conclu pour une durée déterminée jusqu|termine il|scade il|fino al", re.I)
+_START = re.compile(r"beginnt am|tritt am|in kraft|ab\b|entre en vigueur|débute le|dès le|entra in vigore|inizia il|a partire dal", re.I)
+_TERM = re.compile(r"laufzeit|durée|durata", re.I)
+_NOTICE = re.compile(r"künd\w*|résili\w*|préavis|disdett\w*|disdire|preavviso", re.I)
+_VOLUME = re.compile(r"volumen|umsatz|volume|chiffre d'affaires|fatturato", re.I)
 _SENTENCE = re.compile(r"(?:[^.!?]|[.!?](?=\d))+(?:[.!?]|$)")
 
 
@@ -83,7 +84,8 @@ def contract_terms(entry: ContractEntry) -> Terms:
                 t.end = _add_months(t.start, durations[0].value[0]) - dt.timedelta(days=1)
                 keep("ende", durations[0])
             if (t.notice is None and durations and _NOTICE.search(sentence)
-                    and not re.search(r"kontrollwechsel|change of control", sentence, re.I)):
+                    and not re.search(r"kontrollwechsel|change of control|changement de contrôle|cambiamento di controllo",
+                                      sentence, re.I)):
                 t.notice = durations[0].value
                 keep("kuendigung", durations[0])
             if t.volume is None and amounts and _VOLUME.search(sentence) and amounts[0].value[0] == "CHF":

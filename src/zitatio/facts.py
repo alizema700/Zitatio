@@ -66,16 +66,18 @@ _NUM = (
     # ein Trennzeichen pro Zahl: "187'400 201'300" sind zwei Tabellenwerte, nicht einer
     r"\d{1,3}(?:'\d{3})+(?:[.,]\d+)?"  # 1'250'000.50
     r"|\d{1,3}(?:’\d{3})+(?:[.,]\d+)?"
-    r"|\d{1,3}(?: \d{3})+(?:[.,]\d+)?"  # 1 250 000
+    r"|\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?:[.,]\d+)?"  # 1 250 000, auch mit geschütztem Leerzeichen
     r"|\d{1,3}(?:\.\d{3}){2,}(?:,\d+)?"  # 1.250.000,00
     r"|\d{1,3}(?:,\d{3})+(?:\.\d+)?"  # 1,250,000.00
     r"|\d+(?:[.,]\d+)?"
 )
-_SCALE = r"Mio\.?|Millionen|Million|Mrd\.?|Milliarden|Mia\.?|Tsd\.?|k(?![A-Za-zÄÖÜäöü])"
+_SCALE = (r"Mio\.?|Millionen|Millions|Million|Milioni|Mrd\.?|Milliarden|Milliards|Miliardi|Mia\.?|Tsd\.?"
+          r"|mio\.?|millions|milioni|milliards|miliardi|mrd\.?"
+          r"|k(?![A-Za-zÄÖÜäöü])")
 _CUR = r"CHF|SFr\.?|Fr\.|EUR|€|USD|US\$|\$|TCHF|TEUR|kCHF"
 
-_SCALE_FACTORS = {"mio": 10**6, "million": 10**6, "millionen": 10**6, "mrd": 10**9,
-                  "milliarden": 10**9, "mia": 10**9, "tsd": 10**3, "k": 10**3}
+_SCALE_FACTORS = {"mio": 10**6, "million": 10**6, "millionen": 10**6, "millions": 10**6, "milioni": 10**6,
+                  "mrd": 10**9, "milliarden": 10**9, "milliards": 10**9, "miliardi": 10**9, "mia": 10**9, "tsd": 10**3, "k": 10**3}
 _CURRENCIES = {"chf": ("CHF", 1), "sfr": ("CHF", 1), "fr": ("CHF", 1), "eur": ("EUR", 1),
                "€": ("EUR", 1), "usd": ("USD", 1), "us$": ("USD", 1), "$": ("USD", 1),
                "tchf": ("CHF", 1000), "teur": ("EUR", 1000), "kchf": ("CHF", 1000)}
@@ -83,7 +85,7 @@ _CURRENCIES = {"chf": ("CHF", 1), "sfr": ("CHF", 1), "fr": ("CHF", 1), "eur": ("
 
 def parse_number(raw: str, scaled: bool = False) -> Decimal | None:
     """Liest Schweizer, deutsche und englische Zahlenformate."""
-    s = re.sub(r"['’ ]", "", raw.strip())
+    s = re.sub(r"['’ \u00a0\u202f]", "", raw.strip())
     if "," in s and "." in s:
         dec = "," if s.rfind(",") > s.rfind(".") else "."
         thou = "." if dec == "," else ","
@@ -146,12 +148,17 @@ def _step(num: str) -> Decimal:
 # --- Daten ------------------------------------------------------------------
 
 MONTHS = {"januar": 1, "februar": 2, "märz": 3, "maerz": 3, "april": 4, "mai": 5, "juni": 6,
-          "juli": 7, "august": 8, "september": 9, "oktober": 10, "november": 11, "dezember": 12}
+          "juli": 7, "august": 8, "september": 9, "oktober": 10, "november": 11, "dezember": 12,
+          # Französisch und Italienisch: Datenräume aus der Romandie und dem Tessin
+          "janvier": 1, "février": 2, "fevrier": 2, "mars": 3, "avril": 4, "juin": 6, "juillet": 7, "août": 8,
+          "aout": 8, "septembre": 9, "octobre": 10, "novembre": 11, "décembre": 12, "decembre": 12,
+          "gennaio": 1, "febbraio": 2, "marzo": 3, "aprile": 4, "maggio": 5, "giugno": 6, "luglio": 7,
+          "agosto": 8, "settembre": 9, "ottobre": 10, "dicembre": 12}
 _MONTH_RE = "|".join(MONTHS)
 
 _DATE_RES = [
     (re.compile(r"\b(\d{1,2})\.\s?(\d{1,2})\.\s?(\d{4})\b"), "dmy"),
-    (re.compile(rf"\b(\d{{1,2}})\.\s*({_MONTH_RE})\s+(\d{{4}})\b", re.IGNORECASE), "dMy"),
+    (re.compile(rf"\b(\d{{1,2}})(?:\.|er|°|º)?\s*({_MONTH_RE})\s+(\d{{4}})\b", re.IGNORECASE), "dMy"),
     (re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b"), "ymd"),
 ]
 
@@ -191,17 +198,24 @@ def _percents(text: str):
 NUMBER_WORDS = {"ein": 1, "eine": 1, "einem": 1, "einen": 1, "einer": 1, "zwei": 2, "drei": 3,
                 "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7, "acht": 8, "neun": 9, "zehn": 10,
                 "elf": 11, "zwölf": 12, "achtzehn": 18, "vierundzwanzig": 24, "dreissig": 30,
-                "dreißig": 30, "sechzig": 60, "neunzig": 90}
-_UNITS = {"tag": "Tage", "woche": "Wochen", "monat": "Monate", "jahr": "Jahre"}
+                "dreißig": 30, "sechzig": 60, "neunzig": 90,
+                "un": 1, "une": 1, "deux": 2, "trois": 3, "quatre": 4, "six": 6, "douze": 12,
+                "uno": 1, "due": 2, "tre": 3, "quattro": 4, "sei": 6, "dodici": 12}
+_UNITS = {"tag": "Tage", "woche": "Wochen", "monat": "Monate", "jahr": "Jahre",
+          "jour": "Tage", "semaine": "Wochen", "mois": "Monate", "an": "Jahre", "année": "Jahre",
+          "giorn": "Tage", "settiman": "Wochen", "mes": "Monate", "ann": "Jahre"}
 _DURATION_RE = re.compile(
-    rf"\b(\d+|{'|'.join(NUMBER_WORDS)})\s*[- ]?\s*(Tag|Woche|Monat|Jahr)(?:e|en|es|s|n)?\b",
+    rf"\b(\d+|{'|'.join(NUMBER_WORDS)})\s*[- ]?\s*"
+    r"(?:(Tag|Woche|Monat|Jahr)(?:e|en|es|s|n)?"
+    r"|(jour|semaine|année|an)s?|(mois)"
+    r"|(giorn(?=[io])|settiman(?=[ae])|mes(?=[ie])|ann(?=[io]))[aeio])\b",
     re.IGNORECASE,
 )
 
 
 def _durations(text: str):
     for m in _DURATION_RE.finditer(text):
-        raw_n, unit = m.group(1).lower(), m.group(2).lower()
+        raw_n, unit = m.group(1).lower(), next(g for g in m.groups()[1:] if g).lower()
         n = int(raw_n) if raw_n.isdigit() else NUMBER_WORDS[raw_n]
         yield Fact(DURATION, (n, _UNITS[unit]), m.group(0), m.start(), m.end())
 
@@ -251,9 +265,11 @@ def extract_facts(text: str) -> list[Fact]:
 _CODE = r"(CHF|EUR|USD)"
 _UNIT_RES = [
     (re.compile(r"\b(T|k)(CHF|EUR|USD)\b"), 1000),
-    (re.compile(rf"\bin\s+Tausend\s+{_CODE}\b|\b{_CODE}\s*['’]?000\b|\bin\s+{_CODE}\s+1['’]000\b", re.I), 1000),
-    (re.compile(rf"\bin\s+(?:Mio\.?|Millionen)\s*{_CODE}\b|\b{_CODE}\s+(?:Mio\.|Millionen)(?!\s*\d)", re.I), 10**6),
-    (re.compile(rf"\b(?:in|Beträge in|Währung:?)\s+{_CODE}\b(?!\s*[\d'’])", re.I), 1),
+    (re.compile(rf"\bin\s+Tausend\s+{_CODE}\b|\b{_CODE}\s*['’]?000\b|\bin\s+{_CODE}\s+1['’]000\b"
+                rf"|\ben\s+milliers\s+de\s+{_CODE}\b|\bin\s+migliaia\s+di\s+{_CODE}\b", re.I), 1000),
+    (re.compile(rf"\bin\s+(?:Mio\.?|Millionen)\s*{_CODE}\b|\b{_CODE}\s+(?:Mio\.|Millionen)(?!\s*\d)"
+                rf"|\ben\s+millions\s+de\s+{_CODE}\b|\bin\s+milioni\s+di\s+{_CODE}\b", re.I), 10**6),
+    (re.compile(rf"\b(?:in|en|Beträge in|Währung:?|montants en|importi in|valuta:?)\s+{_CODE}\b(?!\s*[\d'’])", re.I), 1),
 ]
 # US-Berichte (10-K): "(In millions, except per share data)", "(Dollars in thousands)", "(Millions)".
 # Die Währung steht dort nur als "$" in der Tabelle.

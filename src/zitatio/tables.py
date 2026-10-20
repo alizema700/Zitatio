@@ -16,8 +16,10 @@ from .facts import AMOUNT, MONTHS, Fact, page_facts
 
 YEAR_RE = re.compile(r"(?<![\d'’])((?:19|20)\d{2})(?![\d'’]|[.,]\d)")
 _MONTH_YEAR_RE = re.compile(rf"\b({'|'.join(MONTHS)})\s+((?:19|20)\d{{2}})\b", re.IGNORECASE)
-_PERIOD_WORDS = re.compile(r"\b(per|bis|stichtag|abschluss|erfolgsrechnung|bilanz|jahresrechnung|geschäftsjahr)\b", re.I)
-_PLAN_RE = re.compile(r"budget|businessplan|planung|plan-|forecast|prognose|hochrechnung|\bplan\b", re.I)
+_PERIOD_WORDS = re.compile(r"\b(per|bis|stichtag|abschluss|erfolgsrechnung|bilanz|jahresrechnung|geschäftsjahr"
+                           r"|au|exercice|compte de résultat|comptes annuels|al|esercizio|conto economico)\b", re.I)
+_PLAN_RE = re.compile(r"budget|businessplan|planung|plan-|forecast|prognose|hochrechnung|\bplan\b"
+                      r"|prévision|plan d'affaires|preventivo|previsione", re.I)
 _DATE_RE = re.compile(r"\b\d{1,2}\.\s?\d{1,2}\.\s?\d{4}\b")
 
 # Grössen, die DD-Berichte und Datenräume immer wieder nennen. Reihenfolge: spezifische zuerst,
@@ -26,20 +28,24 @@ METRICS: list[tuple[str, str, re.Pattern]] = [
     (key, label, re.compile(rx, re.IGNORECASE))
     for key, label, rx in [
         ("ebitda_bereinigt", "bereinigtes EBITDA",
-         r"bereinigt\w*\s+ebitda|ebitda\s*\(?\s*bereinigt|adjusted\s+ebitda|normalisiert\w*\s+ebitda"),
-        ("steuerbarer_gewinn", "steuerbarer Reingewinn", r"steuerbar\w*\s+(?:rein)?gewinn\w*"),
+         r"bereinigt\w*\s+ebitda|ebitda\s*\(?\s*bereinigt|adjusted\s+ebitda|normalisiert\w*\s+ebitda"
+         r"|ebitda\s+(?:ajusté|normalisé|rettificato|normalizzato)"),
+        ("steuerbarer_gewinn", "steuerbarer Reingewinn",
+         r"steuerbar\w*\s+(?:rein)?gewinn\w*|bénéfice imposable|utile imponibile"),
         ("ebitda", "EBITDA", r"\bebitda\b(?![-\s]*marge)"),
-        ("ebit", "EBIT", r"\bebit\b(?![-\s]*marge)|\bbetriebsergebnis\w*"),
-        ("umsatz", "Umsatz", r"\bnettoerl[öo]s\w*|\b(?:netto)?ums[aä]tz(?!steuer)\w*|\berl[öo]s\w* aus lieferungen"),
-        ("jahresgewinn", "Jahresgewinn", r"\bjahresgewinn\w*|\breingewinn\w*|\bjahresergebnis\w*|gewinn nach steuern"),
-        ("materialaufwand", "Materialaufwand", r"\bmaterialaufwand\w*|\bwarenaufwand\w*"),
-        ("personalaufwand", "Personalaufwand", r"\bpersonalaufwand\w*"),
-        ("abschreibungen", "Abschreibungen", r"\babschreibung\w*"),
-        ("finanzaufwand", "Finanzaufwand", r"\bfinanzaufwand\w*|\bzinsaufwand\w*"),
-        ("fluessige_mittel", "flüssige Mittel", r"\bfl[üu]ssig\w*\s+mittel"),
-        ("eigenkapital", "Eigenkapital", r"\beigenkapital\w*"),
-        ("aktienkapital", "Aktienkapital", r"\baktienkapital\w*|\bstammkapital\w*"),
-        ("nettoverschuldung", "Nettoverschuldung", r"\bnettoverschuldung\w*|\bnet debt\b"),
+        ("ebit", "EBIT", r"\bebit\b(?![-\s]*marge)|\bbetriebsergebnis\w*|résultat d'exploitation|risultato operativo"),
+        ("umsatz", "Umsatz", r"\bnettoerl[öo]s\w*|\b(?:netto)?ums[aä]tz(?!steuer)\w*|\berl[öo]s\w* aus lieferungen"
+         r"|chiffre d'affaires|produits nets|ricavi netti|\bricavi\b|cifra d'affari|fatturato"),
+        ("jahresgewinn", "Jahresgewinn", r"\bjahresgewinn\w*|\breingewinn\w*|\bjahresergebnis\w*|gewinn nach steuern"
+         r"|bénéfice (?:net|de l'exercice|annuel)|résultat (?:net|de l'exercice)|utile (?:netto|d'esercizio|dell'esercizio)"),
+        ("materialaufwand", "Materialaufwand", r"\bmaterialaufwand\w*|\bwarenaufwand\w*|charges de matériel|charges de marchandises|costi (?:del|per il) materiale"),
+        ("personalaufwand", "Personalaufwand", r"\bpersonalaufwand\w*|charges de personnel|costi (?:del|per il) personale"),
+        ("abschreibungen", "Abschreibungen", r"\babschreibung\w*|\bamortissements?\b|\bammortament\w*"),
+        ("finanzaufwand", "Finanzaufwand", r"\bfinanzaufwand\w*|\bzinsaufwand\w*|charges financières|oneri finanziari"),
+        ("fluessige_mittel", "flüssige Mittel", r"\bfl[üu]ssig\w*\s+mittel|liquidités|liquidità"),
+        ("eigenkapital", "Eigenkapital", r"\beigenkapital\w*|fonds propres|capitale proprio"),
+        ("aktienkapital", "Aktienkapital", r"\baktienkapital\w*|\bstammkapital\w*|capital[- ]actions|capital social|capitale azionario"),
+        ("nettoverschuldung", "Nettoverschuldung", r"\bnettoverschuldung\w*|\bnet debt\b|endettement net|indebitamento netto"),
         ("finanzschulden", "verzinsliche Verbindlichkeiten",
          r"\bfinanzverbindlichkeit\w*|\bverzinslich\w*\s+verbindlichkeit\w*|\bbankschulden\b"),
         ("auftragsbestand", "Auftragsbestand", r"\bauftragsbestand\w*"),

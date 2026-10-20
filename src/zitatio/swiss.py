@@ -43,16 +43,23 @@ class Flag:
 
 # --- Handelsregister ----------------------------------------------------------------
 
-_SIGN_KINDS = r"Einzelunterschrift|Kollektivunterschrift zu zweien|Einzelprokura|Kollektivprokura zu zweien|ohne Zeichnungsberechtigung"
-_SIGN_RE = re.compile(rf"(?:mit\s+)?({_SIGN_KINDS})", re.IGNORECASE)
-_PERSON_START = re.compile(r"[A-ZÄÖÜ][a-zäöüéè\-]+, (?:Dr\. |Prof\. )?[A-ZÄÖÜ][a-zäöüéè\-]+(?: [A-ZÄÖÜ][a-zäöüéè\-]+)?,")
+_SIGN_KINDS = (r"Einzelunterschrift|Kollektivunterschrift zu zweien|Einzelprokura|Kollektivprokura zu zweien"
+               r"|ohne Zeichnungsberechtigung"
+               # Handelsregister der Romandie und des Tessins
+               r"|signature individuelle|signature collective à deux|procuration individuelle"
+               r"|procuration collective à deux|sans droit de signature"
+               r"|firma individuale|firma collettiva a due|procura individuale|procura collettiva a due"
+               r"|senza diritto di firma")
+_SIGN_RE = re.compile(rf"(?:mit\s+|avec\s+|con\s+)?({_SIGN_KINDS})", re.IGNORECASE)
+_UPPER, _LOWER = "A-ZÄÖÜÉÈÀÇ", "a-zäöüéèêàçëïôîù"
+_PERSON_START = re.compile(rf"[{_UPPER}][{_LOWER}\-]+, (?:Dr\. |Prof\. )?[{_UPPER}][{_LOWER}\-]+(?: [{_UPPER}][{_LOWER}\-]+)?,")
 _TITLES = {"dr", "prof", "lic", "iur", "med"}
 # Satzende, aber nicht nach Abkürzungen wie "Dr." oder "St."
-_SENTENCE_END = re.compile(r"(?:\b[a-zäöü]\w*|\w{5,})[.:]\s+[A-ZÄÖÜ]")
+_SENTENCE_END = re.compile(rf"(?:\b[{_LOWER}]\w*|\w{{5,}})[.:]\s+[{_UPPER}]")
 
 
 def _name_tokens(name: str) -> frozenset[str]:
-    return frozenset(w for w in re.findall(r"[a-zäöüéè\-]{2,}", name.lower()) if w not in _TITLES)
+    return frozenset(w for w in re.findall(rf"[{_LOWER}\-]{{2,}}", name.lower()) if w not in _TITLES)
 
 
 @dataclass
@@ -67,15 +74,18 @@ class Signatory:
 
     @property
     def alone(self) -> bool:
-        return self.kind.lower().startswith("einzel")
+        return bool(re.match(r"einzel|signature individuelle|procuration individuelle|firma individuale|procura individuale",
+                             self.kind.lower()))
 
     @property
     def authorised(self) -> bool:
-        return not self.kind.lower().startswith("ohne")
+        return not re.match(r"ohne|sans|senza", self.kind.lower())
 
 
 def _register_doc(room: DataRoom) -> Document | None:
-    return next((d for d in room.documents if d.index and re.search(r"handelsregister", d.title, re.I)), None)
+    return next((d for d in room.documents
+                 if d.index and re.search(r"handelsregister|registre du commerce|registro di commercio", d.title, re.I)),
+                None)
 
 
 def signatories(room: DataRoom) -> list[Signatory]:
@@ -106,11 +116,11 @@ def company_name(room: DataRoom) -> str | None:
     doc = _register_doc(room)
     if not doc:
         return None
-    m = re.search(r"Firma:\s*([^\n]+)", "\n".join(doc.pages))
+    m = re.search(r"(?:Firma|Raison sociale|Ditta):\s*([^\n]+)", "\n".join(doc.pages))
     return m.group(1).strip() if m else None
 
 
-_SIGNED_RE = re.compile(r"Für die ([^:\n]{3,80}):\s*([^\n]+)")
+_SIGNED_RE = re.compile(r"(?:Für die|Für|Pour la|Pour|Per la|Per) ([^:\n]{3,80}):\s*([^\n]+)")
 
 
 def _lookup(name: str, register: list[Signatory]) -> Signatory | None:
@@ -135,7 +145,7 @@ def check_signatures(room: DataRoom) -> list[Flag]:
                 if key not in re.sub(r"\W+", " ", m.group(1).lower()):
                     continue
                 checked += 1
-                names = [n.split(",")[0].strip() for n in re.split(r";| und ", m.group(2)) if n.strip()]
+                names = [n.split(",")[0].strip() for n in re.split(r";| und | et | e ", m.group(2)) if n.strip()]
                 found = [(n, _lookup(n, register)) for n in names]
                 where = f"{doc.label}, S. {page_no}"
                 ev = [_evidence(doc, page_no, m.start(), m.end())]
@@ -164,12 +174,12 @@ def check_signatures(room: DataRoom) -> list[Flag]:
 # --- Bilanz: Kapitalschutz und Revisionspflicht ----------------------------------------
 
 _ROWS = {
-    "aktienkapital": r"^aktienkapital",
-    "kapitalreserve": r"gesetzliche kapitalreserve",
-    "gewinnreserve": r"gesetzliche gewinnreserve",
-    "eigenkapital": r"^(?:total\s+)?eigenkapital",
-    "bilanzsumme": r"^(?:bilanzsumme|total aktiven|total passiven)",
-    "umsatz": r"nettoerl[öo]s|^umsatz",
+    "aktienkapital": r"^aktienkapital|^capital[- ]actions|^capitale azionario",
+    "kapitalreserve": r"gesetzliche kapitalreserve|réserve légale issue du capital|riserva legale da capitale",
+    "gewinnreserve": r"gesetzliche gewinnreserve|réserve légale issue du bénéfice|riserva legale da utili",
+    "eigenkapital": r"^(?:total\s+)?(?:eigenkapital|fonds propres|capitale proprio)",
+    "bilanzsumme": r"^(?:bilanzsumme|total aktiven|total passiven|total de l'actif|total du passif|totale attivi|totale passivi)",
+    "umsatz": r"nettoerl[öo]s|^umsatz|chiffre d'affaires|produits nets|ricavi netti|cifra d'affari",
 }
 
 
@@ -177,7 +187,7 @@ def _latest_statement(room: DataRoom) -> tuple[Document, int, dict] | None:
     """Neueste Jahresrechnung mit Bilanz: {Zeile: (Wert, Zelle)} aus der Spalte des Abschlussjahrs."""
     best = None
     for doc in room.documents:
-        if not doc.index or not re.search(r"jahresrechnung|jahresabschluss", doc.title, re.I):
+        if not doc.index or not re.search(r"jahresrechnung|jahresabschluss|comptes annuels|états financiers|conto annuale|bilancio", doc.title, re.I):
             continue
         years = years_in(doc.title)
         if not years:
@@ -205,7 +215,7 @@ def check_capital(room: DataRoom) -> list[Flag]:
     ev = [_evidence(d, p, c.fact.start, c.fact.end) for _, d, p, c in v.values()]
     if "aktienkapital" not in v:
         reg = _register_doc(room)
-        m = re.search(r"Aktienkapital:\s*CHF\s*([\d'’]+)", "\n".join(reg.pages)) if reg else None
+        m = re.search(r"(?:Aktienkapital|Capital-actions|Capitale azionario):\s*CHF\s*([\d'’]+)", "\n".join(reg.pages)) if reg else None
         if not m:
             return []
         capital = Decimal(re.sub(r"['’]", "", m.group(1)))
@@ -230,7 +240,8 @@ def check_capital(room: DataRoom) -> list[Flag]:
 
 
 def _fte(room: DataRoom, year: int) -> tuple[int, Document, int] | None:
-    rx = re.compile(r"(\d{2,5})\s+Vollzeitstellen|Vollzeitstellen\D{0,30}(\d{2,5})|FTE\D{0,20}(\d{2,5})")
+    rx = re.compile(r"(\d{2,5})\s+(?:Vollzeitstellen|postes à plein temps|posti a tempo pieno)"
+                    r"|Vollzeitstellen\D{0,30}(\d{2,5})|(?:FTE|EPT)\D{0,20}(\d{2,5})")
     for doc in room.documents:
         if doc.index and str(year) in doc.title:
             for p, text in enumerate(doc.pages, 1):
@@ -257,7 +268,7 @@ def check_audit(room: DataRoom) -> list[Flag]:
         return []
     over = [t for t in tests if t[1] >= t[2]]
     report = next((d for d in room.documents if d.index and re.search(r"revision", d.title, re.I)), None)
-    limited = report and re.search(r"eingeschränkten Revision", "\n".join(report.pages), re.I)
+    limited = report and re.search(r"eingeschränkten Revision|contrôle restreint|revisione limitata", "\n".join(report.pages), re.I)
     def show(name: str, x: Decimal) -> str:
         return _n(x) if "stellen" in name.lower() else format_value("betrag", ("CHF", x))
 
@@ -277,7 +288,7 @@ def check_audit(room: DataRoom) -> list[Flag]:
 # --- Vorsorge, Aktienbuch, Fusionskontrolle, Lex Koller ---------------------------------
 
 def check_pension(room: DataRoom) -> list[Flag]:
-    rx = re.compile(r"Deckungsgrad[^\n%]{0,80}?(\d{2,3}(?:\.\d+)?)\s?%")
+    rx = re.compile(r"(?:Deckungsgrad|degré de couverture|grado di copertura)[^\n%]{0,80}?(\d{2,3}(?:[.,]\d+)?)\s?%", re.I)
     for doc in room.documents:
         if not doc.index:
             continue
@@ -298,10 +309,10 @@ def check_pension(room: DataRoom) -> list[Flag]:
 
 def check_share_register(room: DataRoom) -> list[Flag]:
     reg = _register_doc(room)
-    book = next((d for d in room.documents if d.index and re.search(r"aktienbuch|aktionärsverzeichnis", d.title, re.I)), None)
+    book = next((d for d in room.documents if d.index and re.search(r"aktienbuch|aktionärsverzeichnis|registre des actions|libro delle azioni", d.title, re.I)), None)
     if not reg or not book:
         return []
-    m = re.search(r"eingeteilt in ([\d'’]+) (?:Namen|Inhaber)aktien", "\n".join(reg.pages))
+    m = re.search(r"(?:eingeteilt in|divisé en|suddiviso in) ([\d'’]+) (?:Namen|Inhaber)?(?:aktien|actions|azioni)", "\n".join(reg.pages))
     if not m:
         return []
     issued = int(re.sub(r"['’]", "", m.group(1)))
@@ -341,7 +352,7 @@ def check_merger_control(room: DataRoom) -> list[Flag]:
 def check_real_estate(room: DataRoom) -> list[Flag]:
     rx = re.compile(r"(?:Liegenschaften|Grundstücke|Immobilien|Grundeigentum)\s+([\d'’]{5,})")
     for doc in room.documents:
-        if not doc.index or not re.search(r"jahresrechnung", doc.title, re.I):
+        if not doc.index or not re.search(r"jahresrechnung|comptes annuels|conto annuale", doc.title, re.I):
             continue
         for p, text in enumerate(doc.pages, 1):
             m = rx.search(text)
@@ -375,18 +386,18 @@ class _Rate:
 
 _ANY = re.compile(r"")
 RATES = [
-    _Rate(re.compile(r"\bmwst|mehrwertsteuer", re.I), re.compile(r"reduziert|lebensmittel|medikament|bücher", re.I),
+    _Rate(re.compile(r"\bmwst|mehrwertsteuer|\btva\b|\biva\b", re.I), re.compile(r"reduziert|lebensmittel|medikament|bücher|taux réduit|aliquota ridotta", re.I),
           ((2011, 2017, ("2.5",)), (2018, 2023, ("2.5",)), (2024, 2100, ("2.6",))), "Art. 25 Abs. 2 MWSTG (reduzierter Satz)"),
-    _Rate(re.compile(r"\bmwst|mehrwertsteuer", re.I), re.compile(r"beherbergung|hotellerie|übernachtung", re.I),
+    _Rate(re.compile(r"\bmwst|mehrwertsteuer|\btva\b|\biva\b", re.I), re.compile(r"beherbergung|hotellerie|übernachtung|hébergement|alloggio", re.I),
           ((2011, 2017, ("3.8",)), (2018, 2023, ("3.7",)), (2024, 2100, ("3.8",))), "Art. 25 Abs. 4 MWSTG (Sondersatz Beherbergung)"),
-    _Rate(re.compile(r"\bmwst|mehrwertsteuer", re.I), _ANY,
+    _Rate(re.compile(r"\bmwst|mehrwertsteuer|\btva\b|\biva\b", re.I), _ANY,
           ((2011, 2017, ("8", "8.0")), (2018, 2023, ("7.7",)), (2024, 2100, ("8.1",))), "Art. 25 Abs. 1 MWSTG (Normalsatz)"),
-    _Rate(re.compile(r"verrechnungssteuer", re.I), _ANY, ((1900, 2100, ("35",)),), "Art. 13 Abs. 1 lit. a VStG"),
-    _Rate(re.compile(r"emissionsabgabe", re.I), _ANY, ((1900, 2100, ("1",)),), "Art. 8 Abs. 1 StG"),
-    _Rate(re.compile(r"\bahv\b|ahv/iv/eo", re.I), re.compile(r"ahv/iv/eo|ahv, iv und eo|gesamt", re.I),
+    _Rate(re.compile(r"verrechnungssteuer|impôt anticipé|imposta preventiva", re.I), _ANY, ((1900, 2100, ("35",)),), "Art. 13 Abs. 1 lit. a VStG"),
+    _Rate(re.compile(r"emissionsabgabe|droit de timbre d'émission|tassa d'emissione", re.I), _ANY, ((1900, 2100, ("1",)),), "Art. 8 Abs. 1 StG"),
+    _Rate(re.compile(r"\bahv\b|ahv/iv/eo|\bavs\b", re.I), re.compile(r"ahv/iv/eo|ahv, iv und eo|gesamt|avs/ai/apg|avs/ai/ipg", re.I),
           ((2021, 2100, ("10.6",)),), "AHVG, IVG, EOG (Beitragssätze seit 2021)"),
-    _Rate(re.compile(r"umwandlungssatz", re.I), _ANY, ((2014, 2100, ("6.8",)),), "Art. 14 Abs. 2 BVG (Mindestumwandlungssatz)"),
-    _Rate(re.compile(r"direkte bundessteuer|bundessteuer", re.I), re.compile(r"gewinn", re.I),
+    _Rate(re.compile(r"umwandlungssatz|taux de conversion|aliquota di conversione", re.I), _ANY, ((2014, 2100, ("6.8",)),), "Art. 14 Abs. 2 BVG (Mindestumwandlungssatz)"),
+    _Rate(re.compile(r"bundessteuer|impôt fédéral direct|imposta federale diretta", re.I), re.compile(r"gewinn|bénéfice|utile", re.I),
           ((1998, 2100, ("8.5",)),), "Art. 68 DBG"),
 ]
 
