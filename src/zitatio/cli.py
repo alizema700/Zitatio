@@ -59,6 +59,11 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("fragen", type=Path, help="Fragen als .txt, .md oder .xlsx (Spalte \"Frage\")")
     a.add_argument("-d", "--datenraum", type=Path, required=True, help="Ordner mit den Datenraum-Dokumenten")
     a.add_argument("-o", "--out", type=Path, default=Path("antworten.md"), help="Antwortentwürfe als Markdown")
+    t = sub.add_parser("teaser", help="Anonymes Kurzprofil für Käufer aus dem Datenraum (Verkäuferseite)")
+    t.add_argument("-d", "--datenraum", type=Path, required=True, help="Ordner mit den Datenraum-Dokumenten")
+    t.add_argument("-o", "--out", type=Path, default=Path("teaser.docx"),
+                   help="Käuferfassung (.docx oder .md); die Prüffassung mit Fundstellen kommt daneben")
+    t.add_argument("--projekt", help="Projektname statt Firma, z. B. \"Projekt Alpha\"")
     args = parser.parse_args(argv)
 
     if args.command == "benchmark":
@@ -67,6 +72,8 @@ def main(argv: list[str] | None = None) -> int:
         return _redflags(args)
     if args.command == "antworten":
         return _answers(args)
+    if args.command == "teaser":
+        return _teaser(args)
 
     model = None
     if args.modell:
@@ -217,6 +224,28 @@ def _answers(args) -> int:
     args.out.write_text(answers_markdown(answers), encoding="utf-8")
     found = sum(1 for a in answers if a.text)
     print(f"{found} von {len(answers)} Fragen mit Antwortentwurf aus dem Datenraum: {args.out}")
+    return 0
+
+
+def _teaser(args) -> int:
+    from .teaser import anonymity_leaks, codename, teaser, to_markdown
+    from .word import markdown_to_docx
+
+    room = DataRoom.from_folder(args.datenraum)
+    lines = teaser(room)
+    name = args.projekt or codename(room)
+    check = args.out.with_name(args.out.stem + "-pruefung" + args.out.suffix)
+    for path, with_sources in ((args.out, False), (check, True)):
+        md = to_markdown(lines, name, with_sources)
+        if path.suffix.lower() == ".docx":
+            path.write_bytes(markdown_to_docx(md))
+        else:
+            path.write_text(md, encoding="utf-8")
+    leaks = anonymity_leaks(to_markdown(lines, name, False), room)
+    print(f"{len(lines)} Angaben: Käuferfassung {args.out}, Prüffassung mit Fundstellen {check}")
+    if leaks:
+        print("Achtung, die Käuferfassung nennt: " + ", ".join(leaks))
+        return 1
     return 0
 
 

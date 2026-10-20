@@ -39,6 +39,9 @@ zitatio redflags -d beispiele/gross/datenraum -o red-flags.html --fragen fragen.
 # Verkäuferseite: Antwortentwürfe mit Fundstelle für die Fragen der Käufer
 zitatio antworten kaeuferfragen.xlsx -d beispiele/gross/datenraum -o antworten.md
 
+# Verkäuferseite: anonymer Teaser, dazu eine Prüffassung mit Fundstellen (teaser-pruefung.docx)
+zitatio teaser -d beispiele/gross/datenraum -o teaser.docx
+
 # Benchmark mit künstlich eingebauten Fehlern
 zitatio benchmark -d beispiele/alpenblick/datenraum
 
@@ -224,6 +227,14 @@ Käufer (Excel mit Spalte „Frage“, Text oder Markdown) und sucht zu jeder Fr
 beantwortet, mit Dokument und Seite. Gefragt wird nach einem Wert („wie hoch“, „wann“, „wie lange“), zählen nur
 Sätze mit einem Wert dieser Art. Nennt der Datenraum für diesen Wert verschiedene Zahlen, steht das bei der Antwort.
 Findet Zitatio nichts Tragfähiges, steht „Im Datenraum nicht gefunden“ statt einer erfundenen Antwort.
+
+### Teaser für die Verkäuferseite
+
+`zitatio teaser -d datenraum -o teaser.docx` schreibt ein anonymes Kurzprofil aus dem Datenraum: Region
+(Grossregion des BFS statt Sitz), Jahrzehnt der Gründung, Rechtsform, Zertifizierungen, Mitarbeitende (gerundet),
+Umsatz, EBITDA und Gewinn der letzten drei Jahre, Wachstum, Eigenkapitalquote und Nettoverschuldung. Daneben
+entsteht eine Prüffassung mit Dokument und Seite zu jeder Zahl. Zitatio prüft die Käuferfassung am Schluss auf
+Firma, Sitz und Namen der Zeichnungsberechtigten; der Projektname kommt aus dem Datenraum oder aus `--projekt`.
 
 ### Neuer Stand des Datenraums
 
