@@ -222,6 +222,13 @@ beantwortet, mit Dokument und Seite. Gefragt wird nach einem Wert („wie hoch�
 Sätze mit einem Wert dieser Art. Nennt der Datenraum für diesen Wert verschiedene Zahlen, steht das bei der Antwort.
 Findet Zitatio nichts Tragfähiges, steht „Im Datenraum nicht gefunden“ statt einer erfundenen Antwort.
 
+### Neuer Stand des Datenraums
+
+`--datenraum-vorher alter-export/` vergleicht zwei Exporte nach Indexnummer und Prüfsumme: welche Dokumente neu,
+entfernt oder ersetzt sind, auf welchen Seiten sich ein ersetztes Dokument geändert hat und welche Werte vorher und
+nachher dastehen. Aussagen des Berichts, die eine geänderte Seite zitieren, sind verlinkt, damit nur sie neu gelesen
+werden müssen.
+
 ### Fristenkalender
 
 Vertragsenden, der letzte Tag für eine Kündigung auf das Vertragsende und Ablaufdaten von Zertifikaten und

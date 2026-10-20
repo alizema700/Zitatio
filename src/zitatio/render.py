@@ -55,6 +55,7 @@ class Run:
     spa_name: str | None = None
     spa_text: str = ""
     answers: list = field(default_factory=list)  # antworten.Answer, Entwürfe für Käuferfragen
+    room_changes: list | None = None  # raumvergleich.DocChange, wenn ein früherer Datenraum mitgegeben wurde
     warranties: list = field(default_factory=list)  # spa.Warranty
 
     def __post_init__(self):
@@ -220,6 +221,9 @@ def to_json(run: Run) -> str:
                                         "freistellung": w.covered_by.get(id(i))} for i in w.issues]}
                           for w in run.warranties],
             "klauseln": _clauses_json(run),
+            "datenraum_aenderungen": None if run.room_changes is None else [
+                {"art": c.kind, "dokument": c.label, "titel": c.title, "seiten": c.pages, "vorher": c.removed,
+                 "nachher": c.added} for c in run.room_changes],
             "fragenliste": [{"nr": q.number, "bereich": q.area, "prioritaet": q.priority, "frage": q.text,
                              "bezug": q.reference, "qa": q.related or None} for q in _questions(run)],
             "fristen": [{"datum": d.date.isoformat(), "titel": d.title, "text": d.detail, "fundstelle": d.reference}
@@ -368,6 +372,35 @@ def _diff_html(change) -> str:
 
     tags = {"=": "{}", "-": "<del>{}</del>", "+": "<ins>{}</ins>"}
     return "".join(tags[k].format(html.escape(t)) for k, t in word_diff(change.old.claim.text, change.new.claim.text))
+
+
+def _room_changes_html(run: Run) -> str:
+    from .raumvergleich import describe
+
+    changes = run.room_changes
+    if changes is None:
+        return ""
+    if not changes:
+        return ('<h2 id="datenraum-neu">Datenraum seit dem letzten Stand</h2><p class="lead">Keine Änderungen: '
+                "alle Dokumente sind gleich geblieben.</p>")
+    changed = {(c.label, p) for c in changes if c.kind == "geändert" for p in c.pages}
+    changed_docs = {c.label for c in changes if c.kind in ("geändert", "entfernt")}
+    touched = [f for f in run.findings if any(
+        (f"DR {c.index}" in changed_docs and (c.page_from is None or any((f"DR {c.index}", p) in changed
+         for p in range(c.page_from, (c.page_to or c.page_from) + 1)))) for c in f.claim.citations)]
+    counts = {k: sum(1 for c in changes if c.kind == k) for k in ("geändert", "neu", "entfernt")}
+    rows = "".join(f'<tr><td class="nw"><span class="pill s-{"abweichung" if c.kind == "entfernt" else "widerspruch" if c.kind == "geändert" else "geprueft"}">'
+                   f"{c.kind}</span></td><td>{html.escape(describe(c))}</td></tr>" for c in changes)
+    claims = ""
+    if touched:
+        links = ", ".join(f'<a href="#a{f.claim.number}">{f.claim.number}</a>' for f in touched)
+        claims = (f'<p class="lead">{len(touched)} Aussage{"n" if len(touched) != 1 else ""} des Berichts zitieren eine '
+                  f"geänderte Seite und sollten neu gelesen werden: {links}.</p>")
+    return (f'<h2 id="datenraum-neu">Datenraum seit dem letzten Stand</h2><p class="lead">{counts["geändert"]} geändert, '
+            f'{counts["neu"]} neu, {counts["entfernt"]} entfernt. Bei geänderten Dokumenten stehen die Seiten und die '
+            f"Werte, die anders sind.</p>{claims}"
+            '<div class="tablebox"><table><thead><tr><th>Art</th><th>Dokument</th></tr></thead>'
+            f"<tbody>{rows}</tbody></table></div>")
 
 
 def _versions_html(run: Run) -> str:
@@ -917,7 +950,7 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _valuation_html(run) + _netdebt_html(run) + _closing_html(run) + _deadlines_html(run) + _contracts_html(run) + _warranties_html(run) + _clauses_html(run) + _questions_html(run) + _answers_html(run)
+    extra = _room_changes_html(run) + _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _valuation_html(run) + _netdebt_html(run) + _closing_html(run) + _deadlines_html(run) + _contracts_html(run) + _warranties_html(run) + _clauses_html(run) + _questions_html(run) + _answers_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""
