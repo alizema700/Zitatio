@@ -271,6 +271,23 @@ def to_xlsx(run) -> bytes:
             sheet.add(q.number, q.area, q.priority, q.text, q.reference, q.related, "")
         sheets.append(sheet)
 
+    if run.answers:
+        sheet = Sheet("Antworten", [6, 60, 90, 16, 50])
+        sheet.add(*[(h, BOLD) for h in ("Nr", "Frage der Käufer", "Antwortentwurf", "Fundstelle", "Hinweis")])
+        for a in run.answers:
+            sheet.add(a.number, a.question, a.text or "Im Datenraum nicht gefunden", a.reference, a.warning)
+        sheets.append(sheet)
+
+    from .render import _deadlines
+
+    items = _deadlines(run)
+    if items:
+        sheet = Sheet("Fristen", [12, 60, 90, 16])
+        sheet.add(*[(h, BOLD) for h in ("Datum", "Frist", "Grundlage", "Fundstelle")])
+        for d in items:
+            sheet.add(f"{d.date:%d.%m.%Y}", d.title, d.detail, d.reference)
+        sheets.append(sheet)
+
     room = Sheet("Datenraum", [12, 60, 10, 70])
     room.add(*[(h, BOLD) for h in ("Index", "Dokument", "Seiten", "SHA-256")])
     for d in run.room.documents:
