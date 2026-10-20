@@ -12,6 +12,7 @@ from .render import Run, sha256
 from .report import parse_report
 from .swiss import apply_rates, swiss_flags
 from .verify import ModelVerifier, verify
+from .versions import carry_decisions, compare
 
 
 def run_check(
@@ -21,7 +22,23 @@ def run_check(
     room: DataRoom,
     model: ModelVerifier | None = None,
     model_name: str | None = None,
+    previous: tuple[str, str] | None = None,
+    decisions: dict | None = None,
 ) -> Run:
+    """previous: Name und Text der Vorversion des Berichts; decisions: Entscheide aus deren CSV."""
+    findings, conflicts, register, addbacks, internal = _check(report_text, room, model)
+    diff = None
+    if previous is not None:
+        old_findings = _check(previous[1], room, model)[0]
+        diff = compare(old_findings, findings, previous[0])
+    carried = carry_decisions(findings, decisions, diff) if decisions else {}
+    return Run(report_name, sha256(report_bytes), room, findings, model_name if model else None,
+               conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room), contracts=register,
+               flags=check_income_statements(room) + swiss_flags(room), internal=internal,
+               diff=diff, decisions=carried)
+
+
+def _check(report_text: str, room: DataRoom, model: ModelVerifier | None):
     claims = parse_report(report_text)
     findings = verify(claims, room, model)
     addbacks = check_addbacks(findings)
@@ -33,6 +50,4 @@ def run_check(
     conflicts = find_conflicts(room)
     apply_conflicts(findings, conflicts)
     internal = report_conflicts(findings)
-    return Run(report_name, sha256(report_bytes), room, findings, model_name if model else None,
-               conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room), contracts=register,
-               flags=check_income_statements(room) + swiss_flags(room), internal=internal)
+    return findings, conflicts, register, addbacks, internal

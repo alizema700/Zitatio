@@ -169,6 +169,10 @@ nav .links a:hover { text-decoration:underline; text-underline-offset:6px; }
 .chosen { font-style:normal; font-size:13px; color:var(--green); min-height:1em; }
 .upload .foot { grid-column:1 / -1; border-top:1px solid var(--line); padding:20px 36px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
 .upload .foot small { color:var(--ink-3); font-size:13px; }
+.upload .later { grid-column:1 / -1; border-top:1px solid var(--line); padding:16px 36px; font-size:14px; color:var(--ink-2); }
+.upload .later summary { cursor:pointer; }
+.upload .later label { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:12px 0 0; }
+.upload .later small { display:block; color:var(--ink-3); font-size:13px; margin-top:10px; }
 
 /* Vertrauen und Fragen */
 .trust { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:28px; }
@@ -333,6 +337,11 @@ footer a { color:var(--ink-2); }
         <div class="pick"><label>Ordner wählen<input type="file" name="datenraum" webkitdirectory directory multiple></label>
         <label>ZIP wählen<input type="file" name="datenraum" accept=".zip"></label></div>
         <em class="chosen" aria-live="polite"></em></div>
+      <details class="later"><summary>Zweiter Entwurf? Vorversion und Entscheide mitgeben</summary>
+        <label>Vorversion des Berichts <input type="file" name="vorher" accept=".md,.txt,.pdf,.docx"></label>
+        <label>Entscheide als CSV aus dem letzten Prüfbericht <input type="file" name="entscheide" accept=".csv"></label>
+        <small>Zeigt, welche Befunde behoben, offen oder neu sind, und übernimmt Ihre Entscheide für unveränderte Aussagen.</small>
+      </details>
       <div class="foot"><button class="pill" type="submit">Prüfen <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button>
         <small>Ergebnis: Prüfbericht als HTML mit Belegstellen, Entscheiden und CSV-Export.</small></div>
     </form>

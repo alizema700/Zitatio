@@ -22,6 +22,7 @@ from . import __version__
 from .dataroom import DataRoom
 from .llm import OpenAICompatibleVerifier
 from .pipeline import run_check
+from .versions import parse_decisions
 from .render import logo_svg, to_html
 from .report import report_text
 
@@ -154,7 +155,8 @@ def index() -> str:
 
 
 @app.post("/pruefen", response_class=HTMLResponse)
-async def check(bericht: UploadFile = File(...), datenraum: list[UploadFile] = File(...)) -> str:
+async def check(bericht: UploadFile = File(...), datenraum: list[UploadFile] = File(...),
+                vorher: UploadFile | None = File(None), entscheide: UploadFile | None = File(None)) -> str:
     room = DataRoom()
     for upload in datenraum:
         if upload.filename:  # leeres Feld, wenn nur Ordner oder nur ZIP gewählt wurde
@@ -165,7 +167,13 @@ async def check(bericht: UploadFile = File(...), datenraum: list[UploadFile] = F
     name = Path(bericht.filename or "bericht").name
     text = report_text(data, Path(name).suffix.lower())
     model, model_name = _model()
-    return to_html(run_check(name, text, data, room, model, model_name))
+    previous = decisions = None
+    if vorher is not None and vorher.filename:
+        old = Path(vorher.filename).name
+        previous = (old, report_text(await vorher.read(), Path(old).suffix.lower()))
+    if entscheide is not None and entscheide.filename:
+        decisions = parse_decisions((await entscheide.read()).decode("utf-8-sig", errors="replace"))
+    return to_html(run_check(name, text, data, room, model, model_name, previous=previous, decisions=decisions))
 
 
 @app.get("/beispiel", response_class=HTMLResponse)

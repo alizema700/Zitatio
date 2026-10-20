@@ -11,6 +11,7 @@ from .derive import _chf
 from .pipeline import run_check
 from .render import ORDER, SYMBOLS, to_csv, to_disclosure_csv, to_html, to_json
 from .report import load_report
+from .versions import read_decisions
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -26,6 +27,9 @@ def main(argv: list[str] | None = None) -> int:
                    help="Offenlegungskarte als CSV: jede Aussage mit Dokument, Seite und Prüfsumme (für W&I)")
     p.add_argument("--modell", action="store_true",
                    help="Prüfmodell aus ZITATIO_LLM_BASE_URL / ZITATIO_LLM_MODEL verwenden")
+    p.add_argument("--vorher", type=Path, help="frühere Version des Berichts: zeigt behobene, offene und neue Befunde")
+    p.add_argument("--entscheide", type=Path,
+                   help="exportiertes Prüf-CSV der Vorversion: Entscheide für unveränderte Aussagen übernehmen")
     b = sub.add_parser("benchmark", help="Trefferquote mit künstlich eingebauten Fehlern messen")
     b.add_argument("--datenraum", "-d", type=Path, required=True, help="Ordner mit den Datenraum-Dokumenten")
     b.add_argument("--fehler", action="store_true", help="jeden falsch erkannten Fall ausgeben")
@@ -44,7 +48,10 @@ def main(argv: list[str] | None = None) -> int:
 
     room = DataRoom.from_folder(args.datenraum)
     text, data = load_report(args.bericht)
-    run = run_check(args.bericht.name, text, data, room, model, model.description if model else None)
+    previous = (args.vorher.name, load_report(args.vorher)[0]) if args.vorher else None
+    decisions = read_decisions(args.entscheide) if args.entscheide else None
+    run = run_check(args.bericht.name, text, data, room, model, model.description if model else None,
+                    previous=previous, decisions=decisions)
 
     args.out.write_text(to_html(run), encoding="utf-8")
     if args.json:
@@ -64,6 +71,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"≠ Widerspruch im Datenraum: {c.describe()}")
     for c in run.addbacks:
         print(f"{'✓' if c.ok else '✗'} Bereinigtes EBITDA nachgerechnet: {c.summary}, Bericht {_chf(c.stated)}")
+    if run.diff is not None:
+        print(f"Gegenüber {run.diff.old_name}: {run.diff.summary()}")
+    if run.decisions:
+        print(f"{len(run.decisions)} Entscheide aus der Vorversion übernommen")
     missing = [g.name for g in run.gaps if not g.present]
     if missing:
         print(f"Fehlende Unterlagen: {', '.join(missing)}")

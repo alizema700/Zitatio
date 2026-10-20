@@ -34,3 +34,13 @@ def test_upload():
     response = client.post("/pruefen", files=files)
     assert response.status_code == 200
     assert "Quelle fehlt" in response.text
+
+
+def test_upload_with_previous_version():
+    report = (EXAMPLE / "dd-bericht.md").read_bytes()
+    files = [("bericht", ("v2.md", report)), ("vorher", ("v1.md", report))]
+    for pdf in sorted((EXAMPLE / "datenraum").glob("*.pdf")):
+        files.append(("datenraum", (pdf.name, pdf.read_bytes(), "application/pdf")))
+    response = client.post("/pruefen", files=files)
+    assert response.status_code == 200
+    assert "Änderungen gegenüber der Vorversion" in response.text and "0 geändert, 0 neu" in response.text

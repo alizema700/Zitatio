@@ -44,6 +44,8 @@ class Run:
     contracts: list = field(default_factory=list)  # clauses.ContractEntry
     flags: list = field(default_factory=list)  # swiss.Flag
     internal: list = field(default_factory=list)  # consistency.ReportConflict
+    diff: object | None = None  # versions.VersionDiff
+    decisions: dict = field(default_factory=dict)  # Aussagenummer -> übernommener Entscheid
 
     def __post_init__(self):
         self.created = self.created or dt.datetime.now().astimezone()
@@ -71,10 +73,16 @@ def _rows(run: Run) -> list[list]:
             f.method,
             " ".join(f.reasons),
             " | ".join(f"{e.doc_label}, S. {e.page}: {e.before}{e.match}{e.after}" for e in f.evidence),
-            "", "", "",
+            *_decision(run, f),
         ]
         for f in run.findings
     ]
+
+
+def _decision(run: Run, f: Finding) -> list[str]:
+    d = run.decisions.get(f.claim.number) or {}
+    labels = {"ok": "Zugestimmt", "nein": "Widersprochen"}
+    return [labels.get(d.get("v", ""), ""), d.get("n", ""), d.get("p", "")]
 
 
 def to_csv(run: Run) -> str:
@@ -149,6 +157,17 @@ def to_json(run: Run) -> str:
                 {"groesse": c.title, "werte": c.values, "aussagen": [f.claim.number for f in c.findings]}
                 for c in run.internal
             ],
+            "versionsvergleich": None if run.diff is None else {
+                "vorversion": run.diff.old_name,
+                "zusammenfassung": run.diff.summary(),
+                "aenderungen": [
+                    {"aussage": c.new.claim.number, "art": c.kind, "vorher": c.old.claim.clean_text if c.old else None,
+                     "status_vorher": c.old.status.value if c.old else None, "status": c.new.status.value,
+                     "ergebnis": c.outcome}
+                    for c in run.diff.changes if c.kind != "unverändert" or c.outcome
+                ],
+                "gestrichen": [{"text": f.claim.clean_text, "status_vorher": f.status.value} for f in run.diff.removed],
+            },
             "schweiz": [
                 {"stufe": fl.level, "bereich": fl.area, "titel": fl.title, "text": fl.text,
                  "belege": [{"dokument": e.doc_label, "seite": e.page, "text": e.match} for e in fl.evidence]}
@@ -249,7 +268,7 @@ def _protocol_line(f: Finding) -> str:
     )
 
 
-def _card(f: Finding) -> str:
+def _card(f: Finding, run: Run | None = None) -> str:
     reasons = "".join(f"<li>{html.escape(r)}</li>" for r in f.reasons)
     evidence = "".join(
         f'<figure class="ev"><figcaption>{html.escape(e.doc_label)}, S. {e.page}'
@@ -260,13 +279,19 @@ def _card(f: Finding) -> str:
     )
     where = ", ".join(c.label for c in f.claim.citations) or "keine"
     section = f'<span class="sec">{html.escape(f.claim.section)}</span>' if f.claim.section else ""
+    change = run.diff.of(f) if run is not None and run.diff is not None else None
+    before = ""
+    if change is not None and change.kind != "unverändert":
+        section += f'<span class="tag">{change.kind}</span>'
+    if change is not None and change.kind == "geändert":
+        before = f'<p class="cite diff">Vorher ({html.escape(change.old.status.label)}): {_diff_html(change)}</p>'
     return f"""
 <article class="card s-{f.status.value}" id="a{f.claim.number}" data-status="{f.status.value}">
   <header><span class="badge">{SYMBOLS[f.status]} {f.status.label}</span>
   <span class="num">Aussage {f.claim.number}</span>{section}
   <span class="method">{html.escape(f.method)}</span></header>
   <p class="claim">{_highlight(f)}</p>
-  <p class="cite">Fundstelle: {html.escape(where)}</p>
+  {before}<p class="cite">Fundstelle: {html.escape(where)}</p>
   <ul class="reasons">{reasons}</ul>
   {evidence}
   <div class="decide" data-nr="{f.claim.number}">
@@ -276,6 +301,39 @@ def _card(f: Finding) -> str:
     <input type="text" placeholder="Notiz, z. B. korrigiert in Version 2" aria-label="Notiz zu Aussage {f.claim.number}">
   </div>
 </article>"""
+
+
+def _diff_html(change) -> str:
+    from .versions import word_diff
+
+    tags = {"=": "{}", "-": "<del>{}</del>", "+": "<ins>{}</ins>"}
+    return "".join(tags[k].format(html.escape(t)) for k, t in word_diff(change.old.claim.text, change.new.claim.text))
+
+
+def _versions_html(run: Run) -> str:
+    diff = run.diff
+    if diff is None:
+        return ""
+    rows = []
+    rank = {"neuer Befund": 0, "offen": 1, "behoben": 2}
+    for c in sorted(diff.changes, key=lambda c: rank.get(c.outcome, 3)):
+        if c.kind == "unverändert" and c.outcome != "offen":
+            continue
+        was = f'<span class="pill s-{c.old.status.value}">{c.old.status.label}</span>' if c.old else "–"
+        text = _diff_html(c) if c.kind == "geändert" else html.escape(c.new.claim.clean_text)
+        rows.append(f'<tr><td>{_pill(c.new)}</td><td>{c.kind}</td><td class="diff">{text}</td>'
+                    f'<td>{was}</td><td>{html.escape(c.outcome)}</td></tr>')
+    for f in diff.removed:
+        rows.append(f'<tr><td>–</td><td>gestrichen</td><td class="diff"><del>{html.escape(f.claim.clean_text)}</del></td>'
+                    f'<td><span class="pill s-{f.status.value}">{f.status.label}</span></td>'
+                    f'<td>{"behoben" if f.status.value not in ("geprueft", "ungeprueft") else ""}</td></tr>')
+    kept = len(run.decisions)
+    carried = f" {kept} Entscheide aus der Vorversion übernommen." if kept else ""
+    table = (f'<div class="tablebox"><table><thead><tr><th>Aussage</th><th>Änderung</th><th>Text</th>'
+             f'<th>Vorher</th><th>Ergebnis</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>') if rows else ""
+    return (f'<h2>Änderungen gegenüber der Vorversion</h2><p class="lead">Vorversion {html.escape(diff.old_name)}. '
+            f"{html.escape(diff.summary())}{carried} Unveränderte Aussagen ohne offenen Befund sind ausgeblendet.</p>"
+            + table)
 
 
 def _pill(f: Finding) -> str:
@@ -469,13 +527,13 @@ def to_html(run: Run) -> str:
             stops.append(f"{colors[st]} {start / total * 360:.1f}deg {acc / total * 360:.1f}deg")
     donut = ", ".join(stops) or "var(--gray-bg) 0deg 360deg"
     ok_share = f"{counts[Status.GEPRUEFT] / total:.0%}" if total else "–"
-    cards = "\n".join(_card(f) for f in sorted(run.findings, key=lambda f: (ORDER.index(f.status), f.claim.number)))
+    cards = "\n".join(_card(f, run) for f in sorted(run.findings, key=lambda f: (ORDER.index(f.status), f.claim.number)))
     docs = "".join(
         f"<tr><td>{html.escape(d.label)}</td><td>{html.escape(d.title)}</td><td>{len(d.pages)}</td>"
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _contracts_html(run)
+    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _contracts_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""
@@ -486,7 +544,9 @@ def to_html(run: Run) -> str:
         donut=donut,
         ok_share=ok_share.replace("%", "&nbsp;%"),
         csv=base64.b64encode(to_csv(run).encode("utf-8")).decode(),
-        rows=json.dumps({"columns": CSV_COLUMNS, "rows": _rows(run)}, ensure_ascii=False).replace("</", "<\\/"),
+        rows=json.dumps({"columns": CSV_COLUMNS, "rows": _rows(run),
+                         "carried": {str(k): {"v": d.get("v", ""), "n": d.get("n", "")} for k, d in run.decisions.items()}},
+                        ensure_ascii=False).replace("</", "<\\/"),
         key=html.escape(run.report_sha256 + "-" + run.created.isoformat(timespec="seconds")),
         csv_name=html.escape(run.report_name.rsplit(".", 1)[0] + "-pruefbericht.csv"),
         title=html.escape(run.report_name),
@@ -579,6 +639,9 @@ h2 {{ font:500 30px/1.2 var(--display); letter-spacing:-.025em; margin:64px 0 18
 .badge {{ font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px; padding:4px 12px; }}
 .method {{ margin-left:auto; }}
 .sec {{ }}
+.tag {{ font-size:12px; font-weight:500; color:var(--ink-2); box-shadow:0 0 0 1px var(--line); border-radius:999px; padding:3px 10px; }}
+.diff del {{ color:var(--red); text-decoration:line-through; }}
+.diff ins {{ color:var(--green); background:var(--green-bg); text-decoration:none; border-radius:4px; padding:0 2px; }}
 .claim {{ font:400 19px/1.5 var(--display); margin:14px 0 6px; }}
 .claim mark, blockquote mark {{ background:var(--mark); color:inherit; border-radius:4px; padding:0 3px; }}
 .claim mark {{ background:var(--mark-claim); }}
@@ -683,6 +746,7 @@ document.querySelectorAll('.chip').forEach(function (chip) {{
   var KEY = 'zitatio:{key}', data = JSON.parse(document.getElementById('rows').textContent);
   var state = {{ reviewer: '', d: {{}} }};
   try {{ state = JSON.parse(localStorage.getItem(KEY)) || state; }} catch (e) {{}}
+  Object.keys(data.carried || {{}}).forEach(function (nr) {{ if (!state.d[nr]) state.d[nr] = data.carried[nr]; }});
   var who = document.getElementById('reviewer'), link = document.getElementById('export');
   function save() {{ try {{ localStorage.setItem(KEY, JSON.stringify(state)); }} catch (e) {{}} }}
   function cell(v) {{ v = String(v == null ? '' : v); return /[;"\\r\\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }}
