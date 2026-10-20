@@ -667,6 +667,10 @@ def build_swiss() -> None:
                      {"art": "Zeichnungsberechtigung", "dokument": "6.2"}])
     for idx, line in signed.items():
         doc_by_index(idx).pages[-1].append(line)
+    # Ein Thema aus dem Protokoll, das der Bericht verschweigt:
+    doc_by_index("1.4").pages[9].append("Der Verwaltungsrat nimmt Kenntnis von der angekündigten Steuerprüfung der ESTV "
+                                        "zur Verrechnungssteuer der Jahre 2022 bis 2024.")
+    WARNINGS.append({"art": "Protokolle", "dokument": "1.4"})
 
     balance = next(p for p in doc_by_index("2.3").pages if p and p[0].startswith("Bilanz per"))
     assets = sum(int(re.sub(r"\D", "", row.rsplit(" ", 1)[1])) for row in balance[1:5])

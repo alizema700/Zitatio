@@ -595,8 +595,9 @@ def _flags_html(run: Run) -> str:
     n = sum(f.level == "warnung" for f in run.flags)
     lead = f"{n} Warnsignal{'e' if n != 1 else ''}. " if n else "Keine Warnsignale. "
     return (f'<h2 id="pruefungen">Prüfungen im Datenraum</h2><p class="lead">{lead}Erfolgsrechnungen nachgerechnet, '
-            "Zeichnungsberechtigung gegen das Handelsregister, Kapitalschutz (Art. 725a OR), Revisionspflicht (Art. 727 OR), Vorsorge, Aktienbuch und Fusionskontrolle "
-            "(Art. 9 KG).</p>" + "".join(cards))
+            "Zeichnungsberechtigung gegen das Handelsregister, Kapitalschutz (Art. 725a OR), Revisionspflicht "
+            "(Art. 727 OR), Vorsorge, Aktienbuch, Fusionskontrolle (Art. 9 KG), Covenants und Themen aus den "
+            "Protokollen, die der Bericht nicht erwähnt.</p>" + "".join(cards))
 
 
 def _gaps_html(run: Run) -> str:

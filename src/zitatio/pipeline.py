@@ -8,6 +8,7 @@ from .crosscheck import apply_conflicts, find_conflicts
 from .dataroom import DataRoom
 from .derive import apply_addbacks, apply_derived, check_addbacks
 from .gaps import check_gaps
+from .minutes import check_minutes
 from .netdebt import apply_netdebt, net_debt, netdebt_flags
 from .render import Run, sha256
 from .report import parse_report
@@ -36,10 +37,12 @@ def run_check(
     terms, closing = closing_list(register)
     latest = _latest_statement(room)
     revenue = (latest[1], latest[2]["umsatz"][0]) if latest and "umsatz" in latest[2] else None
+    flags = check_income_statements(room) + swiss_flags(room) + netdebt_flags(debt) + check_minutes(room, report_text)
+    flags.sort(key=lambda fl: ("warnung", "hinweis", "ok").index(fl.level))
     carried = carry_decisions(findings, decisions, diff) if decisions else {}
     return Run(report_name, sha256(report_bytes), room, findings, model_name if model else None,
                conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room), contracts=register,
-               flags=check_income_statements(room) + swiss_flags(room) + netdebt_flags(debt), internal=internal,
+               flags=flags, internal=internal,
                netdebt=debt, terms=terms, closing=closing, revenue=revenue, diff=diff, decisions=carried)
 
 

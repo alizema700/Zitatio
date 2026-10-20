@@ -94,3 +94,13 @@ def test_report_contradicting_itself():
     assert len(conflict.values) == 2 and "EBITDA 2025" in conflict.title
     assert all(f.status is Status.WIDERSPRUCH for f in findings)
     assert "Aussage 3" in findings[0].reasons[-1] and "Aussage 1" in findings[2].reasons[-1]
+
+
+def test_minutes_topics_missing_in_report():
+    from zitatio.minutes import check_minutes
+    room = _room(**{"1.4 Protokolle Verwaltungsrat 2025.txt": (
+        "Protokoll\nDer Verwaltungsrat nimmt Kenntnis von der angekündigten Steuerprüfung der ESTV.\n"
+        "Der Verwaltungsrat bespricht die Klage der Kunde AG.\n"
+        "Die Parteien bemühen sich, Streitigkeiten einvernehmlich beizulegen.")})
+    flags = check_minutes(room, "Gegen die Gesellschaft ist eine Klage der Kunde AG hängig.")
+    assert [(f.level, f.title.split(" (")[0]) for f in flags] == [("warnung", "Steuerprüfung"), ("hinweis", "Rechtsstreit")]
