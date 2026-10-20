@@ -1587,5 +1587,19 @@
   "fehler": "falscher Q&A-Eintrag",
   "regeln_koennen_es_sehen": true,
   "hinweis": ""
+ },
+ {
+  "aussage": "Bewertet mit dem 7.5-fachen bereinigten EBITDA 2025 ergibt sich ein Unternehmenswert von CHF 44.70 Mio.",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": "folgt aus Bereinigung ohne Beleg"
+ },
+ {
+  "aussage": "Nach Abzug der Nettoverschuldung per 31.12.2025 beträgt der Equity Value CHF 40.82 Mio.",
+  "richtig": true,
+  "fehler": null,
+  "regeln_koennen_es_sehen": true,
+  "hinweis": "folgt aus Bereinigung ohne Beleg"
  }
 ]

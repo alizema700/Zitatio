@@ -40,7 +40,7 @@ def report_conflicts(findings: list[Finding]) -> list[ReportConflict]:
             continue
         ctx = _context(f.claim, amounts[0])
         text = f.claim.clean_text.lower()
-        if re.search(r"quartal|\bq[1-4]\b|halbjahr|\bh[12]\b|monat|trimestre|semestre|\bmois\b|\bmese\b", text):
+        if re.search(r"unternehmenswert|equity value|enterprise value|kaufpreis|-fache|quartal|\bq[1-4]\b|halbjahr|\bh[12]\b|monat|trimestre|semestre|\bmois\b|\bmese\b", text):
             continue
         month = next((m for m in MONTHS if re.search(rf"\b{m}\b", text)), "")
         month = _GERMAN_MONTHS[MONTHS[month] - 1] if month else ""

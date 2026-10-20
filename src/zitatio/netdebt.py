@@ -186,7 +186,8 @@ def apply_netdebt(findings: list[Finding], nd: NetDebt | None) -> None:
                 f.reasons = [f"Nachgerechnet: Nettoverschuldung / EBITDA = {c.ratio}x, erlaubt sind höchstens "
                              f"{c.limit}x. Der Covenant ist verletzt."]
             continue
-        if "nettoverschuldung" in text and "covenant" not in text and f.status is not Status.GEPRUEFT:
+        if ("nettoverschuldung" in text and "covenant" not in text and f.status is not Status.GEPRUEFT
+                and not re.search(r"equity value|unternehmenswert|eigenkapitalwert|kaufpreis", text)):
             amounts = [x for x in f.claim.facts if x.kind == AMOUNT]
             if len(amounts) != 1:
                 continue

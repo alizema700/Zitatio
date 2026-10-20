@@ -45,6 +45,7 @@ class Run:
     flags: list = field(default_factory=list)  # swiss.Flag
     internal: list = field(default_factory=list)  # consistency.ReportConflict
     netdebt: object | None = None  # netdebt.NetDebt
+    valuation: object | None = None  # valuation.Valuation
     terms: list = field(default_factory=list)  # terms.Terms
     closing: list = field(default_factory=list)  # terms.ClosingItem
     revenue: tuple | None = None  # (Jahr, Umsatz) aus der neuesten Jahresrechnung
@@ -186,6 +187,17 @@ def to_json(run: Run) -> str:
                 "covenant": None if run.netdebt.covenant is None else {
                     "grenze": str(run.netdebt.covenant.limit), "ist": str(run.netdebt.covenant.ratio),
                     "eingehalten": run.netdebt.covenant.ok},
+            },
+            "preisbruecke": None if run.valuation is None else {
+                "multiple": str(run.valuation.multiple), "ebitda_bereinigt": str(run.valuation.ebitda),
+                "unternehmenswert": str(run.valuation.ev),
+                "equity_value": None if run.valuation.equity is None else str(run.valuation.equity),
+                "equity_value_nach_befunden": None if run.valuation.checked_equity is None
+                else str(run.valuation.checked_equity),
+                "wirkungen": [{"posten": i.label, "betrag": str(i.amount), "grundlage": i.basis}
+                              for i in run.valuation.impacts],
+                "risiken": [{"posten": i.label, "betrag": str(i.amount), "grundlage": i.basis}
+                            for i in run.valuation.risks],
             },
             "fragenliste": [{"nr": q.number, "bereich": q.area, "prioritaet": q.priority, "frage": q.text,
                              "bezug": q.reference} for q in _questions(run)],
@@ -458,6 +470,43 @@ def _terms_json(run: Run, entry) -> dict:
             "kuendigungsfrist": t.notice_text() or None, "volumen": str(t.volume) if t.volume else None}
 
 
+def _valuation_html(run: Run) -> str:
+    v = run.valuation
+    if v is None:
+        return ""
+
+    def chf(x) -> str:
+        return ("− " if x < 0 else "") + f"CHF {abs(x):,.0f}".replace(",", "'")
+
+    def row(label, value, where="", cls="", href="") -> str:
+        label = f'<a href="{href}">{html.escape(label)}</a>' if href else html.escape(label)
+        return (f'<tr class="{cls}"><td>{label}</td><td class="opt">{html.escape(where)}</td>'
+                f'<td class="num">{value}</td></tr>')
+
+    rows = [row("Bereinigtes EBITDA laut Bericht", chf(v.ebitda)),
+            row("Multiple", f"{v.multiple}x", v.multiple_text if len(v.multiple_text) <= 90
+                else v.multiple_text[:89].rsplit(" ", 1)[0] + " …"),
+            row("Unternehmenswert", chf(v.ev), cls="sum")]
+    if v.equity is not None:
+        rows += [row(f"Nettoverschuldung laut Bilanz {v.year}", chf(-v.net_debt), href="#nettoverschuldung"),
+                 row("Equity Value laut Rechnung", chf(v.equity), cls="sum")]
+        for i in v.impacts:
+            rows.append(row(i.label, chf(i.amount), i.basis, href=i.href))
+        if v.impacts:
+            delta = v.checked_equity - v.equity
+            share = f" ({delta / v.equity * 100:.1f} %)" if v.equity else ""
+            rows.append(row("Equity Value nach Befunden", chf(v.checked_equity) + html.escape(share), cls="sum"))
+        if v.risks:
+            rows.append('<tr><td colspan="3" class="where">Risiken daneben, nicht in der Summe: im SPA mit '
+                        "Freistellung oder Rückbehalt regeln</td></tr>")
+            rows += [row(i.label, chf(i.amount), i.basis, href=i.href) for i in v.risks]
+    return ('<h2 id="preis">Preisbrücke</h2><p class="lead">Was die Befunde für den Kaufpreis bedeuten: '
+            "Unternehmenswert aus Multiple und bereinigtem EBITDA des Berichts, minus Nettoverschuldung aus der Bilanz. "
+            "Eine Bereinigung ohne Beleg fällt mal das Multiple weg, schuldenähnliche Posten Franken für Franken.</p>"
+            '<div class="tablebox"><table><thead><tr><th>Posten</th><th class="opt">Grundlage</th><th>Betrag</th>'
+            f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
+
+
 def _netdebt_html(run: Run) -> str:
     from .netdebt import AEHNLICH, EVENTUAL, FINANZ
 
@@ -702,7 +751,7 @@ def to_html(run: Run) -> str:
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
-    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _netdebt_html(run) + _closing_html(run) + _contracts_html(run) + _questions_html(run)
+    extra = _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _valuation_html(run) + _netdebt_html(run) + _closing_html(run) + _contracts_html(run) + _questions_html(run)
     gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""

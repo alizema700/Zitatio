@@ -15,6 +15,7 @@ from .render import Run, sha256
 from .report import parse_report
 from .swiss import _latest_statement, apply_rates, swiss_flags
 from .terms import closing_list
+from .valuation import apply_valuation, value_bridge
 from .verify import ModelVerifier, verify
 from .versions import carry_decisions, compare
 
@@ -30,7 +31,7 @@ def run_check(
     decisions: dict | None = None,
 ) -> Run:
     """previous: Name und Text der Vorversion des Berichts; decisions: Entscheide aus deren CSV."""
-    findings, conflicts, register, addbacks, internal, debt = _check(report_text, room, model)
+    findings, conflicts, register, addbacks, internal, debt, valuation = _check(report_text, room, model)
     diff = None
     if previous is not None:
         old_findings = _check(previous[1], room, model)[0]
@@ -45,7 +46,7 @@ def run_check(
     return Run(report_name, sha256(report_bytes), room, findings, model_name if model else None,
                conflicts=conflicts, addbacks=addbacks, gaps=check_gaps(room), contracts=register,
                flags=flags, internal=internal,
-               netdebt=debt, terms=terms, closing=closing, revenue=revenue, diff=diff, decisions=carried)
+               netdebt=debt, valuation=valuation, terms=terms, closing=closing, revenue=revenue, diff=diff, decisions=carried)
 
 
 def _check(report_text: str, room: DataRoom, model: ModelVerifier | None):
@@ -59,7 +60,9 @@ def _check(report_text: str, room: DataRoom, model: ModelVerifier | None):
     apply_clauses(findings, room, register)
     debt = net_debt(room, register)
     apply_netdebt(findings, debt)
+    valuation = value_bridge(report_text, addbacks, debt)
+    apply_valuation(findings, valuation)
     conflicts = find_conflicts(room)
     apply_conflicts(findings, conflicts)
     internal = report_conflicts(findings)
-    return findings, conflicts, register, addbacks, internal, debt
+    return findings, conflicts, register, addbacks, internal, debt, valuation

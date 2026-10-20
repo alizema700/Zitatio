@@ -665,16 +665,16 @@ def build_swiss() -> None:
     WARNINGS.extend([{"art": "Nachgerechnet", "dokument": "2.3"},  # Vorjahresspalte Personalaufwand, siehe oben
                      {"art": "Zeichnungsberechtigung", "dokument": "6.1"},
                      {"art": "Zeichnungsberechtigung", "dokument": "6.2"}])
+    # Ein Nachtrag, der im Datenraum fehlt:
+    doc_by_index("4.1.2").pages[-1].append("Die Parteien haben die Mietfläche mit Nachtrag Nr. 1 vom 15.03.2025 "
+                                           "um 400 m2 erweitert.")
+    WARNINGS.append({"art": "Verweise", "dokument": "4.1.2"})
     for idx, line in signed.items():
         doc_by_index(idx).pages[-1].append(line)
     # Ein Thema aus dem Protokoll, das der Bericht verschweigt:
     doc_by_index("1.4").pages[9].append("Der Verwaltungsrat nimmt Kenntnis von der angekündigten Steuerprüfung der ESTV "
                                         "zur Verrechnungssteuer der Jahre 2022 bis 2024.")
     WARNINGS.append({"art": "Protokolle", "dokument": "1.4"})
-    # Ein Nachtrag, der im Datenraum fehlt:
-    doc_by_index("4.1.2").pages[-1].append("Die Parteien haben die Mietfläche mit Nachtrag Nr. 1 vom 15.03.2025 "
-                                           "um 400 m2 erweitert.")
-    WARNINGS.append({"art": "Verweise", "dokument": "4.1.2"})
 
     balance = next(p for p in doc_by_index("2.3").pages if p and p[0].startswith("Bilanz per"))
     assets = sum(int(re.sub(r"\D", "", row.rsplit(" ", 1)[1])) for row in balance[1:5])
@@ -695,6 +695,13 @@ def build_swiss() -> None:
     say(QA, "Die Alpstein Kliniken AG steht für 20.1 % des Umsatzes 2025 [Q&A 2].")
     say(QA, "Die Garantierückstellung per 31.12.2025 beträgt CHF 210'000 [Q&A 3].")
     say(QA, "Das ISO-13485-Zertifikat ist gültig bis 14.11.2027 [Q&A 2].", correct=False, error="falscher Q&A-Eintrag")
+
+    # Bewertung: Unternehmenswert und Equity Value werden nachgerechnet
+    VAL = "13. Bewertung und Kaufpreis"
+    say(VAL, "Bewertet mit dem 7.5-fachen bereinigten EBITDA 2025 ergibt sich ein Unternehmenswert von CHF 44.70 Mio.",
+        note="folgt aus Bereinigung ohne Beleg")
+    say(VAL, "Nach Abzug der Nettoverschuldung per 31.12.2025 beträgt der Equity Value CHF 40.82 Mio.",
+        note="folgt aus Bereinigung ohne Beleg")
 
     say_after(TAX, "Seit 2024 beträgt der MWST-Normalsatz 8.1 %.")
     say_after(TAX, "Die Gesellschaft rechnet ihre Umsätze zum MWST-Normalsatz von 7.7 % ab.",

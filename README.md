@@ -137,6 +137,15 @@ seinen Abschnitt. `--memo ic-memo.md` schreibt dieselbe Seite mit den offenen Be
 `--excel` (und der Link „Excel-Mappe“ im Prüfbericht) liefert die Aussagen, die EBITDA-Brücke, die Nettoverschuldung
 mit Covenant, die Closing-Liste und die Fragenliste als Excel-Mappe; die Rechnungen stehen dort als Formeln.
 
+### Preisbrücke
+
+Nennt der Bericht ein Multiple auf das bereinigte EBITDA („mit dem 7.5-fachen bereinigten EBITDA“), rechnet Zitatio
+Unternehmenswert und Equity Value nach (minus Nettoverschuldung aus der Bilanz) und prüft die Aussagen dazu. Die
+Preisbrücke zeigt, was die Befunde kosten: Eine Bereinigung ohne Beleg wirkt mal das Multiple, schuldenähnliche Posten
+Franken für Franken; Klagen stehen als Risiko daneben. Im grossen Testfall sind das −CHF 1.8 Mio. (−4.4 %) auf den
+Equity Value, plus CHF 1.45 Mio. Streitwert. Die Rechnung steht auch als Blatt „Preisbrücke“ mit Formeln in der
+Excel-Mappe.
+
 ### Fragenliste an den Verkäufer
 
 Aus den Befunden, die nur der Verkäufer klären kann, macht Zitatio eine nummerierte Fragenliste mit Priorität und
@@ -196,7 +205,7 @@ Benchmark mit anonymisierten, von Menschen geschriebenen DD-Berichten.
 ### Grosser Testfall
 
 `beispiele/gross` ist näher an einem echten Deal: 42 Dokumente mit 269 Seiten (PDF und Excel) und ein DD-Bericht
-mit 227 Aussagen, von denen nur 16 absichtlich falsch sind. Dazu enthält der Datenraum drei Widersprüche, wie sie bei
+mit 229 Aussagen, von denen nur 16 absichtlich falsch sind. Dazu enthält der Datenraum drei Widersprüche, wie sie bei
 falschen Angaben des Verkäufers vorkommen, und fünf Warnsignale (eine falsch übertragene Zeile der Erfolgsrechnung,
 zwei Unterschriften ohne Zeichnungsberechtigung, eine angekündigte Steuerprüfung im VR-Protokoll, ein fehlender
 Nachtrag zum Mietvertrag).
@@ -208,7 +217,7 @@ python beispiele/gross/erzeugen.py    # Datenraum und Bericht neu erzeugen (fest
 python beispiele/gross/auswerten.py   # Zitatio laufen lassen und gegen die Wahrheit vergleichen
 ```
 
-Ergebnis ohne Prüfmodell (siehe `beispiele/gross/ergebnis.txt`): alle 16 Fehler gefunden, kein Fehlalarm bei 211
+Ergebnis ohne Prüfmodell (siehe `beispiele/gross/ergebnis.txt`): alle 16 Fehler gefunden, kein Fehlalarm bei 213
 richtigen Aussagen, alle 3 Widersprüche im Datenraum und alle 5 Warnsignale gefunden, keines zu viel, Laufzeit rund
 1 Sekunde. Gefunden werden auch Vorjahresspalte, EBIT statt Jahresgewinn, ein erfundenes Zitat, ein falsch zitierter Q&A-Eintrag, eine Bereinigung
 ohne Beleg, ein veralteter MWST-Satz und eine übersehene Kontrollwechselklausel. Wachstum, Marge, zwei Summen und
@@ -272,6 +281,8 @@ src/zitatio/
   clauses.py   Vertragsregister: Klauseln mit Seite und Satz
   terms.py     Laufzeiten, Kündigungsfristen, Volumen, Closing-Liste
   netdebt.py   Nettoverschuldung, schuldenähnliche Posten, Covenant
+  valuation.py Preisbrücke: Unternehmenswert, Equity Value, Preiswirkung der Befunde
+  questions.py Fragenliste an den Verkäufer
   minutes.py   Themen aus VR-Protokollen, die der Bericht nicht erwähnt
   references.py Erwähnte Nachträge und Side Letters, die im Datenraum fehlen
   versions.py  Versionsvergleich zweier Entwürfe, Entscheide übernehmen

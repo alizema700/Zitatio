@@ -206,6 +206,32 @@ def to_xlsx(run) -> bytes:
                 debt.add(("Covenant eingehalten", BOLD), "", "", f'=IF(D{ratio}<=D{limit},"ja","nein")')
         sheets.append(debt)
 
+    v = run.valuation
+    if v is not None and v.equity is not None:
+        price = Sheet("Preisbrücke", [55, 40, 18])
+        price.add(("Posten", BOLD), ("Grundlage", BOLD), ("Betrag CHF", BOLD))
+        ebitda = price.add("Bereinigtes EBITDA laut Bericht", "", (v.ebitda, CHF))
+        multiple = price.add("Multiple", v.multiple_text[:120], (v.multiple, FACTOR))
+        ev = price.add(("Unternehmenswert", BOLD), "", (f"=C{ebitda}*C{multiple}", CHF_BOLD))
+        debt = price.add(f"Nettoverschuldung laut Bilanz {v.year}", "", (v.net_debt, CHF))
+        equity = price.add(("Equity Value laut Rechnung", BOLD), "", (f"=C{ev}-C{debt}", CHF_BOLD))
+        rows = []
+        for i in v.impacts:
+            if i.label.startswith("Bereinigung ohne Beleg"):
+                rows.append(price.add(i.label, i.basis, (f"=-{-i.amount / v.multiple}*C{multiple}", CHF)))
+            else:
+                rows.append(price.add(i.label, i.basis, (i.amount, CHF)))
+        if rows:
+            after = price.add(("Equity Value nach Befunden", BOLD), "",
+                              ("=" + "+".join(f"C{r}" for r in [equity] + rows), CHF_BOLD))
+            price.add("Veränderung", "", (f"=IF(C{equity}=0,0,C{after}/C{equity}-1)", PERCENT))
+        if v.risks:
+            price.add()
+            price.add(("Risiken daneben (nicht in der Summe)", BOLD))
+            for i in v.risks:
+                price.add(i.label, i.basis, (i.amount, CHF))
+        sheets.append(price)
+
     if run.closing:
         closing = Sheet("Closing-Liste", [12, 45, 18, 80, 18])
         closing.add(*[(h, BOLD) for h in ("Index", "Vertrag", "Art", "Zu klären", "Volumen p.a. CHF")])

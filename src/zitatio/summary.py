@@ -46,6 +46,15 @@ def key_points(run) -> list[KeyPoint]:
         if fl.level == "warnung":
             points.append(KeyPoint(KRITISCH, f"{fl.area}: {fl.title}", _short(fl.text, 220), "#pruefungen"))
 
+    v = run.valuation
+    if v is not None and v.impacts and v.equity:
+        delta = v.checked_equity - v.equity
+        risk = f" Dazu Risiken von {_chf(-sum(i.amount for i in v.risks))} (Klagen)." if v.risks else ""
+        points.append(KeyPoint(KRITISCH, f"Preiswirkung der Befunde: {'−' if delta < 0 else '+'}{_chf(abs(delta))} "
+                               f"({'−' if delta < 0 else '+'}{abs(delta / v.equity * 100):.1f} %)",
+                               f"Equity Value {_chf(v.equity)} laut Rechnung, {_chf(v.checked_equity)} nach Abzug von "
+                               + ", ".join(i.label for i in v.impacts) + "." + risk, "#preis"))
+
     if run.closing:
         from .terms import revenue_at_risk
 

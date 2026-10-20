@@ -265,3 +265,8 @@ Der Auftragsbestand per 30.06.2026 beträgt CHF 15.64 Mio. [Q&A 1].
 Die Alpstein Kliniken AG steht für 20.1 % des Umsatzes 2025 [Q&A 2].
 Die Garantierückstellung per 31.12.2025 beträgt CHF 210'000 [Q&A 3].
 Das ISO-13485-Zertifikat ist gültig bis 14.11.2027 [Q&A 2].
+
+## 13. Bewertung und Kaufpreis
+
+Bewertet mit dem 7.5-fachen bereinigten EBITDA 2025 ergibt sich ein Unternehmenswert von CHF 44.70 Mio.
+Nach Abzug der Nettoverschuldung per 31.12.2025 beträgt der Equity Value CHF 40.82 Mio.
