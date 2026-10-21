@@ -394,11 +394,15 @@ def _locate_by_search(fact: Fact, room: DataRoom, claim: Claim, k: int = 40):
         # Spricht der Abschnitt von einem bestimmten Dokument, kommt es zuerst; danach nur noch die besten Seiten,
         # sonst trifft "12 Monate" die Kündigungsfrist eines anderen Vertrags
         queries = [(f"{subject} {claim.clean_text}", k)] + [(q, min(k, 6)) for q, _ in plain]
+        subject_docs = {d.name for d in room.documents if d.index and _distinct_title_word(subject, d.title)}
+        kinds = {_kind(d.title) for d in room.documents if d.name in subject_docs}
     else:
-        queries = plain
+        queries, subject_docs, kinds = plain, set(), set()
     for query, depth in dict.fromkeys((q, d) for q, d in queries if q.strip()):
         named = {d.name for d in room.documents if d.index and _distinct_title_word(query, d.title)}
         for doc, page, _ in page_index(room).search(query, 12 if named else depth, only=named or None):
+            if subject_docs and doc.name not in subject_docs and _kind(doc.title) in kinds:
+                continue  # derselbe Vertragstyp mit einer anderen Gegenpartei
             hit = _find(fact, doc, [page], ctx)
             if hit and hit.misfit is None and (_near_words(query, doc.pages[page - 1], hit.fact.start)
                                                or doc.name in named):
@@ -408,6 +412,11 @@ def _locate_by_search(fact: Fact, room: DataRoom, claim: Claim, k: int = 40):
 
 _TITLE_COMMON = {"liefervertrag", "rahmenvertrag", "mietvertrag", "jahresrechnung", "vertrag", "protokolle", "liste",
                  "gmbh", "holding", "kliniken", "medical", "clinic", "annual", "report", "quarterly"}
+
+
+def _kind(title: str) -> str:
+    """Dokumenttyp aus dem ersten Wort des Titels: "Liefervertrag Alpstein Kliniken AG" -> "liefervertrag"."""
+    return (title.split() or [""])[0].lower()
 
 
 def _distinct_title_word(text: str, title: str) -> bool:

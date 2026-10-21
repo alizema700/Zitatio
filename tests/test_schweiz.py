@@ -361,8 +361,8 @@ def test_citation_free_search_uses_the_subject_from_earlier_sentences():
                           "Die ordentliche Kündigungsfrist beträgt 12 Monate.")
     assert claims[-1].earlier == ["Der Liefervertrag mit der Alpha Medical AG läuft bis 2028."]
     # 12 Monate stehen nur im Vertrag mit Beta; der Abschnitt spricht von Alpha: kein Beleg
-    assert verify_claim(claims[-1], room).status is not Status.GEPRUEFT
+    assert verify_claim(claims[-1], room).evidence == []
     claims = parse_report("Der Liefervertrag mit der Alpha Medical AG läuft bis 2028. Die Preise sind fest. "
                           "Die ordentliche Kündigungsfrist beträgt 6 Monate.")
-    finding = verify_claim(claims[-1], room)
-    assert finding.status is Status.GEPRUEFT and finding.evidence[0].doc_label == "DR 5.1"
+    finding = verify_claim(claims[-1], room)  # ohne jede Fundstelle im Bericht: Ohne Beleg, mit Fund als Hinweis
+    assert finding.status is Status.OHNE_BELEG and finding.evidence[0].doc_label == "DR 5.1"
