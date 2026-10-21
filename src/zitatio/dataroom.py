@@ -81,7 +81,11 @@ class DataRoom:
         if suffix not in SUPPORTED_SUFFIXES:
             self.warnings.append(f"{name}: Dateityp nicht unterstützt, übersprungen.")
             return
-        pages = read_pages(data, suffix)
+        try:
+            pages = read_pages(data, suffix)
+        except Exception as e:  # noqa: BLE001  ein kaputtes Dokument darf den Datenraum nicht verhindern
+            self.warnings.append(f"{name}: nicht lesbar ({e}), übersprungen.")
+            return
         m = _INDEX_RE.match(stem)
         index, title = (normalize_index(m.group(1)), m.group(2)) if m else (None, stem)
         # Ordnernummern zählen, Jahreszahlen ("2025 Abschlüsse") nicht
@@ -193,7 +197,16 @@ def read_pages(data: bytes, suffix: str) -> list[str]:
     if suffix == ".pdf":
         from pypdf import PdfReader
 
-        reader = PdfReader(io.BytesIO(data))
+        try:
+            reader = PdfReader(io.BytesIO(data))
+            count = len(reader.pages)
+        except Exception:  # noqa: BLE001  verschlüsselt (Druckschutz) oder beschädigt: pdftotext versuchen
+            reader, count = None, None
+        fast = _pdftotext(data, count)
+        if fast is not None:
+            return [clean_text(p) for p in fast]
+        if reader is None:
+            raise ValueError("PDF nicht lesbar (verschlüsselt oder beschädigt)")
         return [clean_text(page.extract_text() or "") for page in reader.pages]
     if suffix == ".docx":
         from .docx import docx_to_text
@@ -205,6 +218,27 @@ def read_pages(data: bytes, suffix: str) -> list[str]:
         return [clean_text(p) for p in xlsx_to_pages(data)]
     text = data.decode("utf-8", errors="replace")
     return [clean_text(p) for p in text.split("\f")]
+
+
+def _pdftotext(data: bytes, pages: int | None) -> list[str] | None:
+    """Seitentexte mit pdftotext (Poppler), rund zehnmal schneller als pypdf; None, wenn es nicht geht.
+
+    Grosse Datenräume haben zehntausend Seiten und mehr. Stimmt die Seitenzahl nicht mit pypdf überein, gilt pypdf,
+    damit jede Fundstelle auf die richtige Seite zeigt. ZITATIO_PDFTOTEXT=0 schaltet es ab."""
+    import shutil
+    import subprocess
+
+    if os.environ.get("ZITATIO_PDFTOTEXT", "1") == "0" or not shutil.which("pdftotext"):
+        return None
+    try:
+        out = subprocess.run(["pdftotext", "-enc", "UTF-8", "-q", "-", "-"], input=data, capture_output=True,
+                             timeout=600, check=True).stdout.decode("utf-8", errors="replace")
+    except (OSError, subprocess.SubprocessError):
+        return None
+    texts = out.split("\f")
+    if texts and not texts[-1].strip():
+        texts = texts[:-1]
+    return texts if pages is None or len(texts) == pages else None
 
 
 def clean_text(text: str) -> str:

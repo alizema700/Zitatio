@@ -42,25 +42,50 @@ def normalize(text: str) -> str:
     return _THOUSANDS.sub("'", text)
 
 
+def _pages_with_images(pdf: Path) -> set[int] | None:
+    """Seiten mit eingebettetem Bild (ein Scan hat immer eines); None, wenn pdfimages fehlt."""
+    if not shutil.which("pdfimages"):
+        return None
+    try:
+        out = subprocess.run(["pdfimages", "-list", str(pdf)], capture_output=True, text=True, timeout=120).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    pages = set()
+    for line in out.splitlines()[2:]:  # zwei Kopfzeilen
+        first = line.split()[:1]
+        if first and first[0].isdigit():
+            pages.add(int(first[0]))
+    return pages
+
+
+def _ocr_page(pdf: Path, p: int, dpi: int, langs: str) -> str:
+    stem = pdf.with_name(f"seite-{p}")
+    try:
+        subprocess.run(["pdftoppm", "-r", str(dpi), "-f", str(p), "-l", str(p), "-gray", "-png", "-singlefile",
+                        str(pdf), str(stem)], check=True, capture_output=True, timeout=120)
+        result = subprocess.run(["tesseract", f"{stem}.png", "stdout", "-l", langs, "--psm", "6"], check=True,
+                                capture_output=True, text=True, timeout=300,
+                                env={**os.environ, "OMP_THREAD_LIMIT": "1"})  # parallel über Seiten statt Threads
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return normalize(result.stdout).strip()
+
+
 def ocr_pdf_pages(data: bytes, pages: list[int], dpi: int = 300) -> dict[int, str]:
-    """Text der angegebenen Seiten (1-basiert); Seiten, die nicht gelesen werden konnten, fehlen im Ergebnis."""
+    """Text der angegebenen Seiten (1-basiert); Seiten, die nicht gelesen werden konnten, fehlen im Ergebnis.
+
+    Gelesen werden nur Seiten mit einem Bild: Leere Trennseiten und Grafiken ohne Bild haben keinen Text zu bieten.
+    Die Seiten laufen parallel auf allen Kernen."""
+    from concurrent.futures import ThreadPoolExecutor
+
     if not pages or not available():
         return {}
     langs = _languages()
-    out: dict[int, str] = {}
     with tempfile.TemporaryDirectory(prefix="zitatio-ocr-") as tmp:
         pdf = Path(tmp) / "scan.pdf"
         pdf.write_bytes(data)
-        for p in pages:
-            stem = Path(tmp) / f"seite-{p}"
-            try:
-                subprocess.run(["pdftoppm", "-r", str(dpi), "-f", str(p), "-l", str(p), "-gray", "-png", "-singlefile",
-                                str(pdf), str(stem)], check=True, capture_output=True, timeout=120)
-                result = subprocess.run(["tesseract", f"{stem}.png", "stdout", "-l", langs, "--psm", "6"],
-                                        check=True, capture_output=True, text=True, timeout=300)
-            except (OSError, subprocess.SubprocessError):
-                continue
-            text = normalize(result.stdout).strip()
-            if text:
-                out[p] = text
-    return out
+        scanned = _pages_with_images(pdf)
+        todo = [p for p in pages if scanned is None or p in scanned]
+        with ThreadPoolExecutor(max_workers=max(1, os.cpu_count() or 1)) as pool:
+            texts = list(pool.map(lambda p: _ocr_page(pdf, p, dpi, langs), todo))
+    return {p: text for p, text in zip(todo, texts) if text}
