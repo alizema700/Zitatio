@@ -26,6 +26,7 @@ class Document:
     sha256: str
     pages: list[str]
     ref: str | None = None  # eigene Bezeichnung, z. B. "Q&A 17" für einen Eintrag der Q&A-Liste
+    ocr: tuple[int, ...] = ()  # Seiten, deren Text aus der Texterkennung stammt
 
     @property
     def label(self) -> str:
@@ -82,12 +83,23 @@ class DataRoom:
             self.warnings.append(f"{name}: Indexnummer {index} doppelt vergeben, übersprungen.")
             return
         empty = [i + 1 for i, p in enumerate(pages) if not p.strip()]
-        if empty:
+        read: dict[int, str] = {}
+        if empty and suffix == ".pdf":
+            from .ocr import ocr_pdf_pages
+
+            read = ocr_pdf_pages(data, empty)
+            for p, text in read.items():
+                pages[p - 1] = clean_text(text)
+        if read:
+            self.warnings.append(f"{name}: Seite(n) {', '.join(map(str, sorted(read)))} gescannt, per OCR gelesen; "
+                                 "Werte am Original nachsehen.")
+        rest = [p for p in empty if p not in read]
+        if rest:
             self.warnings.append(
-                f"{name}: Seite(n) {', '.join(map(str, empty))} ohne Textebene (OCR nötig)."
+                f"{name}: Seite(n) {', '.join(map(str, rest))} ohne Textebene (OCR nötig)."
             )
         digest = hashlib.sha256(data).hexdigest()
-        self.documents.append(Document(Path(name).name, index, title, digest, pages))
+        self.documents.append(Document(Path(name).name, index, title, digest, pages, ocr=tuple(sorted(read))))
         self._qa = None
         self.documents.sort(key=lambda d: _index_key(d.index))
 

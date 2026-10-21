@@ -148,7 +148,7 @@ def to_json(run: Run) -> str:
                     "begruendung": f.reasons,
                     "belege": [
                         {"dokument": e.doc_label, "seite": e.page,
-                         "ausschnitt": e.before + e.match + e.after}
+                         "ausschnitt": e.before + e.match + e.after, "ocr": e.ocr}
                         for e in f.evidence
                     ],
                 }
@@ -334,6 +334,8 @@ def _card(f: Finding, run: Run | None = None) -> str:
     reasons = "".join(f"<li>{html.escape(r)}</li>" for r in f.reasons)
     evidence = "".join(
         f'<figure class="ev"><figcaption>{html.escape(e.doc_label)}, S. {e.page}'
+        + (' <span class="ocr" title="Seite per Texterkennung gelesen: Wert am Original nachsehen">OCR</span>'
+           if e.ocr else "") +
         f' <span class="file">{html.escape(e.doc_name)}</span></figcaption>'
         f"<blockquote>{html.escape(e.before)}<mark>{html.escape(e.match)}</mark>"
         f"{html.escape(e.after)}</blockquote></figure>"
@@ -1114,6 +1116,7 @@ td.nw {{ white-space:nowrap; }}
 .ev {{ margin:10px 0 0; }}
 .ev figcaption {{ font-size:12px; color:var(--ink-3); }}
 .ev .file {{ opacity:.8; }}
+.ev .ocr {{ font-size:.75em; font-weight:600; padding:0 .35em; border-radius:3px; background:var(--amber-bg); color:var(--amber); }}
 blockquote {{ margin:6px 0 0; padding:12px 16px; background:var(--page); border-radius:14px; font-size:14px; color:var(--ink-2); }}
 .s-geprueft {{ --c:var(--green); --cbg:var(--green-bg); }}
 .s-abweichung, .s-quelle_fehlt {{ --c:var(--red); --cbg:var(--red-bg); }}

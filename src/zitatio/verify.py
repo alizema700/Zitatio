@@ -51,6 +51,7 @@ class Evidence:
     before: str
     match: str
     after: str
+    ocr: bool = False  # die Seite wurde per Texterkennung gelesen
 
 
 @dataclass
@@ -96,7 +97,7 @@ def snippet(text: str, start: int, end: int, width: int = 110) -> tuple[str, str
 
 def _evidence(doc: Document, page: int, start: int, end: int) -> Evidence:
     before, match, after = snippet(doc.pages[page - 1], start, end)
-    return Evidence(doc.label, doc.name, page, before, match, after)
+    return Evidence(doc.label, doc.name, page, before, match, after, page in doc.ocr)
 
 
 @dataclass

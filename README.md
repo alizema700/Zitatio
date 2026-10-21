@@ -431,7 +431,10 @@ beispiele/alpenblick/  Fiktiver Datenraum mit DD-Bericht und absichtlich eingeba
 ## Grenzen des Prototyps
 
 - „Geprüft“ ohne Prüfmodell heisst, dass die Werte auf der Seite stehen, nicht dass sie dort dasselbe bedeuten.
-- Gescannte PDFs ohne Textebene werden erkannt und gemeldet, aber noch nicht per OCR gelesen.
+- Gescannte Seiten liest Zitatio per OCR, wenn Tesseract installiert ist (`apt install tesseract-ocr tesseract-ocr-deu
+  tesseract-ocr-fra tesseract-ocr-ita poppler-utils`), lokal und ohne Upload. OCR verwechselt Zeichen: Jede so gelesene
+  Seite steht in den Hinweisen, und ihre Fundstellen tragen den Vermerk «OCR». Ohne Tesseract bleibt es bei der Meldung.
+  `ZITATIO_OCR=0` schaltet die Texterkennung ab.
 - Zeilen und Jahresspalten werden nur für die oben genannten Grössen erkannt, und nur, wenn der Tabellenkopf die Jahre
   in derselben Anzahl nennt wie die Zeile Werte hat. Sonst bleibt es bei der Prüfung „Wert steht auf der Seite“.
 - Widersprüche werden nur für Tabellenzeilen mit bekannter Grösse und Periode gefunden, nicht in Fliesstext.
