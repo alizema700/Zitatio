@@ -375,7 +375,7 @@ def _locate_elsewhere(fact: Fact, room: DataRoom, skip: set[tuple[str, int]], ct
     return None if ctx else fallback
 
 
-def _locate_by_search(fact: Fact, room: DataRoom, claim: Claim, k: int = 6):
+def _locate_by_search(fact: Fact, room: DataRoom, claim: Claim, k: int = 40):
     """Fundort eines Werts auf den Seiten, die am besten zur Aussage passen (Belegsuche ohne Fundstelle).
 
     "Die Zahlungsfrist beträgt 30 Tage." sagt nicht, welcher Vertrag gemeint ist; dann hilft der Satz davor.
@@ -385,9 +385,20 @@ def _locate_by_search(fact: Fact, room: DataRoom, claim: Claim, k: int = 6):
     if _COMPUTED_RE.search(claim.clean_text):
         return None
     ctx = _context(claim, fact)
-    for query in dict.fromkeys(q for q in (claim.clean_text, f"{claim.before} {claim.clean_text}") if q.strip()):
+    # Der Gegenstand steht oft einige Sätze vorher ("Der Liefervertrag mit der X AG …"): der nächste Satz,
+    # der einen Namen aus einem Dokumenttitel nennt, grenzt die Suche ein
+    subject = next((s for s in [claim.before] + claim.earlier
+                    if s and any(d.index and _distinct_title_word(s, d.title) for d in room.documents)), None)
+    plain = [(q, k) for q in (claim.clean_text, f"{claim.before} {claim.clean_text}")]
+    if subject and not any(d.index and _distinct_title_word(claim.clean_text, d.title) for d in room.documents):
+        # Spricht der Abschnitt von einem bestimmten Dokument, kommt es zuerst; danach nur noch die besten Seiten,
+        # sonst trifft "12 Monate" die Kündigungsfrist eines anderen Vertrags
+        queries = [(f"{subject} {claim.clean_text}", k)] + [(q, min(k, 6)) for q, _ in plain]
+    else:
+        queries = plain
+    for query, depth in dict.fromkeys((q, d) for q, d in queries if q.strip()):
         named = {d.name for d in room.documents if d.index and _distinct_title_word(query, d.title)}
-        for doc, page, _ in page_index(room).search(query, 12 if named else k, only=named or None):
+        for doc, page, _ in page_index(room).search(query, 12 if named else depth, only=named or None):
             hit = _find(fact, doc, [page], ctx)
             if hit and hit.misfit is None and (_near_words(query, doc.pages[page - 1], hit.fact.start)
                                                or doc.name in named):

@@ -347,3 +347,22 @@ def test_preemption_right_in_shareholders_agreement_needs_waiver():
     spa = "2.1 Die Verkäuferin verkauft 100 Aktien.\n4.3 Die Mitaktionäre haben schriftlich auf ihr Vorkaufsrecht verzichtet."
     flag, = [f for f in check_spa("spa.md", spa, room) if "Vorkaufsrecht" in f.title]
     assert flag.level == "ok"
+
+
+def test_citation_free_search_uses_the_subject_from_earlier_sentences():
+    from zitatio.report import parse_report
+    from zitatio.verify import Status, verify_claim
+
+    room = _room(**{
+        "5.1 Liefervertrag Alpha Medical AG.txt": "Liefervertrag\nDie ordentliche Kündigungsfrist beträgt 6 Monate.",
+        "5.2 Liefervertrag Beta Kliniken AG.txt": "Liefervertrag\nDie ordentliche Kündigungsfrist beträgt 12 Monate.",
+    })
+    claims = parse_report("Der Liefervertrag mit der Alpha Medical AG läuft bis 2028. Die Preise sind fest. "
+                          "Die ordentliche Kündigungsfrist beträgt 12 Monate.")
+    assert claims[-1].earlier == ["Der Liefervertrag mit der Alpha Medical AG läuft bis 2028."]
+    # 12 Monate stehen nur im Vertrag mit Beta; der Abschnitt spricht von Alpha: kein Beleg
+    assert verify_claim(claims[-1], room).status is not Status.GEPRUEFT
+    claims = parse_report("Der Liefervertrag mit der Alpha Medical AG läuft bis 2028. Die Preise sind fest. "
+                          "Die ordentliche Kündigungsfrist beträgt 6 Monate.")
+    finding = verify_claim(claims[-1], room)
+    assert finding.status is Status.GEPRUEFT and finding.evidence[0].doc_label == "DR 5.1"
