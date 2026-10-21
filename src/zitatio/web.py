@@ -2,20 +2,29 @@
 
 Start: uvicorn zitatio.web:app --reload
 Alles läuft lokal; ohne Prüfmodell verlässt kein Dokument den Rechner.
+
+Für einen gemeinsamen Server (Pilot bei einem Schweizer Hoster):
+- ZITATIO_PASSWORT schützt alle Seiten mit HTTP-Basic-Anmeldung (Benutzer beliebig, ZITATIO_BENUTZER optional).
+- ZITATIO_MAX_UPLOAD_MB begrenzt die Grösse eines Uploads (Standard 2048).
+Hochgeladene Dateien bleiben nur im Arbeitsspeicher und werden nicht gespeichert oder protokolliert.
 """
 
 from __future__ import annotations
 
+import base64
+import hmac
 import html
 import json
+import os
 import re
 import time
 from functools import lru_cache
 from importlib import resources
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
@@ -26,7 +35,42 @@ from .versions import parse_decisions
 from .render import logo_svg, to_html
 from .report import report_text
 
-app = FastAPI(title="Zitatio")
+app = FastAPI(title="Zitatio", docs_url=None, redoc_url=None, openapi_url=None)
+MAX_UPLOAD = int(os.environ.get("ZITATIO_MAX_UPLOAD_MB", "2048")) * 2**20
+
+
+@app.middleware("http")
+async def _guard(request: Request, call_next):
+    """Anmeldung, wenn ZITATIO_PASSWORT gesetzt ist, und Sicherheits-Header für jede Antwort."""
+    password = os.environ.get("ZITATIO_PASSWORT")
+    if password and request.url.path != "/gesund":
+        user = os.environ.get("ZITATIO_BENUTZER")
+        given = request.headers.get("authorization", "")
+        ok = False
+        if given.startswith("Basic "):
+            try:
+                name, _, secret = base64.b64decode(given[6:]).decode("utf-8").partition(":")
+            except ValueError:
+                name, secret = "", ""
+            ok = hmac.compare_digest(secret, password) and (user is None or hmac.compare_digest(name, user))
+        if not ok:
+            return Response("Anmeldung nötig.", 401, {"WWW-Authenticate": 'Basic realm="Zitatio", charset="UTF-8"'})
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Cache-Control", "no-store")
+    return response
+
+
+async def _read(upload: UploadFile, used: list[int]) -> bytes:
+    """Datei lesen und die Gesamtgrösse des Uploads begrenzen."""
+    data = await upload.read(MAX_UPLOAD - used[0] + 1)
+    used[0] += len(data)
+    if used[0] > MAX_UPLOAD:
+        raise HTTPException(413, f"Upload grösser als {MAX_UPLOAD // 2**20} MB.")
+    return data
+
 app.mount("/assets", StaticFiles(directory=str(resources.files("zitatio").joinpath("assets"))), name="assets")
 EXAMPLE = Path(__file__).resolve().parents[2] / "beispiele" / "alpenblick"
 
@@ -141,6 +185,12 @@ def hero_data() -> str:
     return json.dumps(hero, ensure_ascii=False).replace("</", "<\\/")
 
 
+@app.get("/gesund")
+def health() -> dict:
+    """Für den Healthcheck des Hosters; ohne Anmeldung, ohne Daten."""
+    return {"status": "ok", "version": __version__}
+
+
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
     model = _model()[1]
@@ -159,14 +209,16 @@ async def check(bericht: UploadFile | None = File(None), datenraum: list[UploadF
                 vorher: UploadFile | None = File(None), entscheide: UploadFile | None = File(None),
                 spa: UploadFile | None = File(None), kaeuferfragen: UploadFile | None = File(None),
                 sanktionen: UploadFile | None = File(None)) -> str:
+    used = [0]
     room = DataRoom()
     for upload in datenraum:
         if upload.filename:  # leeres Feld, wenn nur Ordner oder nur ZIP gewählt wurde
-            room.add(Path(upload.filename).name, await upload.read())
+            data = await _read(upload, used)
+            await run_in_threadpool(room.add, Path(upload.filename).name, data)  # OCR und PDF-Lesen blockieren nicht
     if not room.documents:
         raise HTTPException(400, "Der Datenraum enthält keine lesbaren Dokumente.")
     if bericht is not None and bericht.filename:
-        data = await bericht.read()
+        data = await _read(bericht, used)
         name = Path(bericht.filename).name
         text = report_text(data, Path(name).suffix.lower())
     else:  # ohne Bericht: Red-Flag-Bericht aus dem Datenraum allein
@@ -175,24 +227,25 @@ async def check(bericht: UploadFile | None = File(None), datenraum: list[UploadF
     previous = decisions = None
     if vorher is not None and vorher.filename:
         old = Path(vorher.filename).name
-        previous = (old, report_text(await vorher.read(), Path(old).suffix.lower()))
+        previous = (old, report_text(await _read(vorher, used), Path(old).suffix.lower()))
     if entscheide is not None and entscheide.filename:
-        decisions = parse_decisions((await entscheide.read()).decode("utf-8-sig", errors="replace"))
+        decisions = parse_decisions((await _read(entscheide, used)).decode("utf-8-sig", errors="replace"))
     contract = None
     if spa is not None and spa.filename:
         spa_name = Path(spa.filename).name
-        contract = (spa_name, report_text(await spa.read(), Path(spa_name).suffix.lower()))
-    run = run_check(name, text, data, room, model, model_name, previous=previous, decisions=decisions, spa=contract)
+        contract = (spa_name, report_text(await _read(spa, used), Path(spa_name).suffix.lower()))
+    run = await run_in_threadpool(run_check, name, text, data, room, model, model_name, previous=previous,
+                                  decisions=decisions, spa=contract)
     if kaeuferfragen is not None and kaeuferfragen.filename:
         from .antworten import answer, read_questions
 
-        questions = read_questions(await kaeuferfragen.read(), Path(kaeuferfragen.filename).suffix.lower())
+        questions = read_questions(await _read(kaeuferfragen, used), Path(kaeuferfragen.filename).suffix.lower())
         run.answers = answer(questions, room)
     if sanktionen is not None and sanktionen.filename:
         from .sanktionen import attach
 
-        attach(run, await sanktionen.read(), sanktionen.filename)
-    return to_html(run)
+        attach(run, await _read(sanktionen, used), sanktionen.filename)
+    return await run_in_threadpool(to_html, run)
 
 
 @app.get("/beispiel", response_class=HTMLResponse)

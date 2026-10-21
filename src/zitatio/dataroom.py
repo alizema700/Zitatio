@@ -9,12 +9,16 @@ from __future__ import annotations
 
 import hashlib
 import io
+import os
 import re
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
 SUPPORTED_SUFFIXES = {".pdf", ".docx", ".xlsx", ".txt", ".md"}
+# Grenzen für ZIP-Exporte, einstellbar für grosse Datenräume
+MAX_ZIP_FILES = int(os.environ.get("ZITATIO_MAX_ZIP_DATEIEN", "5000"))
+MAX_ZIP_BYTES = int(os.environ.get("ZITATIO_MAX_ZIP_MB", "4096")) * 2**20
 _INDEX_RE = re.compile(r"^(\d+(?:\.\d+)*)[\s_\-]+(.+)$")
 
 
@@ -111,6 +115,12 @@ class DataRoom:
             self.warnings.append(f"{name}: kein gültiges ZIP-Archiv.")
             return
         with archive:
+            infos = [i for i in archive.infolist() if not i.is_dir()]
+            total = sum(i.file_size for i in infos)
+            if len(infos) > MAX_ZIP_FILES or total > MAX_ZIP_BYTES:  # Schutz vor ZIP-Bomben
+                self.warnings.append(f"{name}: {len(infos)} Dateien, entpackt {total // 2**20} MB; höchstens "
+                                     f"{MAX_ZIP_FILES} Dateien und {MAX_ZIP_BYTES // 2**20} MB, übersprungen.")
+                return
             for info in sorted(archive.infolist(), key=lambda i: i.filename):
                 inner = _zip_name(info)
                 base = Path(inner).name

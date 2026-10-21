@@ -315,6 +315,26 @@ unveränderte Aussagen. Das CSV hält die Prüfsumme jedes zitierten Dokuments f
 inzwischen ersetzt, wird der Entscheid nicht übernommen, und die Aussage ist mit „Entscheid neu nötig“ markiert.
 Beides geht auch im Upload-Formular der Weboberfläche.
 
+## Betrieb auf einem Server
+
+Für einen Pilot mit echten Datenräumen läuft Zitatio als Container bei einem Schweizer Hoster (z. B. Infomaniak,
+Exoscale) oder auf einem eigenen Server:
+
+```bash
+docker build -t zitatio .
+docker run -p 8000:8000 -e ZITATIO_PASSWORT='…' zitatio
+```
+
+- Das Image enthält Tesseract (Deutsch, Französisch, Italienisch) für gescannte Seiten.
+- `ZITATIO_PASSWORT` (und optional `ZITATIO_BENUTZER`) schützt alle Seiten mit HTTP-Basic-Anmeldung; davor gehört
+  HTTPS (Reverse Proxy des Hosters).
+- `ZITATIO_MAX_UPLOAD_MB` begrenzt einen Upload (Standard 2048), `ZITATIO_MAX_ZIP_MB` und `ZITATIO_MAX_ZIP_DATEIEN`
+  den entpackten ZIP-Export (Schutz vor ZIP-Bomben).
+- Uploads bleiben im Arbeitsspeicher; nichts wird gespeichert, das Zugriffsprotokoll ist aus. `/gesund` dient dem
+  Healthcheck.
+- Ein Prüfmodell (`ZITATIO_LLM_BASE_URL`) sollte ebenfalls in der Schweiz laufen, etwa Apertus bei einem Schweizer
+  Anbieter; ohne Prüfmodell verlässt kein Dokument den Server.
+
 ## Benchmark
 
 `zitatio benchmark` baut aus jeder Zeile des Datenraums mit einem prüfbaren Wert eine korrekt belegte Aussage und
