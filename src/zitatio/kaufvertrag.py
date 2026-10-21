@@ -41,6 +41,7 @@ _WAIVER_IN_SPA = re.compile(r"verzicht\w*[^.]{0,80}(?:vorkauf|vorhand|kaufsrecht
                             r"prelazione", re.IGNORECASE)
 _SHAREHOLDERS_AGREEMENT = re.compile(r"aktionärbindungsvertrag|aktionärsbindungsvertrag|\bABV\b|aktionärsvereinbarung|"
                                      r"shareholders'? agreement|convention d'actionnaires|patto parasociale", re.IGNORECASE)
+_LEADING_NUMBER = re.compile(r"^\d+\s+")  # "7.1 Die Verkäuferin" endet als Satz nach "7."
 _LOCKED_BOX = re.compile(r"locked[- ]?box", re.IGNORECASE)
 
 
@@ -158,7 +159,7 @@ def check_spa(spa_name: str, spa_text: str, room: DataRoom, valuation=None) -> l
         months = max((_months(d.group(1), d.group(2)) for d in _DURATION.finditer(m.group(0))), default=0)
         if months > 36:
             flags.append(Flag(HINWEIS, "Kaufvertrag", f"Konkurrenzverbot der Verkäuferin über {months // 12} Jahre",
-                              f"{spa_name}: «{re.sub(r'^\d+\s+', '', m.group(0).strip())}» Als Nebenabrede zum Unternehmenskauf lassen die "
+                              f"{spa_name}: «{_LEADING_NUMBER.sub('', m.group(0).strip())}» Als Nebenabrede zum Unternehmenskauf lassen die "
                               "EU-Kommission und, ihr folgend, die WEKO in der Regel drei Jahre zu, wenn Know-how "
                               "übergeht, sonst zwei. Länger braucht eine Begründung; sonst droht die Kürzung (Art. 5 KG, "
                               "bei natürlichen Personen Art. 27 ZGB). Vertragsdauer oder Begründung prüfen."))
