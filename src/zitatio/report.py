@@ -19,6 +19,8 @@ class Citation:
 
     @property
     def label(self) -> str:
+        if self.index.startswith("Q&A"):
+            return self.index
         if self.page_from is None:
             return f"DR {self.index}"
         if self.page_to and self.page_to != self.page_from:
@@ -34,10 +36,14 @@ class Claim:
     section: str
     citations: list[Citation] = field(default_factory=list)
     facts: list[Fact] = field(default_factory=list)
+    before: str = ""  # vorhergehender Satz im selben Abschnitt, für die Belegsuche ohne Fundstelle
+    earlier: list[str] = field(default_factory=list)  # die Sätze davor, der nächste zuerst (höchstens vier)
 
 
 # "[DR 3.2.1, S. 4]", "(VDR 2.1 p. 3-4)", "[Datenraum 5.3; DR 1.1, Seite 2]"
-_BRACKET_RE = re.compile(r"[\[(]\s*((?:DR|VDR|Datenraum|Data\s*Room)\b[^\])]*)[\])]", re.IGNORECASE)
+_BRACKET_RE = re.compile(r"[\[(]\s*((?:DR|VDR|Datenraum|Data\s*Room|Q\s*&\s*A(?![\w&]))[^\])]*)[\])]", re.IGNORECASE)
+# "[Q&A 17]", "[Q&A Nr. 17; DR 2.3, S. 4]": Eintrag der Q&A-Liste im Datenraum
+_QA_RE = re.compile(r"Q\s*&\s*A\s*(?:Nr\.?|Frage)?\s*(\d{1,4})\b", re.IGNORECASE)
 _CITE_RE = re.compile(
     r"(?:DR|VDR|Datenraum|Data\s*Room)\s*(\d+(?:\.\d+)*)"
     r"(?:\s*,?\s*(?:S\.|Seite|Seiten|p\.|pp\.|page)\s*(\d+)(?:\s*[-–]\s*(\d+))?)?",
@@ -53,16 +59,34 @@ _ABBREVIATIONS = {
 # "CHF 4.2 Mio. Langfristige ..." beendet den Satz, "CHF 4.2 Mio. CHF" nicht.
 _SCALE_WORDS = {"mio", "mrd", "mia", "tsd"}
 _CURRENCY_WORDS = {"CHF", "EUR", "USD", "FRANKEN", "EURO"}
-_SPLIT_RE = re.compile(r"[.!?](?=\s+[\"„(]?[A-ZÄÖÜ])")
+# Satzende vor Grossbuchstaben, und nach einer Klammer immer: "[DR 2.2, S. 3]. 2023 erzielte …"
+_SPLIT_RE = re.compile(r"[.!?](?=\s+[\"„(]?[A-ZÄÖÜ])|(?<=[\])])[.!?](?=\s+\S)")
+
+
+# „…“, “…”, «…», "…": wörtliche Zitate ab vier Wörtern; kürzere sind meist Namen oder Begriffe.
+_QUOTE_RE = re.compile(r"„([^“”\"]+)[“”\"]|“([^”]+)”|«([^»]+)»|(?<![\w])\"([^\"]+)\"")
+
+
+def quotes(text: str) -> list[str]:
+    out = []
+    for m in _QUOTE_RE.finditer(text):
+        q = next(g for g in m.groups() if g is not None).strip()
+        if len(q.split()) >= 4:
+            out.append(q)
+    return out
 
 
 def parse_citations(text: str) -> list[Citation]:
     citations = []
     for bracket in _BRACKET_RE.finditer(text):
+        found = []
         for m in _CITE_RE.finditer(bracket.group(1)):
             page_from = int(m.group(2)) if m.group(2) else None
             page_to = int(m.group(3)) if m.group(3) else page_from
-            citations.append(Citation(m.group(1), page_from, page_to, m.group(0)))
+            found.append((m.start(), Citation(m.group(1), page_from, page_to, m.group(0))))
+        for m in _QA_RE.finditer(bracket.group(1)):
+            found.append((m.start(), Citation(f"Q&A {int(m.group(1))}", None, None, m.group(0))))
+        citations += [c for _, c in sorted(found, key=lambda x: x[0])]
     return citations
 
 
@@ -79,7 +103,7 @@ def split_sentences(text: str) -> list[str]:
         nxt = re.match(r"\s+(\S+)", text[m.end() :])
         next_word = nxt.group(1).lower().strip(",") if nxt else ""
         scale_end = prev in _SCALE_WORDS and next_word.upper() not in _CURRENCY_WORDS
-        if (prev in _ABBREVIATIONS and not scale_end) or len(prev) == 1:
+        if (prev in _ABBREVIATIONS and not scale_end) or (len(prev) == 1 and prev.isalpha()):
             continue
         if prev.isdigit() and next_word in MONTHS:
             continue
@@ -113,19 +137,26 @@ def _blocks(text: str):
 def parse_report(text: str) -> list[Claim]:
     claims: list[Claim] = []
     for section, block in _blocks(text):
+        previous: list[str] = []
         for sentence in split_sentences(block):
             citations = parse_citations(sentence)
             clean = strip_citations(sentence)
             facts = extract_facts(clean)
             if citations or facts:
-                claims.append(Claim(len(claims) + 1, sentence, clean, section, citations, facts))
+                claims.append(Claim(len(claims) + 1, sentence, clean, section, citations, facts,
+                                    previous[0] if previous else "", previous[1:4]))
+            previous.insert(0, clean)
     return claims
+
+
+def report_text(data: bytes, suffix: str) -> str:
+    """Berichtstext aus PDF, Word oder Text."""
+    if suffix in (".pdf", ".docx"):
+        return "\n\n".join(read_pages(data, suffix))
+    return data.decode("utf-8", errors="replace")
 
 
 def load_report(path: str | Path) -> tuple[str, bytes]:
     path = Path(path)
     data = path.read_bytes()
-    suffix = path.suffix.lower()
-    if suffix == ".pdf":
-        return "\n\n".join(read_pages(data, ".pdf")), data
-    return data.decode("utf-8", errors="replace"), data
+    return report_text(data, path.suffix.lower()), data

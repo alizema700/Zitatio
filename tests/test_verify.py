@@ -21,10 +21,16 @@ EXPECTED = [
     Status.GEPRUEFT,  # feste Dauer
     Status.ABWEICHUNG,  # Kündigungsfrist 18 statt 12 Monate
     Status.GEPRUEFT,  # Laufzeit Rahmenvertrag
-    Status.UNGEPRUEFT,  # Kontrollwechsel: ohne Modell nicht prüfbar
+    Status.ABWEICHUNG,  # Kontrollwechsel übersehen: Klauselsuche findet ihn
     Status.QUELLE_FEHLT,  # DR 4.2 existiert nicht
     Status.GEPRUEFT,  # Darlehen
     Status.QUELLE_FEHLT,  # S. 4 existiert nicht
+    Status.GEPRUEFT,  # Businessplan: CHF 19.81 Mio. aus 19'812 TCHF in Excel
+    Status.ABWEICHUNG,  # Businessplan: EBITDA 3.1 statt 2.87 Mio.
+    Status.WIDERSPRUCH,  # EBITDA stimmt mit der Jahresrechnung, das Management Reporting nennt einen anderen Wert
+    Status.GEPRUEFT,  # Bereinigung mit Beleg
+    Status.OHNE_BELEG,  # Bereinigung ohne Beleg
+    Status.ABWEICHUNG,  # bereinigtes EBITDA: Summe geht nicht auf
 ]
 
 
@@ -38,13 +44,15 @@ def claims():
     return parse_report((EXAMPLE / "dd-bericht.md").read_text())
 
 
-def test_example_statuses(room, claims):
-    assert [f.status for f in verify(claims, room)] == EXPECTED
+def test_example_statuses(room):
+    data = (EXAMPLE / "dd-bericht.md").read_bytes()
+    run = run_check("dd-bericht.md", data.decode(), data, room)
+    assert [f.status for f in run.findings] == EXPECTED
 
 
 def test_deviation_names_closest_value_first(room, claims):
     finding = verify([claims[3]], room)[0]
-    assert "Die Fundstelle nennt: CHF 18'450'000" in finding.reasons[0]
+    assert "Für Umsatz 2025 nennt die Fundstelle CHF 18'450'000" in finding.reasons[0]
 
 
 def test_wrong_page_points_to_right_page(room, claims):

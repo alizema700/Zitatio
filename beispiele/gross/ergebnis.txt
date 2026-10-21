@@ -1,0 +1,67 @@
+Datenraum: 42 Dokumente, 269 Seiten · Bericht: 229 Aussagen · Laufzeit 1.4 s
+Status: 163 Geprüft, 45 Ungeprüft, 12 Abweichung, 4 Ohne Beleg, 3 Falsche Fundstelle, 2 Widerspruch
+
+Eingebaute Fehler gefunden: 16 von 16
+  gefunden  UID vertippt                         -> Abweichung
+  gefunden  Vorjahreswert als aktuelles Jahr     -> Abweichung
+  gefunden  Einheit TCHF/CHF verwechselt         -> Abweichung
+  gefunden  EBIT als Jahresgewinn ausgewiesen    -> Abweichung
+  gefunden  falsch gerundet                      -> Abweichung
+  gefunden  veralteter MWST-Satz                 -> Abweichung
+  gefunden  falsches Jahr                        -> Abweichung
+  gefunden  falsche Seite                        -> Falsche Fundstelle
+  gefunden  falsche Kündigungsfrist              -> Abweichung
+  gefunden  Zahlendreher                         -> Abweichung
+  gefunden  falsches Dokument                    -> Falsche Fundstelle
+  gefunden  Kontrollwechselklausel übersehen     -> Abweichung
+  gefunden  falscher Zinssatz                    -> Abweichung
+  gefunden  Zitat erfunden                       -> Abweichung
+  gefunden  Bereinigung ohne Beleg               -> Ohne Beleg
+  gefunden  falscher Q&A-Eintrag                 -> Falsche Fundstelle
+
+Fehlalarme bei richtigen Aussagen: 0 von 213
+  Folgehinweis, kein Fehlalarm (folgt aus Bereinigung ohne Beleg): Ohne Beleg: Das bereinigte EBITDA 2025 beträgt damit CHF 5.96 Mio.
+  Folgehinweis, kein Fehlalarm (folgt aus Bereinigung ohne Beleg): Ohne Beleg: Bewertet mit dem 7.5-fachen bereinigten EBITDA 2025 ergibt sich ein Unternehmenswert von CHF 44.70 Mio.
+  Folgehinweis, kein Fehlalarm (folgt aus Bereinigung ohne Beleg): Ohne Beleg: Nach Abzug der Nettoverschuldung per 31.12.2025 beträgt der Equity Value CHF 40.82 Mio.
+
+Widersprüche im Datenraum gefunden: 3 von 3 eingebauten, 0 weitere gemeldet
+  eingebaut  Aktienkapital: DR 1.1, S. 1, DR 2.3, S. 5: CHF 1'200'000; DR 1.2, S. 1: CHF 1'000'000.
+  eingebaut  Personalaufwand 2024: DR 2.2, S. 3: CHF 11'176'900; DR 2.3, S. 4: CHF 11'318'900.
+  eingebaut  Umsatz 2025: DR 2.3, S. 4: CHF 31'862'415; DR 2.5, S. 13: CHF 32'317'000.
+  betrifft Aussage 3: Das Aktienkapital von CHF 1.2 Mio. ist voll liberiert.
+  betrifft Aussage 15: Der Nettoerlös 2025 beträgt CHF 31.86 Mio.
+
+Schweizer Warnsignale gefunden: 12 von 12 eingebauten, 0 weitere gemeldet
+  warnung  Nachgerechnet: DR 2.3, S. 4: EBITDA 2024 rechnet nicht
+  warnung  Zeichnungsberechtigung: DR 6.1 Kreditvertrag Bodensee Kantonalbank
+  warnung  Zeichnungsberechtigung: DR 6.2 Leasingvertrag Spritzgussmaschinen
+  warnung  Protokolle: Steuerprüfung (DR 1.4, S. 10), im Bericht nicht erwähnt
+  warnung  Verweise: DR 4.1.2: Nachtrag Nr. 1 fehlt im Datenraum
+  warnung  Leakage: Management Fee über CHF 60'000 nach dem Locked-Box-Stichtag (DR 12.1, S. 1)
+  warnung  MWST: Umsatzabstimmung 2025: CHF 1'240'000 weniger deklariert als verbucht
+  warnung  Datenschutz: Personendaten in DR 7.1 Arbeitsverträge Geschäftsleitung
+  warnung  Nachgerechnet: DR 2.5: Umsatz kumuliert 32'317, Summe der Monate 31'864
+  warnung  Kaufvertrag: Verkauft werden 12'000 Aktien, die Verkäuferin hält 7'200
+  warnung  Kaufvertrag: Zustimmung des Verwaltungsrats zur Übertragung fehlt im Vertrag
+  warnung  Kaufvertrag: Kaufpreis CHF 40'820'000 über dem geprüften Equity Value CHF 39'000'803
+  hinweis  Zeichnungsberechtigung: Geprüfte Unterschriften
+  hinweis  Steuern: Indirekte Teilliquidation: 30 % in Händen natürlicher Personen
+  hinweis  Protokolle: Rechtsstreit (DR 1.4, S. 9)
+  hinweis  Management Accounts: EBITDA 2025 im Management Reporting -19 % gegenüber der Jahresrechnung
+  hinweis  Arbeitsrecht: Konkurrenzverbot über drei Jahre in DR 7.1
+  hinweis  Kaufvertrag: Konkurrenzverbot der Verkäuferin über 5 Jahre
+  ok       Kapitalschutz: Kein Kapitalverlust per 2025
+  ok       Revision: Revisionspflicht 2025: eingeschränkte Revision genügt
+  ok       Vorsorge: Deckungsgrad 112.4 %
+  ok       Aktienbuch: Aktienbuch vollständig
+  ok       Fusionskontrolle: Keine WEKO-Meldung nötig (ein Käufer)
+  ok       Covenant: Covenant eingehalten (0.73x von höchstens 2.5x)
+  ok       Steuern: Steuerbarer Gewinn 2023 passt zum Jahresgewinn
+  ok       Steuern: Steuerbarer Gewinn 2024 passt zum Jahresgewinn
+  ok       Management Accounts: Umsatz 2025: Management Reporting passt zur Jahresrechnung
+
+Richtige Aussagen: 163 geprüft, 45 ungeprüft (keine prüfbaren Werte), 2 mit Widerspruch im Datenraum, 3 Folgehinweis, 0 Fehlalarme
+
+Ohne Fundstellen (wie ein Information Memorandum): 166 Aussagen mit Werten
+  richtige Aussagen im Datenraum belegt: 139 von 155
+  falsche Werte als geprüft durchgelassen: 0 von 11 (5 als Abweichung erkannt, 6 ohne Beleg)

@@ -8,11 +8,11 @@ version = "0.1.0"
 description = "Prüfschicht für Due-Diligence-Berichte: jede Aussage gegen den Datenraum geprüft."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["pypdf>=4"]
+dependencies = ["pypdf[crypto]>=4"]
 
 [project.optional-dependencies]
 web = ["fastapi>=0.110", "uvicorn>=0.29", "python-multipart>=0.0.9"]
-dev = ["pytest>=8", "fpdf2>=2.7", "httpx>=0.27"]
+dev = ["pytest>=8", "fpdf2>=2.7", "openpyxl>=3.1", "httpx>=0.27"]
 
 [project.scripts]
 zitatio = "zitatio.cli:main"

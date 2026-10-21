@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import base64
+import csv
 import datetime as dt
 import hashlib
 import html
+import io
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib import resources
 
 from . import __version__
@@ -18,12 +20,13 @@ from .verify import Finding, Status
 SYMBOLS = {
     Status.GEPRUEFT: "✓",
     Status.ABWEICHUNG: "✗",
+    Status.WIDERSPRUCH: "≠",
     Status.FALSCHE_FUNDSTELLE: "↷",
     Status.QUELLE_FEHLT: "✗",
     Status.OHNE_BELEG: "!",
     Status.UNGEPRUEFT: "?",
 }
-ORDER = [Status.ABWEICHUNG, Status.QUELLE_FEHLT, Status.FALSCHE_FUNDSTELLE, Status.OHNE_BELEG,
+ORDER = [Status.ABWEICHUNG, Status.QUELLE_FEHLT, Status.WIDERSPRUCH, Status.FALSCHE_FUNDSTELLE, Status.OHNE_BELEG,
          Status.UNGEPRUEFT, Status.GEPRUEFT]
 
 
@@ -35,6 +38,25 @@ class Run:
     findings: list[Finding]
     model: str | None = None
     created: dt.datetime | None = None
+    conflicts: list = field(default_factory=list)  # crosscheck.Conflict
+    addbacks: list = field(default_factory=list)  # derive.AddbackCheck
+    gaps: list = field(default_factory=list)  # gaps.Gap
+    contracts: list = field(default_factory=list)  # clauses.ContractEntry
+    flags: list = field(default_factory=list)  # swiss.Flag
+    internal: list = field(default_factory=list)  # consistency.ReportConflict
+    netdebt: object | None = None  # netdebt.NetDebt
+    valuation: object | None = None  # valuation.Valuation
+    terms: list = field(default_factory=list)  # terms.Terms
+    closing: list = field(default_factory=list)  # terms.ClosingItem
+    revenue: tuple | None = None  # (Jahr, Umsatz) aus der neuesten Jahresrechnung
+    diff: object | None = None  # versions.VersionDiff
+    decisions: dict = field(default_factory=dict)  # Aussagenummer -> übernommener Entscheid
+    stale: dict = field(default_factory=dict)  # Aussagenummer -> geänderte Dokumente, Entscheid nicht übernommen
+    spa_name: str | None = None
+    spa_text: str = ""
+    answers: list = field(default_factory=list)  # antworten.Answer, Entwürfe für Käuferfragen
+    room_changes: list | None = None  # raumvergleich.DocChange, wenn ein früherer Datenraum mitgegeben wurde
+    warranties: list = field(default_factory=list)  # spa.Warranty
 
     def __post_init__(self):
         self.created = self.created or dt.datetime.now().astimezone()
@@ -45,6 +67,57 @@ class Run:
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+CSV_COLUMNS = ["Nr", "Abschnitt", "Aussage", "Fundstellen", "Status", "Methode", "Begründung", "Belege",
+               "Prüfsummen", "Entscheid", "Notiz", "Prüfer"]
+
+
+def _rows(run: Run) -> list[list]:
+    return [
+        [
+            f.claim.number,
+            f.claim.section,
+            f.claim.clean_text,
+            ", ".join(c.label for c in f.claim.citations),
+            f.status.label,
+            f.method,
+            " ".join(f.reasons),
+            " | ".join(f"{e.doc_label}, S. {e.page}: {e.before}{e.match}{e.after}" for e in f.evidence),
+            cited_hashes(run.room, f),
+            *_decision(run, f),
+        ]
+        for f in run.findings
+    ]
+
+
+def cited_hashes(room: DataRoom, f: Finding) -> str:
+    """Prüfsummen der zitierten Dokumente: ändert sich ein Dokument, gilt der Entscheid nicht mehr."""
+    out = {}
+    for c in f.claim.citations:
+        doc = room.get(c.index)
+        if doc is not None:
+            out[c.label.split(",")[0]] = doc.sha256[:12]
+    return "; ".join(f"{k}={v}" for k, v in out.items())
+
+
+def _decision(run: Run, f: Finding) -> list[str]:
+    d = run.decisions.get(f.claim.number) or {}
+    labels = {"ok": "Zugestimmt", "nein": "Widersprochen"}
+    return [labels.get(d.get("v", ""), ""), d.get("n", ""), d.get("p", "")]
+
+
+def to_csv(run: Run) -> str:
+    """Eine Zeile pro Aussage; Semikolon und BOM, damit Excel in der Schweiz es direkt öffnet.
+
+    Die Spalten Entscheid, Notiz und Prüfer sind für die menschliche Durchsicht da;
+    der HTML-Prüfbericht füllt sie beim Export aus.
+    """
+    out = io.StringIO()
+    writer = csv.writer(out, delimiter=";", lineterminator="\r\n")
+    writer.writerow(CSV_COLUMNS)
+    writer.writerows(_rows(run))
+    return "\ufeff" + out.getvalue()
 
 
 def to_json(run: Run) -> str:
@@ -75,16 +148,133 @@ def to_json(run: Run) -> str:
                     "begruendung": f.reasons,
                     "belege": [
                         {"dokument": e.doc_label, "seite": e.page,
-                         "ausschnitt": e.before + e.match + e.after}
+                         "ausschnitt": e.before + e.match + e.after, "ocr": e.ocr}
                         for e in f.evidence
                     ],
                 }
                 for f in run.findings
             ],
+            "widersprueche": [
+                {
+                    "groesse": c.title,
+                    "werte": [
+                        {"dokument": x.doc.label, "seite": x.page, "zeile": x.cell.label, "wert": x.cell.fact.display()}
+                        for x in c.sightings
+                    ],
+                }
+                for c in run.conflicts
+            ],
+            "bereinigungen": [
+                {
+                    "abschnitt": c.section,
+                    "ebitda_aussage": c.base.claim.number,
+                    "bereinigungen": [{"aussage": f.claim.number, "betrag": str(v), "status": f.status.value} for f, v in c.items],
+                    "nachgerechnet": str(c.expected),
+                    "bericht": str(c.stated),
+                    "stimmt": c.ok,
+                }
+                for c in run.addbacks
+            ],
+            "widersprueche_im_bericht": [
+                {"groesse": c.title, "werte": c.values, "aussagen": [f.claim.number for f in c.findings]}
+                for c in run.internal
+            ],
+            "versionsvergleich": None if run.diff is None else {
+                "vorversion": run.diff.old_name,
+                "zusammenfassung": run.diff.summary(),
+                "aenderungen": [
+                    {"aussage": c.new.claim.number, "art": c.kind, "vorher": c.old.claim.clean_text if c.old else None,
+                     "status_vorher": c.old.status.value if c.old else None, "status": c.new.status.value,
+                     "ergebnis": c.outcome}
+                    for c in run.diff.changes if c.kind != "unverändert" or c.outcome
+                ],
+                "gestrichen": [{"text": f.claim.clean_text, "status_vorher": f.status.value} for f in run.diff.removed],
+            },
+            "schweiz": [
+                {"stufe": fl.level, "bereich": fl.area, "titel": fl.title, "text": fl.text,
+                 "belege": [{"dokument": e.doc_label, "seite": e.page, "text": e.match} for e in fl.evidence]}
+                for fl in run.flags
+            ],
+            "nettoverschuldung": None if run.netdebt is None else {
+                "jahr": run.netdebt.year, "nettoverschuldung": str(run.netdebt.net_debt),
+                "inkl_schuldenaehnlich": str(run.netdebt.adjusted),
+                "posten": [{"posten": i.label, "betrag": str(i.amount), "art": i.kind, "hinweis": i.note,
+                            "belege": [{"dokument": e.doc_label, "seite": e.page, "text": e.match} for e in i.evidence]}
+                           for i in run.netdebt.items],
+                "covenant": None if run.netdebt.covenant is None else {
+                    "grenze": str(run.netdebt.covenant.limit), "ist": str(run.netdebt.covenant.ratio),
+                    "eingehalten": run.netdebt.covenant.ok},
+            },
+            "preisbruecke": None if run.valuation is None else {
+                "multiple": str(run.valuation.multiple), "ebitda_bereinigt": str(run.valuation.ebitda),
+                "unternehmenswert": str(run.valuation.ev),
+                "equity_value": None if run.valuation.equity is None else str(run.valuation.equity),
+                "equity_value_nach_befunden": None if run.valuation.checked_equity is None
+                else str(run.valuation.checked_equity),
+                "wirkungen": [{"posten": i.label, "betrag": str(i.amount), "grundlage": i.basis}
+                              for i in run.valuation.impacts],
+                "risiken": [{"posten": i.label, "betrag": str(i.amount), "grundlage": i.basis}
+                            for i in run.valuation.risks],
+            },
+            "garantien": [{"ziffer": w.number, "titel": w.heading, "text": w.text,
+                           "befunde": [{"befund": i.title, "massnahme": i.action,
+                                        "freistellung": w.covered_by.get(id(i))} for i in w.issues]}
+                          for w in run.warranties],
+            "klauseln": _clauses_json(run),
+            "datenraum_aenderungen": None if run.room_changes is None else [
+                {"art": c.kind, "dokument": c.label, "titel": c.title, "seiten": c.pages, "vorher": c.removed,
+                 "nachher": c.added} for c in run.room_changes],
+            "fragenliste": [{"nr": q.number, "bereich": q.area, "prioritaet": q.priority, "frage": q.text,
+                             "bezug": q.reference, "qa": q.related or None} for q in _questions(run)],
+            "fristen": [{"datum": d.date.isoformat(), "titel": d.title, "text": d.detail, "fundstelle": d.reference}
+                        for d in _deadlines(run)],
+            "closing_liste": [
+                {"dokument": i.terms.doc.label, "titel": i.terms.doc.title, "art": i.kind, "text": i.text,
+                 "volumen": str(i.terms.volume) if i.terms.volume else None,
+                 "belege": [{"seite": e.page, "text": e.match} for e in i.evidence]}
+                for i in run.closing
+            ],
+            "vertragsregister": [
+                {"dokument": e.doc.label, "titel": e.doc.title,
+                 **_terms_json(run, e),
+                 "klauseln": [{"art": c.kind, "vorhanden": c.present, "seite": c.page, "satz": c.sentence}
+                              for c in e.clauses]}
+                for e in run.contracts if e.clauses
+            ],
+            "unterlagen": [
+                {"bereich": g.area, "unterlage": g.name, "vorhanden": g.present,
+                 "dokumente": [d.label for d in g.documents], "hinweis": g.note}
+                for g in run.gaps
+            ],
         },
         ensure_ascii=False,
         indent=2,
     )
+
+
+DISCLOSURE_COLUMNS = ["Nr", "Aussage", "Status", "Dokument", "Titel", "Datei", "SHA-256 Dokument", "Seite",
+                      "Textstelle", "Geprüft am"]
+
+
+def to_disclosure_csv(run: Run) -> str:
+    """Offenlegungskarte: welche Aussage auf welcher Seite welches Dokuments steht.
+
+    Eine Zeile pro Beleg, mit Prüfsumme des Dokuments und Zeitpunkt der Prüfung. So lässt
+    sich später zeigen, was im Datenraum offengelegt war (W&I-Underwriting, Schadenfall).
+    """
+    docs = {d.label: d for d in run.room.documents}
+    stamp = run.created.isoformat(timespec="seconds")
+    out = io.StringIO()
+    writer = csv.writer(out, delimiter=";", lineterminator="\r\n")
+    writer.writerow(DISCLOSURE_COLUMNS)
+    for f in run.findings:
+        if not f.evidence:
+            writer.writerow([f.claim.number, f.claim.clean_text, f.status.label, "", "", "", "", "", "", stamp])
+        for e in f.evidence:
+            d = docs.get(e.doc_label)
+            writer.writerow([f.claim.number, f.claim.clean_text, f.status.label, e.doc_label, d.title if d else "",
+                             e.doc_name, d.sha256 if d else "", e.page, e.before + e.match + e.after, stamp])
+    return "\ufeff" + out.getvalue()
 
 
 def logo_svg() -> str:
@@ -99,11 +289,13 @@ def logo_svg() -> str:
 def _font_faces() -> str:
     """Hausschrift als Data-URI, damit der Prüfbericht als einzelne Datei offline gleich aussieht."""
     faces = []
-    for weight in (400, 700):
-        data = resources.files("zitatio").joinpath(f"assets/fonts/familjen-grotesk-latin-{weight}-normal.woff2").read_bytes()
+    for family, weight, name in (("Familjen Grotesk", 400, "familjen-grotesk-latin-400-normal"),
+                                 ("Familjen Grotesk", 700, "familjen-grotesk-latin-700-normal"),
+                                 ("Familjen Grotesk", 500, "familjen-grotesk-latin-500-normal")):
+        data = resources.files("zitatio").joinpath(f"assets/fonts/{name}.woff2").read_bytes()
         faces.append(
-            '@font-face {{ font-family:"Familjen Grotesk"; font-weight:%d; font-display:swap; '
-            'src:url(data:font/woff2;base64,%s) format("woff2"); }}' % (weight, base64.b64encode(data).decode())
+            '@font-face {{ font-family:"%s"; font-weight:%d; font-display:swap; '
+            'src:url(data:font/woff2;base64,%s) format("woff2"); }}' % (family, weight, base64.b64encode(data).decode())
         )
     return "\n".join(faces).replace("{{", "{").replace("}}", "}")
 
@@ -134,14 +326,16 @@ def _protocol_line(f: Finding) -> str:
         f'<span class="nr">{f.claim.number:02d}</span>'
         f'<span class="txt">{html.escape(short)}</span>'
         f'<span class="where">{html.escape(where)}</span>'
-        f'<span class="st">{f.status.label.upper()}</span></a>'
+        f'<span class="st">{f.status.label}</span></a>'
     )
 
 
-def _card(f: Finding) -> str:
+def _card(f: Finding, run: Run | None = None) -> str:
     reasons = "".join(f"<li>{html.escape(r)}</li>" for r in f.reasons)
     evidence = "".join(
         f'<figure class="ev"><figcaption>{html.escape(e.doc_label)}, S. {e.page}'
+        + (' <span class="ocr" title="Seite per Texterkennung gelesen: Wert am Original nachsehen">OCR</span>'
+           if e.ocr else "") +
         f' <span class="file">{html.escape(e.doc_name)}</span></figcaption>'
         f"<blockquote>{html.escape(e.before)}<mark>{html.escape(e.match)}</mark>"
         f"{html.escape(e.after)}</blockquote></figure>"
@@ -149,16 +343,593 @@ def _card(f: Finding) -> str:
     )
     where = ", ".join(c.label for c in f.claim.citations) or "keine"
     section = f'<span class="sec">{html.escape(f.claim.section)}</span>' if f.claim.section else ""
+    change = run.diff.of(f) if run is not None and run.diff is not None else None
+    before = ""
+    if change is not None and change.kind != "unverändert":
+        section += f'<span class="tag">{change.kind}</span>'
+    if run is not None and f.claim.number in run.stale:
+        section += f'<span class="tag">Entscheid neu nötig: {html.escape(", ".join(run.stale[f.claim.number]))} geändert</span>'
+    if change is not None and change.kind == "geändert":
+        before = f'<p class="cite diff">Vorher ({html.escape(change.old.status.label)}): {_diff_html(change)}</p>'
     return f"""
 <article class="card s-{f.status.value}" id="a{f.claim.number}" data-status="{f.status.value}">
   <header><span class="badge">{SYMBOLS[f.status]} {f.status.label}</span>
   <span class="num">Aussage {f.claim.number}</span>{section}
   <span class="method">{html.escape(f.method)}</span></header>
   <p class="claim">{_highlight(f)}</p>
-  <p class="cite">Fundstelle: {html.escape(where)}</p>
+  {before}<p class="cite">Fundstelle: {html.escape(where)}</p>
   <ul class="reasons">{reasons}</ul>
   {evidence}
+  <div class="decide" data-nr="{f.claim.number}">
+    <span class="q">Ihr Entscheid</span>
+    <button type="button" data-d="ok">Zustimmen</button>
+    <button type="button" data-d="nein">Widersprechen</button>
+    <input type="text" placeholder="Notiz, z. B. korrigiert in Version 2" aria-label="Notiz zu Aussage {f.claim.number}">
+  </div>
 </article>"""
+
+
+def _diff_html(change) -> str:
+    from .versions import word_diff
+
+    tags = {"=": "{}", "-": "<del>{}</del>", "+": "<ins>{}</ins>"}
+    return "".join(tags[k].format(html.escape(t)) for k, t in word_diff(change.old.claim.text, change.new.claim.text))
+
+
+def _room_changes_html(run: Run) -> str:
+    from .raumvergleich import describe
+
+    changes = run.room_changes
+    if changes is None:
+        return ""
+    if not changes:
+        return ('<h2 id="datenraum-neu">Datenraum seit dem letzten Stand</h2><p class="lead">Keine Änderungen: '
+                "alle Dokumente sind gleich geblieben.</p>")
+    changed = {(c.label, p) for c in changes if c.kind == "geändert" for p in c.pages}
+    changed_docs = {c.label for c in changes if c.kind in ("geändert", "entfernt")}
+    touched = [f for f in run.findings if any(
+        (f"DR {c.index}" in changed_docs and (c.page_from is None or any((f"DR {c.index}", p) in changed
+         for p in range(c.page_from, (c.page_to or c.page_from) + 1)))) for c in f.claim.citations)]
+    counts = {k: sum(1 for c in changes if c.kind == k) for k in ("geändert", "neu", "entfernt")}
+    rows = "".join(f'<tr><td class="nw"><span class="pill s-{"abweichung" if c.kind == "entfernt" else "widerspruch" if c.kind == "geändert" else "geprueft"}">'
+                   f"{c.kind}</span></td><td>{html.escape(describe(c))}</td></tr>" for c in changes)
+    claims = ""
+    if touched:
+        links = ", ".join(f'<a href="#a{f.claim.number}">{f.claim.number}</a>' for f in touched)
+        claims = (f'<p class="lead">{len(touched)} Aussage{"n" if len(touched) != 1 else ""} des Berichts zitieren eine '
+                  f"geänderte Seite und sollten neu gelesen werden: {links}.</p>")
+    return (f'<h2 id="datenraum-neu">Datenraum seit dem letzten Stand</h2><p class="lead">{counts["geändert"]} geändert, '
+            f'{counts["neu"]} neu, {counts["entfernt"]} entfernt. Bei geänderten Dokumenten stehen die Seiten und die '
+            f"Werte, die anders sind.</p>{claims}"
+            '<div class="tablebox"><table><thead><tr><th>Art</th><th>Dokument</th></tr></thead>'
+            f"<tbody>{rows}</tbody></table></div>")
+
+
+def _versions_html(run: Run) -> str:
+    diff = run.diff
+    if diff is None:
+        return ""
+    rows = []
+    rank = {"neuer Befund": 0, "offen": 1, "behoben": 2}
+    for c in sorted(diff.changes, key=lambda c: rank.get(c.outcome, 3)):
+        if c.kind == "unverändert" and c.outcome != "offen":
+            continue
+        was = f'<span class="pill s-{c.old.status.value}">{c.old.status.label}</span>' if c.old else "–"
+        text = _diff_html(c) if c.kind == "geändert" else html.escape(c.new.claim.clean_text)
+        rows.append(f'<tr><td>{_pill(c.new)}</td><td>{c.kind}</td><td class="diff">{text}</td>'
+                    f'<td>{was}</td><td>{html.escape(c.outcome)}</td></tr>')
+    for f in diff.removed:
+        rows.append(f'<tr><td>–</td><td>gestrichen</td><td class="diff"><del>{html.escape(f.claim.clean_text)}</del></td>'
+                    f'<td><span class="pill s-{f.status.value}">{f.status.label}</span></td>'
+                    f'<td>{"behoben" if f.status.value not in ("geprueft", "ungeprueft") else ""}</td></tr>')
+    kept = len(run.decisions)
+    carried = f" {kept} Entscheide aus der Vorversion übernommen." if kept else ""
+    if run.stale:
+        docs = sorted({d for ds in run.stale.values() for d in ds})
+        carried += (f" {len(run.stale)} Entscheide nicht übernommen, weil sich ein zitiertes Dokument seither geändert "
+                    f"hat ({', '.join(docs)}).")
+    table = (f'<div class="tablebox"><table><thead><tr><th>Aussage</th><th>Änderung</th><th>Text</th>'
+             f'<th>Vorher</th><th>Ergebnis</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>') if rows else ""
+    return (f'<h2 id="versionen">Änderungen gegenüber der Vorversion</h2><p class="lead">Vorversion {html.escape(diff.old_name)}. '
+            f"{html.escape(diff.summary())}{carried} Unveränderte Aussagen ohne offenen Befund sind ausgeblendet.</p>"
+            + table)
+
+
+def _more_downloads(run: Run) -> str:
+    """Kalender und Klauselvorschläge, wenn es etwas dafür gibt."""
+    from .fristen import to_ics
+    from .markup import drafts, to_docx
+
+    base = html.escape(run.report_name.rsplit(".", 1)[0])
+    links = []
+    items = _deadlines(run)
+    if items:
+        data = base64.b64encode(to_ics(items, run.report_name).encode("utf-8")).decode()
+        links.append(f'<a class="ghost" href="data:text/calendar;charset=utf-8;base64,{data}" download="{base}-fristen.ics" '
+                     f'title="{len(items)} Vertragsenden, Kündigungstage und Ablaufdaten für Outlook oder Google Kalender">'
+                     "Fristen (.ics)</a>")
+    clauses = drafts(run)
+    if clauses:
+        data = base64.b64encode(to_docx(clauses, run.spa_name)).decode()
+        links.append('<a class="ghost" href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;'
+                     f'base64,{data}" download="{base}-klauseln.docx" title="Vollzugsbedingungen, Freistellungen und '
+                     'Kaufpreisabzüge als Entwurf">Klauseln (Word)</a>')
+    from .summary import to_markdown as memo
+    from .word import markdown_to_docx
+
+    data = base64.b64encode(markdown_to_docx(memo(run))).decode()
+    links.insert(0, '<a class="ghost" href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;'
+                    f'base64,{data}" download="{base}-ic-memo.docx" title="Das Wichtigste und die offenen Befunde als '
+                    'Word-Datei fürs Investment Committee">IC-Memo (Word)</a>')
+    try:  # Zusatzdownloads für die Verkäuferseite dürfen den Bericht nie verhindern
+        from .offenlegung import to_markdown as disclosure
+
+        data = base64.b64encode(markdown_to_docx(disclosure(run))).decode()
+        links.append('<a class="ghost" href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;'
+                     f'base64,{data}" download="{base}-offenlegungsschreiben.docx" title="Entwurf für die Verkäuferin: '
+                     'Offenlegungen je Garantie mit Fundstelle und was vorher zu bereinigen ist">Offenlegungsschreiben (Word)</a>')
+        from .teaser import anonymity_leaks, codename, teaser
+        from .teaser import to_markdown as teaser_markdown
+
+        lines = teaser(run.room)
+        if len(lines) >= 3:
+            text = teaser_markdown(lines, codename(run.room), with_sources=False)
+            if not anonymity_leaks(text, run.room):
+                data = base64.b64encode(markdown_to_docx(text)).decode()
+                links.append('<a class="ghost" href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.'
+                             f'document;base64,{data}" download="{base}-teaser.docx" title="Anonymes Kurzprofil für '
+                             'Käufer aus dem Datenraum (Verkäuferseite); Zahlen vor dem Versand prüfen">Teaser (Word)</a>')
+    except Exception:  # noqa: BLE001
+        pass
+    return "\n    ".join(links)
+
+
+def _xlsx(run: Run) -> bytes:
+    from .excel import to_xlsx
+
+    return to_xlsx(run)
+
+
+def _keypoints_html(run: Run) -> str:
+    from .summary import key_points
+
+    points = key_points(run)
+    if not points:
+        return ""
+    cls = {"kritisch": "abweichung", "klären": "ohne_beleg", "info": "ungeprueft"}
+    items = "".join(
+        f'<li class="s-{cls[p.level]}"><a href="{p.href}"><span class="badge">{p.level.capitalize()}</span>'
+        f'<b>{html.escape(p.title)}</b></a><p>{html.escape(p.text)}</p></li>'
+        for p in points[:10])
+    return f'<section class="keys"><p class="kicker">Das Wichtigste für das Investment Committee</p><ul>{items}</ul></section>'
+
+
+def _pill(f: Finding) -> str:
+    return f'<a class="pill s-{f.status.value}" href="#a{f.claim.number}">Aussage {f.claim.number} · {f.status.label}</a>'
+
+
+def _conflicts_html(run: Run) -> str:
+    if not run.conflicts:
+        return ""
+    affected = {}
+    for f in run.findings:
+        for c in run.conflicts:
+            if any(x.key in set(f.hits) for x in c.sightings):
+                affected.setdefault(id(c), []).append(f)
+    cards = []
+    for c in run.conflicts:
+        rows = "".join(
+            f"<tr><td>{html.escape(x.doc.label)}, S. {x.page}</td><td class=\"opt\">{html.escape(x.doc.title)}</td>"
+            f"<td>{html.escape(x.cell.label)}</td><td class=\"num\">{html.escape(x.cell.fact.display())}</td></tr>"
+            for x in c.sightings
+        )
+        pills = "".join(_pill(f) for f in affected.get(id(c), []))
+        cards.append(
+            f'<article class="card s-widerspruch"><header><span class="badge">≠ Widerspruch</span>'
+            f'<span class="num">{html.escape(c.title)}</span></header>'
+            f'<div class="tablebox flat"><table><thead><tr><th>Fundstelle</th><th class="opt">Dokument</th><th>Zeile</th>'
+            f'<th class="num">Wert</th></tr></thead><tbody>{rows}</tbody></table></div>'
+            + (f'<p class="pills">Im Bericht: {pills}</p>' if pills else "")
+            + "</article>"
+        )
+    n = len(run.conflicts)
+    return (f'<h2 id="widersprueche">Widersprüche im Datenraum</h2><p class="lead">Bei {n} {"Grössen" if n > 1 else "Grösse"} nennen '
+            "die Dokumente unterschiedliche Werte. Das betrifft die Unterlagen des Verkäufers selbst: "
+            "Welcher Wert stimmt, muss geklärt werden, bevor der Bericht ihn übernimmt.</p>" + "".join(cards))
+
+
+def _addbacks_html(run: Run) -> str:
+    if not run.addbacks:
+        return ""
+    from .derive import _chf
+
+    out = []
+    for c in run.addbacks:
+        base = next(x for x in c.base.claim.facts if x.kind == "betrag")
+        def row(label: str, f: Finding | None, value: str, cls: str = "") -> str:
+            pill = _pill(f) if f else ""
+            return (f'<tr class="{cls}"><td>{html.escape(label)}<span class="m">{pill}</span></td>'
+                    f'<td class="opt">{pill}</td><td class="num">{value}</td></tr>')
+
+        rows = [row("Ausgewiesenes EBITDA", c.base, _chf(base.value[1]))]
+        for f, v in c.items:
+            amount = next(x for x in f.claim.facts if x.kind == "betrag")
+            text = (f.claim.clean_text[: amount.start] + f.claim.clean_text[amount.end :]).strip(" :,.")
+            text = text if len(text) < 80 else text[:78] + "…"
+            rows.append(row(text, f, f"{'−' if v < 0 else '+'} {_chf(abs(v))}"))
+        rows.append(row("Nachgerechnet", None, _chf(c.expected), "sum"))
+        rows.append(row("Bericht nennt", c.total, _chf(c.stated), "sum"))
+        verdict = ("Die Rechnung geht auf." if c.ok else "Die Rechnung geht nicht auf.")
+        if c.unsupported:
+            k = len(c.unsupported)
+            verdict += f" {k} von {len(c.items)} Bereinigungen {'hat' if k == 1 else 'haben'} keinen Beleg im Datenraum."
+        share = c.share
+        if share is not None:
+            verdict += f" Die Bereinigungen machen {share.quantize(1)} % des bereinigten EBITDA aus."
+        status = "geprueft" if c.ok and not c.unsupported else ("abweichung" if not c.ok else "ohne_beleg")
+        out.append(f'<article class="card s-{status}"><header><span class="badge">{"✓" if status == "geprueft" else "!"} '
+                   f'{html.escape(verdict.split(".")[0])}</span><span class="num">{html.escape(c.section)}</span></header>'
+                   f'<div class="tablebox flat"><table><tbody>{"".join(rows)}</tbody></table></div>'
+                   f'<p class="cite">{html.escape(verdict)}</p></article>')
+    return ('<h2 id="bereinigungen">EBITDA-Bereinigungen nachgerechnet</h2><p class="lead">Jede Bereinigung braucht eine Fundstelle, '
+            "und die Summe muss aufgehen.</p>" + "".join(out))
+
+
+def _terms_json(run: Run, entry) -> dict:
+    t = next((t for t in run.terms if t.entry is entry), None)
+    if t is None:
+        return {}
+    return {"beginn": t.start.isoformat() if t.start else None, "ende": t.end.isoformat() if t.end else None,
+            "kuendigungsfrist": t.notice_text() or None, "volumen": str(t.volume) if t.volume else None}
+
+
+def _valuation_html(run: Run) -> str:
+    v = run.valuation
+    if v is None:
+        return ""
+
+    def chf(x) -> str:
+        return ("− " if x < 0 else "") + f"CHF {abs(x):,.0f}".replace(",", "'")
+
+    def row(label, value, where="", cls="", href="") -> str:
+        label = f'<a href="{href}">{html.escape(label)}</a>' if href else html.escape(label)
+        return (f'<tr class="{cls}"><td>{label}</td><td class="opt">{html.escape(where)}</td>'
+                f'<td class="num">{value}</td></tr>')
+
+    rows = [row("Bereinigtes EBITDA laut Bericht", chf(v.ebitda)),
+            row("Multiple", f"{v.multiple}x", v.multiple_text if len(v.multiple_text) <= 90
+                else v.multiple_text[:89].rsplit(" ", 1)[0] + " …"),
+            row("Unternehmenswert", chf(v.ev), cls="sum")]
+    if v.equity is not None:
+        rows += [row(f"Nettoverschuldung laut Bilanz {v.year}", chf(-v.net_debt), href="#nettoverschuldung"),
+                 row("Equity Value laut Rechnung", chf(v.equity), cls="sum")]
+        for i in v.impacts:
+            rows.append(row(i.label, chf(i.amount), i.basis, href=i.href))
+        if v.impacts:
+            delta = v.checked_equity - v.equity
+            share = f" ({delta / v.equity * 100:.1f} %)" if v.equity else ""
+            rows.append(row("Equity Value nach Befunden", chf(v.checked_equity) + html.escape(share), cls="sum"))
+        if v.risks:
+            rows.append('<tr><td colspan="3" class="where">Risiken daneben, nicht in der Summe: im SPA mit '
+                        "Freistellung oder Rückbehalt regeln</td></tr>")
+            rows += [row(i.label, chf(i.amount), i.basis, href=i.href) for i in v.risks]
+    return ('<h2 id="preis">Preisbrücke</h2><p class="lead">Was die Befunde für den Kaufpreis bedeuten: '
+            "Unternehmenswert aus Multiple und bereinigtem EBITDA des Berichts, minus Nettoverschuldung aus der Bilanz. "
+            "Eine Bereinigung ohne Beleg fällt mal das Multiple weg, schuldenähnliche Posten Franken für Franken.</p>"
+            '<div class="tablebox"><table><thead><tr><th>Posten</th><th class="opt">Grundlage</th><th>Betrag</th>'
+            f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
+
+
+def _netdebt_html(run: Run) -> str:
+    from .netdebt import AEHNLICH, EVENTUAL, FINANZ
+
+    nd = run.netdebt
+    if nd is None or not nd.items:
+        return ""
+
+    def chf(v) -> str:
+        return ("− " if v < 0 else "") + f"CHF {abs(v):,.0f}".replace(",", "'")
+
+    def row(i) -> str:
+        where = ", ".join(f"{e.doc_label}, S. {e.page}" for e in i.evidence)
+        note = f' <span class="where">{html.escape(i.note)}</span>' if i.note else ""
+        return (f"<tr><td>{html.escape(i.label)}{note}</td><td class=\"opt\">{html.escape(where)}</td>"
+                f'<td class="num">{chf(i.amount)}</td></tr>')
+
+    rows = [row(i) for i in nd.items if i.kind == FINANZ]
+    rows.append(f'<tr class="sum"><td>Nettoverschuldung laut Bilanz {nd.year}</td><td class="opt"></td>'
+                f'<td class="num">{chf(nd.net_debt)}</td></tr>')
+    similar = [i for i in nd.items if i.kind == AEHNLICH]
+    if similar:
+        rows += [row(i) for i in similar]
+        rows.append(f'<tr class="sum"><td>Inklusive schuldenähnlicher Posten</td><td class="opt"></td>'
+                    f'<td class="num">{chf(nd.adjusted)}</td></tr>')
+    contingent = [i for i in nd.items if i.kind == EVENTUAL]
+    if contingent:
+        rows.append('<tr><td colspan="3" class="where">Eventualverbindlichkeiten, nicht in der Summe: '
+                    "im SPA mit Freistellung oder Rückbehalt regeln</td></tr>")
+        rows += [row(i) for i in contingent]
+    covenant = ""
+    if nd.covenant:
+        c = nd.covenant
+        covenant = (f" Covenant im Kreditvertrag: höchstens {c.limit}x EBITDA, nachgerechnet {c.ratio}x "
+                    f"({'eingehalten' if c.ok else 'verletzt'}).")
+    return (f'<h2 id="nettoverschuldung">Nettoverschuldung</h2><p class="lead">Vom Unternehmenswert zum Preis der Aktien: '
+            f"Finanzschulden und flüssige Mittel aus der Bilanz, dazu schuldenähnliche Posten aus dem Datenraum, "
+            f"über die im SPA verhandelt wird.{html.escape(covenant)}</p>"
+            f'<div class="tablebox"><table><thead><tr><th>Posten</th><th class="opt">Fundstelle</th><th>Betrag</th>'
+            f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
+
+
+def _closing_html(run: Run) -> str:
+    from .terms import _n, revenue_at_risk
+
+    if not run.closing:
+        return ""
+    by_doc: dict[int, list] = {}
+    for i in run.closing:
+        by_doc.setdefault(id(i.terms), []).append(i)
+    rows = []
+    for items in by_doc.values():
+        t = items[0].terms
+        todo = "".join(f'<p class="todo"><span class="pill s-{"abweichung" if i.kind == "kontrollwechsel" else "ohne_beleg"}">'
+                       f'{"Kontrollwechsel" if i.kind == "kontrollwechsel" else "Laufzeit"}</span> {html.escape(i.text)}</p>'
+                       for i in items)
+        volume = f"CHF {_n(t.volume)}" if t.volume else "–"
+        rows.append(f'<tr><td class="nw">{html.escape(t.doc.label)}</td><td class="opt">{html.escape(t.doc.title)}</td>'
+                    f'<td>{todo}</td><td class="num">{volume}</td></tr>')
+    coc = {id(i.terms) for i in run.closing if i.kind == "kontrollwechsel"}
+    risk = revenue_at_risk(run.closing)
+    lead = f"{len(coc)} Verträge mit Kontrollwechselklausel"
+    if risk:
+        lead += f", zusammen CHF {_n(risk)} jährliches Volumen"
+        if run.revenue:
+            lead += f" ({risk / run.revenue[1] * 100:.0f} % des Umsatzes {run.revenue[0]})"
+    ending = sum(1 for i in run.closing if i.kind == "laufzeit")
+    lead += f". {ending} Verträge sind abgelaufen oder enden in den nächsten 18 Monaten." if ending else "."
+    return (f'<h2 id="closing">Closing-Liste</h2><p class="lead">{html.escape(lead)} Was vor Signing und Closing mit den '
+            "Gegenparteien zu klären ist, mit Seite im Vertrag.</p>"
+            '<div class="tablebox"><table><thead><tr><th>Index</th><th class="opt">Vertrag</th><th>Zu klären</th>'
+            f'<th>Volumen p.a.</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>' + _exit_html(run))
+
+
+def _warranties_html(run: Run) -> str:
+    if not run.warranties:
+        return ""
+    touched = [w for w in run.warranties if w.issues]
+    blocks = []
+    for w in run.warranties:
+        if not w.issues:
+            continue
+        items = []
+        for i in w.issues:
+            covered = w.covered_by.get(id(i))
+            action = f"abgedeckt durch Freistellung Ziff. {covered}" if covered else i.action
+            cls = "geprueft" if covered else "ohne_beleg"
+            items.append(f'<p class="todo"><a href="{i.href}">{html.escape(i.title)}</a> '
+                         f'<span class="pill s-{cls}">{html.escape(action)}</span></p>')
+        text = w.text.removeprefix(w.heading).lstrip(". ") if w.heading else w.text
+        text = text if len(text) <= 260 else text[:259].rsplit(" ", 1)[0] + " …"
+        blocks.append(f'<tr><td class="nw">Ziff. {html.escape(w.number)}</td><td><b>{html.escape(w.heading)}</b> '
+                      f'<span class="where">{html.escape(text)}</span>{"".join(items)}</td></tr>')
+    clean = [f"{w.number} {w.heading}".strip() for w in run.warranties if not w.issues]
+    rest = f" Ohne Befund: {', '.join(clean)}." if clean else ""
+    return (f'<h2 id="garantien">Garantien im Kaufvertrag</h2><p class="lead">{len(touched)} von {len(run.warranties)} '
+            f"Garantien in {html.escape(run.spa_name or 'SPA')} sind von Befunden berührt. Was der Verkäufer offenlegt, "
+            f"deckt die Garantie meist nicht mehr; pro Befund steht, was der Käufer verlangen kann.{html.escape(rest)}</p>"
+            '<div class="tablebox"><table><thead><tr><th>Ziffer</th><th>Garantie und Befunde</th></tr></thead>'
+            f'<tbody>{"".join(blocks)}</tbody></table></div>')
+
+
+def _clauses_html(run: Run) -> str:
+    if not run.warranties:
+        return ""
+    from .markup import drafts
+
+    items = drafts(run)
+    if not items:
+        return ""
+    blocks = "".join(f'<tr><td class="nw">{html.escape(d.number or "–")}</td><td><span class="where">'
+                     f'{html.escape(d.group)}</span><br><b>{html.escape(d.heading)}</b><br>{html.escape(d.text)}</td></tr>'
+                     for d in items)
+    return ('<h3 id="klauseln">Klauselvorschläge</h3><p class="lead">Entwurf aus den Befunden, für die Anwältin oder '
+            "den Anwalt: Vollzugsbedingungen, spezifische Freistellungen ausserhalb von Freibetrag und Cap, Abzüge im "
+            "Kaufpreis. Mit <code>--klauseln vorschlaege.docx</code> als Word-Datei.</p>"
+            '<div class="tablebox"><table><thead><tr><th>Ziffer</th><th>Vorschlag</th></tr></thead>'
+            f"<tbody>{blocks}</tbody></table></div>")
+
+
+def _answers_html(run: Run) -> str:
+    if not run.answers:
+        return ""
+    found = sum(1 for a in run.answers if a.text)
+    rows = "".join(
+        f'<tr><td class="nw">{a.number}</td><td>{html.escape(a.question)}</td><td>'
+        + (html.escape(a.text) if a.text else '<span class="where">Im Datenraum nicht gefunden. Antwort beim Management '
+           "einholen.</span>")
+        + (f'<p class="todo"><span class="pill s-widerspruch">Widerspruch</span> {html.escape(a.warning)}</p>' if a.warning else "")
+        + f'</td><td class="nw">{html.escape(a.reference or "–")}</td></tr>' for a in run.answers)
+    return (f'<h2 id="antworten">Antwortentwürfe für die Käuferfragen</h2><p class="lead">{found} von {len(run.answers)} '
+            "Fragen mit einem Satz aus dem Datenraum beantwortet, jeweils mit Fundstelle. Vor der Freigabe lesen.</p>"
+            '<div class="tablebox"><table><thead><tr><th>Nr</th><th>Frage</th><th>Antwortentwurf</th><th>Fundstelle</th>'
+            f"</tr></thead><tbody>{rows}</tbody></table></div>")
+
+
+def _questions(run: Run):
+    from .questions import request_list
+
+    return request_list(run)
+
+
+def _related(q) -> str:
+    if not q.related:
+        return ""
+    return f' <span class="where">Dazu gibt es schon {html.escape(q.related)}; prüfen, ob die Frage beantwortet ist.</span>'
+
+
+def _questions_html(run: Run) -> str:
+    questions = _questions(run)
+    if not questions:
+        return ""
+    rows = "".join(f'<tr><td class="nw">{q.number}</td><td class="opt">{html.escape(q.area)}</td>'
+                   f'<td><span class="pill s-{"abweichung" if q.priority == "hoch" else "ohne_beleg"}">{q.priority}</span></td>'
+                   f'<td>{html.escape(q.text)}{_related(q)}</td><td class="opt">{html.escape(q.reference)}</td></tr>'
+                   for q in questions)
+    high = sum(1 for q in questions if q.priority == "hoch")
+    return (f'<h2 id="fragen">Fragenliste an den Verkäufer</h2><p class="lead">{len(questions)} Fragen, davon {high} mit '
+            "hoher Priorität, aus den Befunden oben. Nur was der Verkäufer klären kann; als Tabelle auch in der "
+            "Excel-Mappe und mit <code>--fragen</code> als Markdown.</p>"
+            '<div class="tablebox"><table><thead><tr><th>Nr</th><th class="opt">Bereich</th><th>Priorität</th>'
+            f'<th>Frage</th><th class="opt">Bezug</th></tr></thead><tbody>{rows}</tbody></table></div>')
+
+
+def _clauses_json(run: Run) -> list:
+    if not run.warranties:
+        return []
+    from .markup import drafts
+
+    return [{"gruppe": d.group, "ziffer": d.number or None, "titel": d.heading, "text": d.text, "befunde": d.basis}
+            for d in drafts(run)]
+
+
+def _deadlines(run: Run) -> list:
+    from .fristen import deadlines
+
+    return deadlines(run) if run.terms else []
+
+
+def _deadlines_html(run: Run) -> str:
+    items = _deadlines(run)
+    if not items:
+        return ""
+    shown = items[:12]
+    rows = "".join(f'<tr><td class="nw">{d.date:%d.%m.%Y}</td><td>{html.escape(d.title)}</td>'
+                   f'<td class="opt">{html.escape(d.detail)}</td><td class="nw">{html.escape(d.reference)}</td></tr>'
+                   for d in shown)
+    more = f" Die nächsten {len(shown)} von {len(items)} stehen hier." if len(items) > len(shown) else ""
+    return (f'<h2 id="fristen">Fristen</h2><p class="lead">{len(items)} Termine aus dem Datenraum: Vertragsenden, '
+            f"letzte Kündigungstage und Ablaufdaten.{more} Alle als Kalenderdatei mit <code>--kalender fristen.ics</code>, "
+            "mit Erinnerung 14 Tage vorher.</p>"
+            '<div class="tablebox"><table><thead><tr><th>Datum</th><th>Frist</th><th class="opt">Grundlage</th>'
+            f'<th>Fundstelle</th></tr></thead><tbody>{rows}</tbody></table></div>')
+
+
+def _exit_html(run: Run) -> str:
+    from .terms import _n, exit_profile
+
+    profile = exit_profile(run.terms, run.created.date())
+    if not profile:
+        return ""
+    rows = []
+    for year, volume, terms in profile:
+        share = f"{volume / run.revenue[1] * 100:.0f} %" if run.revenue and run.revenue[1] else "–"
+        names = ", ".join(f'<span title="{html.escape(t.doc.title)}">{html.escape(t.doc.label)}</span>' for t in terms)
+        rows.append(f'<tr><td>bis Ende {year}</td><td class="num">CHF {_n(volume)}</td><td class="num">{share}</td>'
+                    f"<td>{names}</td></tr>")
+    return ('<p class="lead" style="margin-top:22px">Frühester ordentlicher Ausstieg der Kunden: Wird heute gekündigt, '
+            "kann so viel Jahresvolumen bis zu diesem Datum wegfallen (Laufzeit, Kündigungsfrist und -termin aus dem "
+            "Vertrag).</p>"
+            '<div class="tablebox"><table><thead><tr><th>Frühestens weg</th><th>Volumen p.a.</th><th>Anteil Umsatz</th>'
+            f'<th>Verträge</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
+
+
+def _contracts_html(run: Run) -> str:
+    from .clauses import KINDS, LABELS
+
+    entries = [e for e in run.contracts if e.clauses]
+    if not entries:
+        return ""
+    kinds = [k for k, *_ in KINDS if any(c.kind == k for e in entries for c in e.clauses)]
+    rows = []
+    for e in entries:
+        cells = []
+        for k in kinds:
+            state = e.has(k)
+            found = [c for c in e.clauses if c.kind == k and c.present is bool(state)]
+            if state:
+                c = found[0]
+                cells.append(f'<td><span class="pill s-ohne_beleg" title="{html.escape(c.sentence)}">ja</span> '
+                             f'<span class="where">S. {c.page}</span></td>')
+            elif state is False:
+                cells.append(f'<td><span class="where" title="{html.escape(found[0].sentence)}">ausgeschlossen</span></td>')
+            else:
+                cells.append('<td><span class="where">–</span></td>')
+        t = next((t for t in run.terms if t.entry is e), None)
+        end = f"{t.end:%d.%m.%Y}" if t and t.end else "–"
+        notice = t.notice_text() if t and t.notice else "–"
+        rows.append(f"<tr><td>{html.escape(e.doc.label)}</td><td class=\"opt\">{html.escape(e.doc.title)}</td>"
+                    f"<td>{end}</td><td>{notice}</td>{''.join(cells)}</tr>")
+    coc = [e for e in entries if e.has("kontrollwechsel")]
+    lead = (f"{len(coc)} von {len(entries)} Verträgen erlauben der Gegenpartei bei einem Kontrollwechsel die Kündigung "
+            "oder verlangen ihre Zustimmung: " + ", ".join(e.doc.label for e in coc) + "." if coc
+            else f"Keiner der {len(entries)} Verträge enthält eine Kontrollwechselklausel.")
+    head = "".join(f"<th>{html.escape(LABELS[k])}</th>" for k in kinds)
+    return (f'<h2 id="vertraege">Vertragsregister</h2><p class="lead">{html.escape(lead)} Gefunden per Wortsuche mit Seite; '
+            "der Satz erscheint beim Darüberfahren.</p>"
+            f'<div class="tablebox"><table><thead><tr><th>Index</th><th class="opt">Dokument</th><th>Ende</th><th>Kündigung</th>{head}</tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div>')
+
+
+def _internal_html(run: Run) -> str:
+    if not run.internal:
+        return ""
+    cards = []
+    for c in run.internal:
+        rows = "".join(
+            f'<tr><td>{_pill(f)}</td>'
+            f'<td>{html.escape(f.claim.clean_text)}</td></tr>' for f in c.findings)
+        cards.append(
+            f'<article class="card s-widerspruch"><header><span class="badge">≠ im Bericht</span>'
+            f'<span class="num">{html.escape(c.title)}: {html.escape(" vs. ".join(c.values))}</span></header>'
+            f'<div class="tablebox flat"><table><thead><tr><th>Aussage</th><th>Text</th></tr></thead>'
+            f'<tbody>{rows}</tbody></table></div></article>')
+    return ('<h2 id="bericht-widersprueche">Widersprüche im Bericht</h2><p class="lead">Der Bericht nennt für dieselbe Grösse und Periode '
+            "an verschiedenen Stellen verschiedene Werte. Gerundete Schreibweisen zählen als gleich.</p>" + "".join(cards))
+
+
+def _flags_html(run: Run) -> str:
+    if not run.flags:
+        return ""
+    style = {"warnung": ("abweichung", "!"), "hinweis": ("ohne_beleg", "i"), "ok": ("geprueft", "✓")}
+    cards = []
+    for fl in run.flags:
+        cls, sym = style[fl.level]
+        quotes = "".join(
+            f'<blockquote><span class="where">{html.escape(e.doc_label)}, S. {e.page}</span> '
+            f'{html.escape(e.before)}<mark>{html.escape(e.match)}</mark>{html.escape(e.after)}</blockquote>'
+            for e in fl.evidence[:2]
+        ) if fl.level != "ok" else ""
+        cards.append(f'<article class="card s-{cls}"><header><span class="badge">{sym} {html.escape(fl.area)}</span>'
+                     f'<span class="num">{html.escape(fl.title)}</span></header>'
+                     f'<p class="cite">{html.escape(fl.text)}</p>{quotes}</article>')
+    n = sum(f.level == "warnung" for f in run.flags)
+    lead = f"{n} Warnsignal{'e' if n != 1 else ''}. " if n else "Keine Warnsignale. "
+    return (f'<h2 id="pruefungen">Prüfungen im Datenraum</h2><p class="lead">{lead}Erfolgsrechnungen nachgerechnet, '
+            "Zeichnungsberechtigung gegen das Handelsregister, Kapitalschutz (Art. 725a OR), Revisionspflicht "
+            "(Art. 727 OR), Vorsorge, Aktienbuch, Fusionskontrolle (Art. 9 KG), Covenants und Themen aus den "
+            "Protokollen, die der Bericht nicht erwähnt.</p>" + "".join(cards))
+
+
+def _gaps_html(run: Run) -> str:
+    if not run.gaps:
+        return ""
+    rows = []
+    for g in run.gaps:
+        if g.present:
+            docs = ", ".join(d.label for d in g.documents[:4]) + (" …" if len(g.documents) > 4 else "")
+            state = f'<span class="pill s-geprueft">vorhanden</span> <span class="where">{html.escape(docs)}</span>'
+            if g.note:
+                state += f' <span class="warn">{html.escape(g.note)}</span>'
+        else:
+            state = '<span class="pill s-ohne_beleg">fehlt</span>'
+        rows.append(f"<tr><td>{html.escape(g.area)}</td><td>{html.escape(g.name)}</td><td>{state}</td></tr>")
+    missing = sum(not g.present for g in run.gaps)
+    lead = (f"{missing} von {len(run.gaps)} üblichen Unterlagen fehlen im Datenraum." if missing
+            else "Alle üblichen Unterlagen sind im Datenraum vorhanden.")
+    return (f'<h2 id="unterlagen">Erwartete Unterlagen</h2><p class="lead">{lead} Die Liste ist allgemein; '
+            "ob eine Unterlage für diesen Deal nötig ist, entscheidet das Team.</p>"
+            f'<div class="tablebox"><table><thead><tr><th>Bereich</th><th>Unterlage</th><th>Im Datenraum</th></tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div>')
 
 
 def to_html(run: Run) -> str:
@@ -166,10 +937,25 @@ def to_html(run: Run) -> str:
     total = len(run.findings)
     problems = total - counts[Status.GEPRUEFT] - counts[Status.UNGEPRUEFT]
     headline = (
-        f"{problems} von {total} Aussagen brauchen eine Korrektur."
+        f"{problems} von {total} Aussagen brauchen eine Korrektur oder Klärung."
         if problems
         else f"Alle {total} prüfbaren Aussagen stimmen mit dem Datenraum überein."
     )
+    kicker, mode = "Prüfbericht", ""
+    sub = f"{html.escape(run.report_name)} · {total} Aussagen gegen {len(run.room.documents)} Dokumente im Datenraum geprüft."
+    if total and not any(f.claim.citations for f in run.findings):
+        sub += " Das Dokument nennt keine Fundstellen; Zitatio hat die Belege im Datenraum selbst gesucht."
+    if not total:
+        # Kein DD-Bericht: Red-Flag-Bericht aus dem Datenraum allein
+        from .questions import request_list
+
+        warnings_count = sum(1 for fl in run.flags if fl.level == "warnung")
+        questions = len(request_list(run))
+        kicker, mode = "Red-Flag-Bericht", "redflag"
+        headline = (f"{warnings_count} Warnsignal{'e' if warnings_count != 1 else ''} im Datenraum, "
+                    f"{questions} Frage{'n' if questions != 1 else ''} an den Verkäufer.")
+        pages = sum(len(d.pages) for d in run.room.documents)
+        sub = f"{len(run.room.documents)} Dokumente mit {pages} Seiten geprüft, ohne DD-Bericht."
     chips = "".join(
         f'<button class="chip s-{s.value}" data-filter="{s.value}">'
         f'<b>{n}</b> {s.label}</button>'
@@ -177,29 +963,60 @@ def to_html(run: Run) -> str:
         if n
     )
     protocol = "\n".join(_protocol_line(f) for f in run.findings)
-    cards = "\n".join(_card(f) for f in sorted(run.findings, key=lambda f: (ORDER.index(f.status), f.claim.number)))
+    colors = {Status.GEPRUEFT: "var(--green)", Status.ABWEICHUNG: "var(--red)", Status.QUELLE_FEHLT: "var(--red)",
+              Status.WIDERSPRUCH: "var(--amber)",
+              Status.FALSCHE_FUNDSTELLE: "var(--amber)", Status.OHNE_BELEG: "var(--amber)", Status.UNGEPRUEFT: "var(--gray-bg)"}
+    stops, acc = [], 0
+    for st in [Status.GEPRUEFT] + [x for x in ORDER if x is not Status.GEPRUEFT]:
+        if counts[st]:
+            start, acc = acc, acc + counts[st]
+            stops.append(f"{colors[st]} {start / total * 360:.1f}deg {acc / total * 360:.1f}deg")
+    donut = ", ".join(stops) or "var(--gray-bg) 0deg 360deg"
+    ok_share = f"{counts[Status.GEPRUEFT] / total:.0%}" if total else "–"
+    cards = "\n".join(_card(f, run) for f in sorted(run.findings, key=lambda f: (ORDER.index(f.status), f.claim.number)))
     docs = "".join(
         f"<tr><td>{html.escape(d.label)}</td><td>{html.escape(d.title)}</td><td>{len(d.pages)}</td>"
         f'<td class="hash">{d.sha256[:16]}…</td></tr>'
         for d in run.room.documents
     )
+    extra = _room_changes_html(run) + _versions_html(run) + _flags_html(run) + _internal_html(run) + _conflicts_html(run) + _addbacks_html(run) + _valuation_html(run) + _netdebt_html(run) + _closing_html(run) + _deadlines_html(run) + _contracts_html(run) + _warranties_html(run) + _clauses_html(run) + _questions_html(run) + _answers_html(run)
+    gaps = _gaps_html(run)
     warnings = "".join(f"<li>{html.escape(w)}</li>" for w in run.room.warnings)
     warnings_html = f'<ul class="warn">{warnings}</ul>' if warnings else ""
     model = html.escape(run.model) if run.model else "aus (nur Regeln)"
     stamp = run.created.strftime("%d.%m.%Y, %H:%M")
     return TEMPLATE.format(
         fonts=_font_faces(),
+        donut=donut,
+        keypoints=_keypoints_html(run),
+        ok_share=ok_share.replace("%", "&nbsp;%"),
+        csv=base64.b64encode(to_csv(run).encode("utf-8")).decode(),
+        rows=json.dumps({"columns": CSV_COLUMNS, "rows": _rows(run),
+                         "carried": {str(k): {"v": d.get("v", ""), "n": d.get("n", "")} for k, d in run.decisions.items()}},
+                        ensure_ascii=False).replace("</", "<\\/"),
+        key=html.escape(run.report_sha256 + "-" + run.created.isoformat(timespec="seconds")),
+        csv_name=html.escape(run.report_name.rsplit(".", 1)[0] + "-pruefbericht.csv"),
         title=html.escape(run.report_name),
         logo=logo_svg(),
         report=html.escape(run.report_name),
         stamp=stamp,
         model=model,
         headline=headline,
+        kicker=kicker,
+        mode=mode,
+        sub=sub,
         total=total,
         docs_count=len(run.room.documents),
         chips=chips,
         protocol=protocol,
         cards=cards,
+        extra=extra,
+        gaps=gaps,
+        disclosure=base64.b64encode(to_disclosure_csv(run).encode("utf-8")).decode(),
+        disclosure_name=html.escape(run.report_name.rsplit(".", 1)[0] + "-offenlegungskarte.csv"),
+        xlsx=base64.b64encode(_xlsx(run)).decode(),
+        xlsx_name=html.escape(run.report_name.rsplit(".", 1)[0] + "-pruefung.xlsx"),
+        more_downloads=_more_downloads(run),
         docs=docs,
         warnings=warnings_html,
         report_hash=run.report_sha256[:16],
@@ -216,97 +1033,173 @@ TEMPLATE = """<!doctype html>
 <style>
 {fonts}
 :root {{
-  --ink:#15202B; --ink-2:#4A5560; --line:#DCE1DD; --paper:#F7F8F6; --card:#FFFFFF;
-  --green:#1E7A50; --green-bg:#E6F2EC; --red:#B42318; --red-bg:#FBEAE8;
-  --amber:#9A5B00; --amber-bg:#FBF1DF; --gray:#5B6670; --gray-bg:#EEF0EF;
-  --term:#121A22; --term-ink:#DCE3E8; --term-dim:#7D8A95; --mark:#FFF0B3;
+  --ink:#15202B; --ink-2:#4A5560; --ink-3:#7D8790; --page:#F7F8F6; --card:#FFFFFF;
+  --line:rgba(21,32,43,.09); --line-2:rgba(21,32,43,.16);
+  --green:#1E7A50; --green-bg:#DCEDE3; --red:#B42318; --red-bg:#F6E1DE;
+  --amber:#9A5B00; --amber-bg:#F3E8D2; --gray:#5B6670; --gray-bg:#E7EAEC; --mark:#DCEDE3; --mark-claim:#ECE7DE;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
   --sans: "Familjen Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --display: "Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;
 }}
 @media (prefers-color-scheme: dark) {{
-  :root {{
-    --ink:#EEF2F0; --ink-2:#A9B4BD; --line:#2A3540; --paper:#121A22; --card:#18222C;
+  :root:not([data-theme="light"]) {{
+    --ink:#EEF2F0; --ink-2:#A9B4BD; --ink-3:#7D8A95; --page:#121A22; --card:#18222C;
+    --line:rgba(238,242,240,.09); --line-2:rgba(238,242,240,.16);
     --green:#4CC38A; --green-bg:#16352A; --red:#F07A6E; --red-bg:#3A1F1E;
-    --amber:#E8B04B; --amber-bg:#3A2E16; --gray:#A9B4BD; --gray-bg:#24303A;
-    --term:#0B1117; --mark:#5A4A10;
+    --amber:#E8B04B; --amber-bg:#3A2E16; --gray:#A9B4BD; --gray-bg:#24303A; --mark:#1E4A36; --mark-claim:#2A3540;
   }}
 }}
 * {{ box-sizing:border-box; }}
-body {{ margin:0; background:var(--paper); color:var(--ink); font:15px/1.55 var(--sans); }}
-main {{ max-width:960px; margin:0 auto; padding:32px 16px 64px; }}
+body {{ margin:0; background:var(--page); color:var(--ink); font:15px/1.6 var(--sans); -webkit-font-smoothing:antialiased; }}
+main {{ max-width:1040px; margin:0 auto; padding:36px 20px 80px; }}
 .top {{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }}
-.logo {{ height:28px; width:auto; }}
-.meta {{ font:12px/1.4 var(--mono); color:var(--ink-2); text-align:right; }}
-h1 {{ font-size:30px; line-height:1.15; letter-spacing:-0.02em; margin:40px 0 8px; }}
-.sub {{ color:var(--ink-2); margin:0 0 20px; }}
-.chips {{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 24px; }}
-.chip {{ font:13px var(--sans); border:1px solid var(--line); background:var(--card); color:var(--ink);
-  border-radius:999px; padding:5px 12px; cursor:pointer; }}
+.logo {{ height:26px; width:auto; }}
+.meta {{ font-size:13px; line-height:1.5; color:var(--ink-3); text-align:right; }}
+.kicker {{ font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-2); margin:0 0 10px; }}
+.summary {{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:32px; align-items:center; margin:64px 0 28px; }}
+h1 {{ font:500 clamp(30px, 4.4vw, 48px)/1.08 var(--display); letter-spacing:-.035em; margin:0 0 12px; }}
+.sub {{ color:var(--ink-2); margin:0; }}
+.donut {{ width:132px; height:132px; border-radius:50%; background:conic-gradient({donut}); display:grid; place-items:center; }}
+.donut span {{ width:96px; height:96px; border-radius:50%; background:var(--page); display:grid; place-items:center; text-align:center;
+  font:500 24px/1 var(--display); }}
+.donut small {{ display:block; font:12px var(--sans); color:var(--ink-3); margin-top:4px; }}
+.chips {{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 18px; }}
+.chip {{ font:500 13px var(--sans); border:0; background:var(--cbg); color:var(--c); border-radius:999px; padding:7px 14px; cursor:pointer; }}
 .chip b {{ font-variant-numeric:tabular-nums; }}
-.chip.on {{ outline:2px solid var(--ink); }}
-.term {{ background:var(--term); color:var(--term-ink); border-radius:10px; padding:14px 0 10px;
-  font:12.5px/1.5 var(--mono); overflow:hidden; }}
-.term .bar {{ color:var(--term-dim); padding:0 16px 8px; border-bottom:1px solid #22303C; margin-bottom:6px; }}
-.pl {{ display:grid; grid-template-columns:18px 26px 1fr auto auto; gap:10px; padding:3px 16px;
-  color:inherit; text-decoration:none; }}
-.pl:hover {{ background:#1C2833; }}
-.pl .nr, .pl .where {{ color:var(--term-dim); }}
+.chip.on {{ box-shadow:0 0 0 2px var(--c); }}
+.review {{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; background:var(--card); border-radius:20px;
+  box-shadow:0 0 0 1px var(--line); padding:14px 20px; margin:0 0 18px; font-size:14px; }}
+.review input {{ font:14px var(--sans); color:var(--ink); background:var(--page); border:1px solid var(--line-2); border-radius:999px; padding:7px 14px; min-width:0; }}
+.review .bar {{ flex:1 1 160px; height:4px; background:var(--gray-bg); border-radius:2px; overflow:hidden; }}
+.review .bar i {{ display:block; height:100%; width:0; background:var(--green); transition:width .2s; }}
+.review a {{ background:var(--ink); color:var(--page); text-decoration:none; border-radius:999px; padding:9px 18px; font-weight:500; }}
+.redflag .donut, .redflag .proto, .redflag .claims, .redflag #reviewer, .redflag #progress, .redflag .bar,
+.redflag .review label, .redflag #export, .redflag a[download$="offenlegungskarte.csv"] {{ display:none; }}
+.todo a {{ color:inherit; text-decoration:none; border-bottom:1px solid var(--line-2); }}
+.todo a:hover {{ border-bottom-color:var(--ink-3); }}
+.proto {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:10px 0; overflow:hidden; }}
+.proto .head {{ display:flex; justify-content:space-between; padding:10px 22px 12px; border-bottom:1px solid var(--line); }}
+.proto .head .kicker {{ margin:0; }}
+.proto .head span:last-child {{ font-size:13px; color:var(--ink-3); }}
+.pl {{ display:grid; grid-template-columns:30px 1fr auto auto; gap:14px; align-items:center; padding:9px 22px; color:inherit; text-decoration:none;
+  border-bottom:1px solid var(--line); font-size:14px; }}
+.pl:last-child {{ border-bottom:0; }}
+.pl:hover {{ background:var(--page); }}
+.pl .sym {{ display:none; }}
+.pl .nr {{ width:26px; height:26px; border-radius:50%; border:1px solid var(--c); color:var(--c); display:grid; place-items:center; font-size:11px; }}
 .pl .txt {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-.pl .st {{ font-weight:600; }}
-.pl.s-geprueft .sym, .pl.s-geprueft .st {{ color:#4CC38A; }}
-.pl.s-abweichung .sym, .pl.s-abweichung .st, .pl.s-quelle_fehlt .sym, .pl.s-quelle_fehlt .st {{ color:#F07A6E; }}
-.pl.s-falsche_fundstelle .sym, .pl.s-falsche_fundstelle .st, .pl.s-ohne_beleg .sym, .pl.s-ohne_beleg .st {{ color:#E8B04B; }}
-.pl.s-ungeprueft .sym, .pl.s-ungeprueft .st {{ color:#A9B4BD; }}
-h2 {{ font-size:18px; margin:40px 0 12px; }}
-.card {{ background:var(--card); border:1px solid var(--line); border-left:4px solid var(--c); border-radius:8px;
-  padding:16px 18px; margin:0 0 12px; }}
-.card header {{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:13px; color:var(--ink-2); }}
-.badge {{ font-weight:600; color:var(--c); background:var(--cbg); border-radius:4px; padding:2px 8px; }}
-.method {{ margin-left:auto; font:11px var(--mono); }}
-.sec {{ font-style:italic; }}
-.claim {{ font-size:16px; margin:10px 0 4px; }}
-.claim mark, blockquote mark {{ background:var(--mark); color:inherit; border-radius:2px; padding:0 2px; }}
-.cite {{ font:12px var(--mono); color:var(--ink-2); margin:0 0 8px; }}
-.reasons {{ margin:0 0 8px; padding-left:18px; }}
-.ev {{ margin:8px 0 0; }}
-.ev figcaption {{ font:12px var(--mono); color:var(--ink-2); }}
-.ev .file {{ opacity:.7; }}
-blockquote {{ margin:4px 0 0; padding:8px 12px; background:var(--paper); border-radius:6px; font-size:14px; }}
+.pl .where {{ color:var(--ink-3); font-size:13px; white-space:nowrap; }}
+.pl .st {{ font-size:12px; font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px; padding:3px 10px; white-space:nowrap; text-transform:none; }}
+h2 {{ font:500 30px/1.2 var(--display); letter-spacing:-.025em; margin:64px 0 18px; }}
+h3 {{ font:500 21px/1.25 var(--display); letter-spacing:-.015em; margin:40px 0 12px; }}
+.card {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:22px 24px; margin:0 0 14px; }}
+.card header {{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:13px; color:var(--ink-3); }}
+.badge {{ font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px; padding:4px 12px; }}
+.method {{ margin-left:auto; }}
+.sec {{ }}
+.keys {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:20px 24px 8px; margin:18px 0 0; }}
+.keys ul {{ list-style:none; margin:10px 0 0; padding:0; }}
+.keys li {{ padding:12px 0; border-top:1px solid var(--line); }}
+.keys li a {{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; color:inherit; text-decoration:none; }}
+.keys li b {{ font-weight:500; }}
+.keys li p {{ margin:6px 0 0; color:var(--ink-2); font-size:14px; }}
+.todo {{ margin:4px 0; font-size:14px; }}
+td.nw {{ white-space:nowrap; }}
+.tag {{ font-size:12px; font-weight:500; color:var(--ink-2); box-shadow:0 0 0 1px var(--line); border-radius:999px; padding:3px 10px; }}
+.diff del {{ color:var(--red); text-decoration:line-through; }}
+.diff ins {{ color:var(--green); background:var(--green-bg); text-decoration:none; border-radius:4px; padding:0 2px; }}
+.claim {{ font:400 19px/1.5 var(--display); margin:14px 0 6px; }}
+.claim mark, blockquote mark {{ background:var(--mark); color:inherit; border-radius:4px; padding:0 3px; }}
+.claim mark {{ background:var(--mark-claim); }}
+.cite {{ font-size:13px; color:var(--ink-3); margin:0 0 10px; }}
+.reasons {{ margin:0 0 10px; padding-left:18px; color:var(--ink-2); }}
+.ev {{ margin:10px 0 0; }}
+.ev figcaption {{ font-size:12px; color:var(--ink-3); }}
+.ev .file {{ opacity:.8; }}
+.ev .ocr {{ font-size:.75em; font-weight:600; padding:0 .35em; border-radius:3px; background:var(--amber-bg); color:var(--amber); }}
+blockquote {{ margin:6px 0 0; padding:12px 16px; background:var(--page); border-radius:14px; font-size:14px; color:var(--ink-2); }}
 .s-geprueft {{ --c:var(--green); --cbg:var(--green-bg); }}
 .s-abweichung, .s-quelle_fehlt {{ --c:var(--red); --cbg:var(--red-bg); }}
-.s-falsche_fundstelle, .s-ohne_beleg {{ --c:var(--amber); --cbg:var(--amber-bg); }}
+.s-widerspruch, .s-falsche_fundstelle, .s-ohne_beleg {{ --c:var(--amber); --cbg:var(--amber-bg); }}
 .s-ungeprueft {{ --c:var(--gray); --cbg:var(--gray-bg); }}
-table {{ width:100%; border-collapse:collapse; font-size:13px; }}
-td, th {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }}
-.hash {{ font:12px var(--mono); color:var(--ink-2); }}
+.tablebox {{ background:var(--card); border-radius:24px; box-shadow:0 0 0 1px var(--line); padding:6px 14px; overflow-x:auto; }}
+table {{ width:100%; border-collapse:collapse; font-size:14px; }}
+td, th {{ text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); }}
+tr:last-child td {{ border-bottom:0; }}
+th {{ font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); }}
+.hash {{ font:12px var(--mono); color:var(--ink-3); }}
+.lead {{ color:var(--ink-2); margin:-6px 0 18px; max-width:720px; }}
+.tablebox.flat {{ box-shadow:none; padding:0; margin-top:10px; border-radius:0; background:transparent; }}
+td.num, th.num {{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }}
+tr.sum td {{ font-weight:700; }}
+.pill {{ display:inline-block; font-size:12px; font-weight:500; color:var(--c); background:var(--cbg); border-radius:999px;
+  padding:2px 10px; text-decoration:none; white-space:nowrap; }}
+.pills {{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:13px; color:var(--ink-3); margin:12px 0 0; }}
+.where {{ color:var(--ink-3); font-size:13px; }}
+td .m {{ display:none; }}
+@media (max-width:640px) {{
+  .tablebox.flat .opt {{ display:none; }}
+  td .m {{ display:block; margin-top:4px; }}
+}}
+.review a.ghost {{ background:transparent; color:var(--ink); box-shadow:inset 0 0 0 1px var(--line-2); }}
 .warn {{ color:var(--amber); font-size:13px; }}
-.note {{ font-size:13px; color:var(--ink-2); }}
-@media (max-width:640px) {{ .hash {{ display:none; }} .pl {{ grid-template-columns:18px 1fr auto; }} .pl .nr, .pl .where {{ display:none; }} }}
-@media print {{ .chips {{ display:none; }} .card {{ break-inside:avoid; }} }}
+.note {{ font-size:13px; color:var(--ink-3); margin-top:40px; }}
+.decide {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }}
+.decide .q {{ font-size:13px; color:var(--ink-3); margin-right:4px; }}
+.decide button {{ font:500 13px var(--sans); border:1px solid var(--line-2); background:transparent; color:var(--ink);
+  border-radius:999px; padding:6px 16px; cursor:pointer; }}
+.decide button.on[data-d=ok] {{ background:var(--green); border-color:var(--green); color:var(--card); }}
+.decide button.on[data-d=nein] {{ background:var(--ink); border-color:var(--ink); color:var(--card); }}
+.decide input {{ flex:1 1 200px; min-width:0; font:13px var(--sans); color:var(--ink); background:var(--page);
+  border:1px solid var(--line-2); border-radius:999px; padding:7px 14px; }}
+.card.done {{ opacity:.7; }}
+@media (max-width:640px) {{
+  .summary {{ grid-template-columns:minmax(0,1fr); margin-top:40px; }}
+  .donut {{ width:104px; height:104px; }} .donut span {{ width:76px; height:76px; font-size:24px; }}
+  .hash {{ display:none; }} .pl {{ grid-template-columns:30px 1fr auto; }} .pl .where {{ display:none; }}
+}}
+@media print {{ .chips, .review a, .decide button:not(.on) {{ display:none; }} .card {{ break-inside:avoid; }} }}
 </style>
 </head>
-<body>
+<body class="{mode}">
 <main>
   <div class="top">{logo}
     <div class="meta">Prüfbericht · {stamp}<br>Prüfmodell: {model}</div>
   </div>
-  <h1>{headline}</h1>
-  <p class="sub">{report} · {total} Aussagen gegen {docs_count} Dokumente im Datenraum geprüft.</p>
+  <div class="summary">
+    <div><p class="kicker">{kicker}</p><h1>{headline}</h1>
+    <p class="sub">{sub}</p></div>
+    <div class="donut" aria-hidden="true"><span>{ok_share}<small>geprüft</small></span></div>
+  </div>
   <div class="chips">{chips}</div>
-  <section class="term" aria-label="Prüfprotokoll">
-    <div class="bar">$ zitatio pruefen {report}</div>
+  {keypoints}
+  <div class="review" id="review">
+    <label>Durchgesehen von <input type="text" id="reviewer" placeholder="Name" autocomplete="name"></label>
+    <span id="progress">0 von {total} entschieden</span><span class="bar"><i id="bar"></i></span>
+    <a id="export" href="data:text/csv;charset=utf-8;base64,{csv}" download="{csv_name}">Protokoll exportieren</a>
+    <a class="ghost" href="data:text/csv;charset=utf-8;base64,{disclosure}" download="{disclosure_name}"
+      title="Welche Aussage auf welcher Seite steht, mit Prüfsumme je Dokument: für W&amp;I-Underwriting">Offenlegungskarte</a>
+    <a class="ghost" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{xlsx}"
+      download="{xlsx_name}" title="Aussagen, EBITDA-Brücke, Nettoverschuldung und Closing-Liste mit Formeln">Excel-Mappe</a>
+    {more_downloads}
+  </div>
+  <section class="proto" aria-label="Prüfprotokoll">
+    <div class="head"><p class="kicker">Prüfprotokoll</p><span>{report}</span></div>
     {protocol}
   </section>
-  <h2>Aussagen im Detail</h2>
+  {extra}
+  <h2 class="claims">Aussagen im Detail</h2>
   {cards}
   <h2>Datenraum</h2>
-  <table><thead><tr><th>Index</th><th>Dokument</th><th>Seiten</th><th class="hash">SHA-256</th></tr></thead>
-  <tbody>{docs}</tbody></table>
+  <div class="tablebox"><table><thead><tr><th>Index</th><th>Dokument</th><th>Seiten</th><th class="hash">SHA-256</th></tr></thead>
+  <tbody>{docs}</tbody></table></div>
   {warnings}
+  {gaps}
   <p class="note">„Geprüft“ heisst: Jeder Betrag, jedes Datum, jeder Prozentsatz, jede Frist und jede UID der Aussage
   steht auf der zitierten Seite. Den Sinn einer Aussage bestätigt nur das Prüfmodell, und nur mit einem Zitat,
   das wörtlich in der Quelle steht. Bericht SHA-256 {report_hash}… · Zitatio {version}</p>
 </main>
+<script type="application/json" id="rows">{rows}</script>
 <script>
 document.querySelectorAll('.chip').forEach(function (chip) {{
   chip.addEventListener('click', function () {{
@@ -318,6 +1211,51 @@ document.querySelectorAll('.chip').forEach(function (chip) {{
     }});
   }});
 }});
+
+// Menschliche Durchsicht: Entscheide bleiben in diesem Browser gespeichert und gehen ins CSV.
+(function () {{
+  var KEY = 'zitatio:{key}', data = JSON.parse(document.getElementById('rows').textContent);
+  var state = {{ reviewer: '', d: {{}} }};
+  try {{ state = JSON.parse(localStorage.getItem(KEY)) || state; }} catch (e) {{}}
+  Object.keys(data.carried || {{}}).forEach(function (nr) {{ if (!state.d[nr]) state.d[nr] = data.carried[nr]; }});
+  var who = document.getElementById('reviewer'), link = document.getElementById('export');
+  function save() {{ try {{ localStorage.setItem(KEY, JSON.stringify(state)); }} catch (e) {{}} }}
+  function cell(v) {{ v = String(v == null ? '' : v); return /[;"\\r\\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }}
+  function refresh() {{
+    var done = 0;
+    document.querySelectorAll('.decide').forEach(function (box) {{
+      var d = state.d[box.dataset.nr] || {{}};
+      box.querySelectorAll('button').forEach(function (b) {{ b.classList.toggle('on', b.dataset.d === d.v); }});
+      box.closest('.card').classList.toggle('done', !!d.v);
+      if (d.v) done++;
+    }});
+    var total = data.rows.length;
+    document.getElementById('progress').textContent = done + ' von ' + total + ' entschieden';
+    document.getElementById('bar').style.width = (100 * done / total) + '%';
+    var labels = {{ ok: 'Zugestimmt', nein: 'Widersprochen' }};
+    var lines = [data.columns].concat(data.rows.map(function (r) {{
+      var d = state.d[r[0]] || {{}};
+      return r.slice(0, -3).concat([labels[d.v] || '', d.n || '', d.v || d.n ? state.reviewer : '']);
+    }}));
+    var csv = '\\ufeff' + lines.map(function (r) {{ return r.map(cell).join(';'); }}).join('\\r\\n') + '\\r\\n';
+    link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  }}
+  who.value = state.reviewer || '';
+  who.addEventListener('input', function () {{ state.reviewer = who.value; save(); refresh(); }});
+  document.querySelectorAll('.decide').forEach(function (box) {{
+    var nr = box.dataset.nr, note = box.querySelector('input');
+    note.value = (state.d[nr] || {{}}).n || '';
+    box.querySelectorAll('button').forEach(function (b) {{
+      b.addEventListener('click', function () {{
+        var d = state.d[nr] = state.d[nr] || {{}};
+        d.v = d.v === b.dataset.d ? '' : b.dataset.d;
+        save(); refresh();
+      }});
+    }});
+    note.addEventListener('input', function () {{ (state.d[nr] = state.d[nr] || {{}}).n = note.value; save(); refresh(); }});
+  }});
+  refresh();
+}})();
 </script>
 </body>
 </html>
