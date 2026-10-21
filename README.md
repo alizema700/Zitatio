@@ -58,7 +58,9 @@ pytest
 ## Konventionen
 
 - **Datenraum:** Jeder Dateiname beginnt mit der Indexnummer, z. B. `3.2.1 Mietvertrag Werk Winterthur.pdf`
-  (`03.02.01` gilt als dasselbe wie `3.2.1`). Unterstützt werden PDF (mit Textebene), Word (`.docx`, Seiten über
+  (`03.02.01` gilt als dasselbe wie `3.2.1`). Nummerierte Ordner zählen mit: `02 Finanzen/01 Jahresrechnung.pdf` ist
+  DR 2.1. Dateien ohne Nummer führt Zitatio als DR 0.1, 0.2 … und meldet das. Unterstützt werden PDF (gescannte Seiten
+  per OCR), Word (`.docx`, Seiten über
   manuelle Seitenumbrüche), Excel (`.xlsx`, jedes Tabellenblatt ist eine Seite), `.txt` und `.md`.
   Ein ZIP-Export des virtuellen Datenraums kann direkt angegeben werden (`-d datenraum.zip`), samt Unterordnern.
 - **Bericht:** Word, PDF, Markdown oder Text. In Word werden Überschriften zu Abschnitten und Tabellenzeilen zu Aussagen.
@@ -458,7 +460,7 @@ beispiele/alpenblick/  Fiktiver Datenraum mit DD-Bericht und absichtlich eingeba
 - Zeilen und Jahresspalten werden nur für die oben genannten Grössen erkannt, und nur, wenn der Tabellenkopf die Jahre
   in derselben Anzahl nennt wie die Zeile Werte hat. Sonst bleibt es bei der Prüfung „Wert steht auf der Seite“.
 - Widersprüche werden nur für Tabellenzeilen mit bekannter Grösse und Periode gefunden, nicht in Fliesstext.
-- Die Lückenliste erkennt Unterlagen am Dateinamen, nicht am Inhalt.
+- Die Lückenliste erkennt Unterlagen am Dateinamen und an der ersten Zeile, nicht am ganzen Inhalt.
 - Klauseln, Laufzeiten und Protokoll-Themen werden mit Wortmustern erkannt. Eine ungewöhnlich formulierte Klausel
   fehlt im Register; ein Thema in den Protokollen kann im Bericht mit anderen Worten behandelt sein.
 - Schuldenähnliche Posten sind ein Vorschlag für die Verhandlung, keine abschliessende Liste. Leasing wird aus Rate,

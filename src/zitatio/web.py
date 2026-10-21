@@ -214,7 +214,8 @@ async def check(bericht: UploadFile | None = File(None), datenraum: list[UploadF
     for upload in datenraum:
         if upload.filename:  # leeres Feld, wenn nur Ordner oder nur ZIP gewählt wurde
             data = await _read(upload, used)
-            await run_in_threadpool(room.add, Path(upload.filename).name, data)  # OCR und PDF-Lesen blockieren nicht
+            path = Path(upload.filename)  # beim Hochladen eines Ordners mit Unterordnern
+            await run_in_threadpool(room.add, path.name, data, path.parent.parts[1:])  # OCR blockiert nicht
     if not room.documents:
         raise HTTPException(400, "Der Datenraum enthält keine lesbaren Dokumente.")
     if bericht is not None and bericht.filename:

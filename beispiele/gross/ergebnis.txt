@@ -1,4 +1,4 @@
-Datenraum: 42 Dokumente, 269 Seiten · Bericht: 229 Aussagen · Laufzeit 1.0 s
+Datenraum: 42 Dokumente, 269 Seiten · Bericht: 229 Aussagen · Laufzeit 1.4 s
 Status: 163 Geprüft, 45 Ungeprüft, 12 Abweichung, 4 Ohne Beleg, 3 Falsche Fundstelle, 2 Widerspruch
 
 Eingebaute Fehler gefunden: 16 von 16

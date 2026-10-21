@@ -48,12 +48,18 @@ class Gap:
         return bool(self.documents)
 
 
+def _heading(doc: Document) -> str:
+    """Erste Zeile des Dokuments: Bei "Scan_0012.pdf" sagt erst sie, was es ist."""
+    first = next((line for line in (doc.pages[0] if doc.pages else "").splitlines() if line.strip()), "")
+    return first[:120]
+
+
 def check_gaps(room: DataRoom) -> list[Gap]:
     docs = [d for d in room.documents if d.index]
     gaps = []
     for area, name, rx in EXPECTED:
         pattern = re.compile(rx, re.IGNORECASE)
-        found = [d for d in docs if pattern.search(d.title)]
+        found = [d for d in docs if pattern.search(d.title) or pattern.search(_heading(d))]
         gap = Gap(area, name, found)
         if name.startswith("Jahresrechnungen") and found:
             years = sorted({y for d in found for y in years_in(d.title)})

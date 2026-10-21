@@ -70,7 +70,10 @@ class DataRoom:
                 return doc
         return None
 
-    def add(self, name: str, data: bytes) -> None:
+    def add(self, name: str, data: bytes, folders: tuple[str, ...] = ()) -> None:
+        """Ein Dokument aufnehmen. folders: Ordner des VDR-Exports ("01 Gesellschaft", …), deren Nummern vor die
+        Nummer der Datei kommen: "01 Gesellschaft/02 Statuten.pdf" ist DR 1.2."""
+        name = Path(name).name
         stem, suffix = Path(name).stem, Path(name).suffix.lower()
         if suffix == ".zip":
             self.add_zip(name, data)
@@ -81,8 +84,15 @@ class DataRoom:
         pages = read_pages(data, suffix)
         m = _INDEX_RE.match(stem)
         index, title = (normalize_index(m.group(1)), m.group(2)) if m else (None, stem)
+        # Ordnernummern zählen, Jahreszahlen ("2025 Abschlüsse") nicht
+        prefix = ".".join(normalize_index(f.group(1)) for f in map(_INDEX_RE.match, folders)
+                          if f and all(int(x) < 100 for x in f.group(1).strip(".").split(".")))
+        if index and prefix and not index.startswith(prefix + "."):
+            index = f"{prefix}.{index}"  # die Datei zählt im Ordner: "02 Finanzen/01 …" ist 2.1
         if index is None:
-            self.warnings.append(f"{name}: keine Indexnummer im Dateinamen, nicht zitierbar.")
+            # Ohne Nummer wäre das Dokument für alle Prüfungen unsichtbar; Zitatio nummeriert es unter 0
+            index = f"0.{1 + sum(1 for d in self.documents if d.index and d.index.startswith('0.'))}"
+            self.warnings.append(f"{name}: keine Indexnummer im Dateinamen; Zitatio führt es als DR {index}.")
         elif self.get(index):
             self.warnings.append(f"{name}: Indexnummer {index} doppelt vergeben, übersprungen.")
             return
@@ -129,7 +139,7 @@ class DataRoom:
                 if Path(base).suffix.lower() == ".zip":
                     self.warnings.append(f"{inner}: verschachteltes ZIP, übersprungen.")
                     continue
-                self.add(base, archive.read(info))
+                self.add(base, archive.read(info), Path(inner).parent.parts)
 
     @classmethod
     def from_folder(cls, folder: str | Path) -> "DataRoom":
@@ -139,7 +149,7 @@ class DataRoom:
             return room
         for path in sorted(Path(folder).rglob("*")):
             if path.is_file() and not path.name.startswith("."):
-                room.add(path.name, path.read_bytes())
+                room.add(path.name, path.read_bytes(), path.relative_to(folder).parent.parts)
         return room
 
 
